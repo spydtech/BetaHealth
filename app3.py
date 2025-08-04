@@ -3297,4 +3297,5 @@ if __name__ == '__main__':
     update_orders_schema()
     # ----------------------------------------
     # app.run(host='192.168.1.3',port=3000,debug=True)
-    app.run(debug=True)
+    # app.run(debug=True)
+    app.run(host='82.29.161.78',port=5000,debug=True)
