@@ -44,10 +44,10 @@ def get_db_connection():
     """Establishes a connection to the MySQL database."""
     try:
         conn = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="naveen99",
-            database="spy-d" # !!! IMPORTANT: Changed to 'spy-d' for consistency with your app3.py
+            host="153.92.15.84",
+            user="u861150102_spyd",
+            password="Spyd@2025",
+            database="u861150102_metahealth" # !!! IMPORTANT: Changed to 'spy-d' for consistency with your app3.py
         )
         print("✅ Connecting to database: spy-d")
         return conn
@@ -3298,4 +3298,4 @@ if __name__ == '__main__':
     # ----------------------------------------
     # app.run(host='192.168.1.3',port=3000,debug=True)
     # app.run(debug=True)
-    app.run(host='82.29.161.78',port=5000,debug=True)
+    app.run(host='153.92.15.84',port=5000,debug=True)
