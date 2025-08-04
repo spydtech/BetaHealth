@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Edit Product</title>
+
+  <!-- Bootstrap & FontAwesome -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
+
+  <!-- Custom Seller Dashboard Styles -->
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 0;
+    }
+
+    .seller-navbar {
+      background: #2c3e50;
+      border-bottom: 1px solid #1a252f;
+      padding: 10px 0;
+      height: 150px;
+    }
+
+    .seller-navbar-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 30px;
+    }
+
+    .seller-navbar-logo img {
+      width: 100px;
+      height: auto;
+      padding: 5px;
+    }
+
+    .seller-navbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .seller-navbar-actions a,
+    .seller-navbar-actions span {
+      color: #fff;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 4px;
+    }
+
+    .role-badge {
+      background-color: #f39c12;
+      color: #2c3e50;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-left: 8px;
+    }
+
+    footer {
+      background: #0d3056;
+      color: white;
+      font-size: 14px;
+      border-top: 2px solid white;
+      margin-top: 60px;
+      padding-top: 20px;
+    }
+
+    footer a {
+      color: rgb(11, 228, 228);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      color: lightblue;
+    }
+
+    .social a img {
+      filter: brightness(100%);
+      transition: transform 0.2s ease;
+    }
+
+    .social a:hover img {
+      transform: scale(1.1);
+    }
+
+    .footer__copyright {
+      border-top: 1px solid #444;
+      padding: 10px 0;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .policies {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .policies li {
+      display: inline;
+      margin: 0 8px;
+    }
+
+    .btn-primary {
+      background-color: #ffb902;
+      color: #0d3056;
+      border-color: #ffb902;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      background-color: #e1a800;
+    }
+
+    .alert-container {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1050;
+      width: 90%;
+      max-width: 500px;
+    }
+
+    .header-image {
+      max-height: 50px;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar seller-navbar">
+  <div class="seller-navbar-top">
+    <div class="seller-navbar-logo">
+      <a href="/"><img src="{{ url_for('static', filename='images/logo.jpg') }}" class="header-image" alt="Logo"/></a>
+    </div>
+    <div class="seller-navbar-actions">
+      <span>
+        Hi, <strong>{{ session.get('user_name', 'Seller') }}</strong>
+        <span class="role-badge">SELLER</span>
+      </span>
+      <a href="{{ url_for('seller_dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+  </div>
+</nav>
+
+<!-- FLASH MESSAGES -->
+<div class="alert-container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+</div>
+
+
+<div class="container mt-5 mb-5">
+    <h2 class="mb-4">Edit Product</h2>
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data">
+                <div class="row">
+                    <div class="col-md-6">
+                        <!-- Product Title -->
+                        <div class="mb-3">
+                            <label class="form-label">Product Name*</label>
+                            <input type="text" class="form-control" name="title" value="{{ product.title }}" required>
+                        </div>
+
+                        <!-- Price -->
+                        <div class="mb-3">
+                            <label class="form-label">Price (₹)*</label>
+                            <input type="number" step="0.01" min="0" class="form-control" name="price" value="{{ product.price }}" required>
+                        </div>
+
+                        <!-- Discount -->
+                        <div class="mb-3">
+                            <label class="form-label">Discount (%)</label>
+                            <input type="number" step="0.01" min="0" max="100" class="form-control" name="discount" value="{{ product.discount }}">
+                        </div>
+
+                        <!-- Compare Price -->
+                        <div class="mb-3">
+                            <label class="form-label">Compare Price (₹)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" name="compare_price" value="{{ product.compare_price }}">
+                        </div>
+
+                        <!-- Stock -->
+                        <div class="mb-3">
+                            <label class="form-label">Stock Quantity*</label>
+                            <input type="number" class="form-control" name="stock_quantity" value="{{ product.stock_quantity }}" min="0" required>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <!-- Category -->
+                        <div class="mb-3">
+                            <label class="form-label">Category*</label>
+                            <select class="form-select" name="category" id="category" required>
+                                <option value="">Select Category</option>
+                                <option value="food-and-health" {% if product.category == 'food-and-health' %}selected{% endif %}>Food and Health</option>
+                                <option value="shop-by-care" {% if product.category == 'shop-by-care' %}selected{% endif %}>Shop by Care</option>
+                                <option value="shop-by-concern" {% if product.category == 'shop-by-concern' %}selected{% endif %}>Shop by Concern</option>
+                                <option value="kids-special" {% if product.category == 'kids-special' %}selected{% endif %}>Kids Special</option>
+                                <option value="hair-care" {% if product.category == 'hair-care' %}selected{% endif %}>Hair Care</option>
+                                <option value="skin-care" {% if product.category == 'skin-care' %}selected{% endif %}>Skin Care</option>
+                                <option value="weight-management" {% if product.category == 'weight-management' %}selected{% endif %}>Weight Management</option>
+                                <option value="tea-blends" {% if product.category == 'tea-blends' %}selected{% endif %}>Tea Blends</option>
+                            </select>
+                        </div>
+
+                        <!-- Subcategory -->
+                        <div class="mb-3" id="subcategory-wrapper" style="display: none;">
+                            <label class="form-label">Sub Category</label>
+                            <select class="form-select" name="sub_category" id="sub_category">
+                                <option value="">Select Subcategory</option>
+                            </select>
+                        </div>
+
+                        <!-- Image -->
+                        <div class="mb-3">
+                            <label class="form-label">Product Image</label>
+                            <input type="file" class="form-control" name="image" accept="image/*">
+                            <small class="text-muted">Allowed formats: JPG, PNG, GIF</small>
+                            {% if product.image %}
+                                <img src="{{ url_for('static', filename='images/' ~ product.image) }}" alt="Product Image" width="100" class="mt-2">
+                            {% endif %}
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label class="form-label">Description*</label>
+                            <textarea class="form-control" name="description" rows="3" required>{{ product.description }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tags -->
+                <div class="mb-3">
+                    <label class="form-label">Tags (comma separated)</label>
+                    <input type="text" class="form-control" name="tags" value="{{ product.tags | join(', ') }}" placeholder="e.g., organic, vegan, gluten-free">
+                </div>
+
+                <!-- Benefits -->
+                <div class="mb-3">
+                    <label class="form-label">Benefits (comma separated)</label>
+                    <input type="text" class="form-control" name="benefits" value="{{ product.benefits | join(', ') }}" placeholder="e.g., improves digestion, boosts immunity">
+                </div>
+
+                <button type="submit" class="btn btn-primary">Update Product</button>
+                <a href="{{ url_for('seller_dashboard') }}" class="btn btn-secondary ms-2">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+<footer>
+  <div class="container text-center">
+    <h5>Subscribe to our channels</h5>
+    <hr />
+    <div class="social d-flex justify-content-center gap-3 mb-3">
+      <a href="https://instagram.com/aarogyanutrimix">
+        <img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" width="24" alt="Instagram">
+      </a>
+      <a href="https://www.youtube.com/@AarogyaNutriMix">
+        <img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" width="24" alt="YouTube">
+      </a>
+    </div>
+
+    <div class="footer__copyright">
+      <small>© 2025, <a href="/">Aarogya Nutri Mix</a></small>
+      <ul class="policies">
+        <li><a href="#">Refund Policy</a></li>
+        <li><a href="#">Privacy Policy</a></li>
+        <li><a href="#">Terms of Service</a></li>
+        <li><a href="#">Shipping Policy</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Subcategory JavaScript -->
+<script>
+    const categoryMap = {
+        "food-and-health": [
+            "Milk Malts",
+            "Amla-Human-Sanjeevani",
+            "Sprouted Flours",
+            "Cooking Essentials",
+            "Kaaram Podis",
+            "Basic Health"
+        ],
+        "shop-by-care": [
+            "Pregnancy Care",
+            "Diabetic Care",
+            "Baby Care"
+        ],
+        "shop-by-concern": [
+            "Iron Deficiency",
+            "B-Complex Deficiency",
+            "Irregular Periods",
+            "Constipation",
+            "Bones Strength",
+            "Immunity Booster",
+            "Cold and Cough"
+        ],
+        "kids-special": [],
+        "hair-care": [],
+        "skin-care": [],
+        "weight-management": [],
+        "tea-blends": []
+    };
+
+    // Simple slugify function
+    function slugify(text) {
+        return text.toLowerCase()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/--+/g, '-')
+            .trim();
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const categorySelect = document.getElementById("category");
+        const subcategorySelect = document.getElementById("sub_category");
+        const subcategoryWrapper = document.getElementById("subcategory-wrapper");
+        const currentCategory = categorySelect.value;
+        const currentSubCategory = "{{ product.sub_category or '' }}";
+
+        function populateSubcategories(category, selected = "") {
+            const subcategories = categoryMap[category] || [];
+            subcategorySelect.innerHTML = '<option value="">Select Subcategory</option>';
+            if (subcategories.length > 0) {
+                subcategoryWrapper.style.display = 'block';
+                subcategories.forEach(sub => {
+                    const option = document.createElement("option");
+                    option.value = slugify(sub);
+                    option.textContent = sub;
+                    if (slugify(sub) === selected) {
+                        option.selected = true;
+                    }
+                    subcategorySelect.appendChild(option);
+                });
+            } else {
+                subcategoryWrapper.style.display = 'none';
+            }
+        }
+
+        if (currentCategory) {
+            populateSubcategories(currentCategory, currentSubCategory);
+        }
+
+        categorySelect.addEventListener("change", function () {
+            populateSubcategories(this.value);
+        });
+    });
+    setTimeout(() => {
+    document.querySelectorAll('.alert').forEach(el => new bootstrap.Alert(el).close());
+  }, 5000);
+</script>
+
+</body>
+</html>

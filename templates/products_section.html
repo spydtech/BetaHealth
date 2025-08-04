@@ -1,0 +1,75 @@
+{% extends 'admin_dashboard.html' %}
+{% block content %}
+<!-- <div id="products-section" class="content-section {% if active_section == 'products' %}active{% endif %}"> -->
+    <h2 class="mb-4"><i class="fas fa-boxes me-2"></i>Product Approvals</h2>
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <label class="form-label">Filter by Stock:</label>
+            <select class="form-select" id="stockFilter">
+                <option value="all">All Products</option>
+                <option value="in_stock">In Stock Only</option>
+                <option value="out_of_stock">Out of Stock</option>
+                <option value="low_stock">Low Stock (<5)</option>
+            </select>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Product ID</th>
+                    <th>Product Name</th>
+                    <th>Seller Name</th>
+                    <th>Price</th>
+                    <th>Compare Price</th>
+                    <th>Discount</th>
+                    <th>Stock</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr class="{% if product.stock_quantity < 5 and product.stock_quantity > 0 %}table-warning{% elif product.stock_quantity <= 0 %}table-danger{% endif %}">
+                    <td>{{ product.id }}</td>
+                    <td>{{ product.title }}</td>
+                    <td>{{ product.seller_name or 'N/A' }}</td>
+                    <td>₹{{ "%.2f"|format(product.price) }}</td>
+                    <td>₹{{ "%.2f"|format(product.compare_price or product.price) }}</td>
+                    <td>{{ "%.0f"|format(product.discount or 0) }}%</td>
+                    <td>
+                        {% if product.stock_quantity > 0 %}
+                            {{ product.stock_quantity }}
+                        {% else %}
+                            <span class="text-danger">OUT</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-{% if product.status == 'approved' %}success{% elif product.status == 'rejected' %}danger{% else %}warning{% endif %}">
+                            {{ product.status|title }}
+                        </span>
+                        {% if product.rejection_reason %}
+                            <br><small class="text-muted">{{ product.rejection_reason }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if product.status == 'pending' %}
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-success approve-btn" data-product-id="{{ product.id }}">
+                                Approve
+                            </button>
+                            <button class="btn btn-sm btn-danger reject-btn" data-product-id="{{ product.id }}">
+                                Reject
+                            </button>
+                        </div>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,13 @@
+Payment Received for Order
+
+Order #{{ order.id }}
+Order Date: {{ order.order_date.strftime('%B %d, %Y %I:%M %p') }}
+Total Amount: ₹{{ "%.2f"|format(order.total_amount) }}
+
+YOUR PRODUCTS IN THIS ORDER
+============================
+{% for item in items %}
+{{ item.title }} - Qty: {{ item.quantity }} - ₹{{ "%.2f"|format(item.price) }} - Subtotal: ₹{{ "%.2f"|format(item.price * item.quantity) }}
+{% endfor %}
+
+Please prepare these items for shipping. The customer will be notified when you mark the order as shipped.

@@ -1,0 +1,21 @@
+Your order has shipped!
+
+Order #{{ order.id }}
+
+TRACKING INFORMATION
+====================
+Tracking Number: {{ tracking_number }}
+
+SHIPPING ADDRESS
+================
+{{ order.name }}
+{{ order.shipping_address }}
+{{ order.shipping_city }}, {{ order.shipping_state }} {{ order.shipping_pincode }}
+
+ITEMS SHIPPED
+=============
+{% for item in items %}
+{{ item.title }} - Qty: {{ item.quantity }}
+{% endfor %}
+
+Thank you for shopping with us!

@@ -1,0 +1,16 @@
+Thank you for your order!
+
+Order #{{ order.id }}
+Order Date: {{ order.order_date.strftime('%B %d, %Y %I:%M %p') }}
+
+ORDER SUMMARY
+=============
+{% for item in items %}
+{{ item.title }} - Qty: {{ item.quantity }} - ₹{{ "%.2f"|format(item.price) }}
+{% endfor %}
+
+Total: ₹{{ "%.2f"|format(order.total_amount) }}
+
+We'll notify you when your order ships. If you have any questions, please contact our support team.
+
+Thank you for shopping with us!

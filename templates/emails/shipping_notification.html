@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Your Order Has Shipped</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f8f9fa; padding: 15px; text-align: center; }
+        .order-details { margin: 20px 0; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+        .tracking { background-color: #e9f7fe; padding: 15px; margin: 20px 0; }
+        .footer { margin-top: 20px; font-size: 0.9em; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Your order has shipped!</h2>
+            <p>Order #{{ order.id }}</p>
+        </div>
+        
+        <div class="tracking">
+            <h3>Tracking Information</h3>
+            <p>Tracking Number: <strong>{{ tracking_number }}</strong></p>
+        </div>
+        
+        <div class="order-details">
+            <h3>Shipping Address</h3>
+            <p>
+                {{ order.name }}<br>
+                {{ order.shipping_address }}<br>
+                {{ order.shipping_city }}, {{ order.shipping_state }} {{ order.shipping_pincode }}
+            </p>
+            
+            <h3>Items Shipped</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Qty</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>{{ item.title }}</td>
+                        <td>{{ item.quantity }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="footer">
+            <p>Thank you for shopping with us!</p>
+        </div>
+    </div>
+</body>
+</html>

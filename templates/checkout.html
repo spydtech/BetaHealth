@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4>Shipping Information</h4>
+                </div>
+                <div class="card-body">
+                    <form id="checkoutForm" method="POST" action="{{ url_for('checkout') }}">
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" class="form-control" name="full_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Address</label>
+                            <textarea class="form-control" name="shipping_address" rows="3" required></textarea>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">City</label>
+                                <input type="text" class="form-control" name="city" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">State</label>
+                                <input type="text" class="form-control" name="state" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Pincode</label>
+                                <input type="text" class="form-control" name="pincode" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Phone</label>
+                                <input type="tel" class="form-control" name="phone" required>
+                            </div>
+                        </div>
+                        <input type="hidden" name="total_amount" value="{{ total_price }}">
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4>Order Summary</h4>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tbody>
+                            {% for item in cart_items %}
+                            <tr>
+                                <td>{{ item.title }} (x{{ item.quantity }})</td>
+                                <td class="text-end">₹{{ "%.2f"|format(item.price * item.quantity) }}</td>
+                            </tr>
+                            {% endfor %}
+                            <tr class="table-active">
+                                <th>Total</th>
+                                <th class="text-end">₹{{ "%.2f"|format(total_price) }}</th>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <button type="submit" form="checkoutForm" class="btn btn-primary w-100">
+                        Proceed to Payment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if razorpay_order_id %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    var options = {
+        "key": "{{ razorpay_key }}",
+        "amount": "{{ total_amount * 100|int }}", 
+        "currency": "INR",
+        "name": "Your Store Name",
+        "description": "Order Payment",
+        "order_id": "{{ razorpay_order_id }}",
+        "handler": function (response){
+            fetch('/payment-success', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_signature: response.razorpay_signature
+                })
+            }).then(res => res.json())
+              .then(data => {
+                  if(data.status === 'success') {
+                      window.location.href = "/order-confirmation/" + data.order_id;
+                  } else {
+                      alert('Payment verification failed');
+                  }
+              });
+        },
+        "prefill": {
+            "name": "{{ request.form.get('full_name', '') }}",
+            "email": "{{ session.get('user_email', '') }}",
+            "contact": "{{ request.form.get('phone', '') }}"
+        },
+        "theme": {
+            "color": "#3399cc"
+        }
+    };
+    
+    // Auto-open Razorpay when returning from checkout POST
+    document.addEventListener('DOMContentLoaded', function() {
+        var rzp = new Razorpay(options);
+        rzp.open();
+        
+        rzp.on('payment.failed', function(response){
+            alert('Payment failed. Please try again.');
+            window.location.href = "/cart";
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
+    <link href="{{ url_for('static',filename='css/slider.css')}}" rel="stylesheet">
+    <link href="{{ url_for('static',filename='css/best.css')}}" rel="stylesheet">
+    <link rel="manifest" href="static/favicon/site.webmanifest">
+    <link rel="shortcut icon" href="static/favicon_io/favicon.ico" type="image/x-icon">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+   <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        color:#007bff ;
+      }
+     
+
+      body {
+        font-family: sans-serif;
+      }
+      
+
+      h1{
+        text-align: center;
+        margin-top: 20px;
+        margin-bottom: 20px;
+        text-decoration-line: underline;
+      }
+      .admin-navbar {
+            background: #2c3e50 !important;
+            border-bottom: 1px solid #1a252f;
+        }
+        .seller-navbar {
+            background: #3498db !important;
+            border-bottom: 1px solid #2980b9;
+        }
+        .role-badge {
+            font-size: 0.7rem;
+            vertical-align: super;
+            margin-left: 5px;
+        }
+        .dashboard-link {
+            font-weight: 600;
+            border-left: 3px solid transparent;
+            padding-left: 10px;
+        }
+        .admin-dashboard-link {
+            background: rgba(255, 185, 2, 0.2);
+            color: #ffb902ff;
+        }
+        .seller-dashboard-link {
+            background: rgba(52, 152, 219, 0.2);
+            color: #d6eaf8;
+        }
+        .dashboard-link.active {
+            border-left-color: #ffb902ff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .dashboard-container {
+            min-height: calc(100vh - 120px);
+        }
+        
+        /* Hide regular nav on dashboards */
+        .dashboard-navbar .navbar-menu {
+            display: none !important;
+        }
+        
+        /* Adjust alert position for dashboards */
+        .dashboard-alert {
+            top: 80px !important;
+        }
+        .admin-sidebar {
+        min-height: 100vh;
+        background: #343a40;
+    }
+    .admin-sidebar .nav-link {
+        color: rgba(255, 255, 255, 0.75);
+        padding: 0.75rem 1rem;
+        border-radius: 0.25rem;
+        margin-bottom: 0.25rem;
+    }
+    .admin-sidebar .nav-link:hover {
+        color: white;
+        background: rgba(255, 255, 255, 0.1);
+    }
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.075);
+    }
+
+      /* MODIFIED: Navbar container for width control */
+      .navbar-container {
+        max-width: 100%; /* Adjust this value to control navbar width */
+        margin: 0 auto;
+        background: #c5f0b8;
+        border-radius: 0 0 8px 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+
+      .navbar {
+        background: #c5f0b8;
+        border-bottom: 1px solid #ccc;
+        position: relative;
+        z-index: 100;
+        /* MODIFIED: Remove background and add width control */
+        background: transparent;
+        border-radius: 0 0 8px 8px;
+      }
+
+      /* --- Fixed Mobile Navbar Styles --- */
+      .navbar-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 15px;
+        min-height: 60px;
+      }
+
+      .navbar-logo {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        padding: 0 20px;
+      }
+
+      .navbar-logo a {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #333;
+        text-decoration: none;
+      }
+
+      .navbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding-left: 20px;
+      }
+
+      .navbar-actions a {
+        font-weight: bold;
+        text-decoration: none;
+        color: #333;
+        white-space: nowrap;
+        padding: 8px 12px;
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
+      }
+
+      .navbar-actions a:hover {
+        background-color: #f8f9fa;
+        color: #007bff;
+      }
+
+      .navbar-toggle {
+        display: block;
+        background: none;
+        border: none;
+        font-size: 1.8rem;
+        cursor: pointer;
+        padding: 8px;
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        margin-right: 10px; 
+        z-index: 20; 
+        
+        color: #333; /* Dark color for better visibility */
+        background: transparent;
+        border: 1px solid #ddd; /* Optional border */
+        border-radius: 4px;
+
+        transition: background-color 0.2s ease;
+      }
+
+      .navbar-toggle:hover {
+        background-color: #f8f9fa;
+        background-color: #f5f5f5;
+        transform: scale(1.05);
+        transition: all 0.2s ease;
+      }
+
+      .navbar-menu {
+        position: fixed;
+        top: 0;
+        left: -320px;
+        width: 320px;
+        height: 100%;
+        background: #fff;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+        transition: left 0.4s ease;
+        overflow-y: auto;
+        z-index: 90;
+      }
+
+      .navbar-menu.active {
+        left: 0;
+      }
+
+      .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: #fff;
+        font-size: 1.8rem;
+        cursor: pointer;
+        color: #333;
+        background: none;
+        border: none;
+        padding: 5px;
+        min-width: 44px;
+        min-height: 44px;
+        
+         box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+         transition: left 0.4s ease;
+        overflow-y: auto;
+        line-height: 1;
+        z-index: 20;
+        border-radius: 4px;
+      }
+
+      .close-btn:hover {
+        color: #007bff;
+        
+        background-color: #f8f9fa;
+        background-color: #f5f5f5;
+        transform: scale(1.05);
+        transition: all 0.2s ease;
+      }
+      
+
+      .mobile-navbar-header {
+        background: #fff;
+        border-bottom: 1px solid #ccc;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .mobile-navbar-logo a {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: #333;
+        text-decoration: none;
+      }
+
+      .mobile-navbar-actions {
+        display: flex;
+        gap: 15px;
+      }
+
+      .mobile-navbar-actions a {
+        font-weight: bold;
+        text-decoration: none;
+        color: #333;
+        font-size: 14px;
+      }
+
+      .mobile-navbar-actions a:hover {
+        color: #007bff;
+      }
+
+      .mobile-nav-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .mobile-nav-list li {
+        list-style: none;
+        border-bottom: 1px solid #eee;
+      }
+
+      .mobile-nav-list > li > a {
+        display: block;
+        padding: 15px 20px;
+        text-decoration: none;
+        color: #333;
+        font-weight: 500;
+      }
+
+      .mobile-nav-list a:hover {
+        background: #f8f9fa;
+        color: #007bff;
+      }
+
+      .dropdown {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s ease;
+        background: #f8f9fa;
+      }
+
+      .has-dropdown.open .dropdown {
+        max-height: 600px;
+      }
+
+      .dropdown li { 
+        border-bottom: 1px solid #e9ecef; 
+      }
+
+      .dropdown li:last-child { 
+        border-bottom: none; 
+      }
+
+      .dropdown a {
+        padding: 12px 15px;
+        font-size: 12px;
+        color: #555;
+        display: block;
+        text-decoration: none;
+      }
+
+      .mobile-divider {
+        height: 1px;
+        background: #ddd;
+        margin: 10px 0;
+        border: none;
+      }
+
+      .dropdown-toggle::after {
+        content: '⮟';
+        float: right;
+        font-size: 18px;
+        transition: transform 0.3s ease;
+        text-decoration: none !important;
+        border-top: none !important;
+      }
+
+      .has-dropdown.open .dropdown-toggle::after {
+        transform: rotate(-180deg);
+      }
+
+      .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.4s ease;
+        z-index: 5;
+      }
+
+      .overlay.active {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .header-image {
+        width: 160px;
+        height: auto; 
+        padding: 5px;
+        display: block;
+      }
+      
+      /* Cart badge styling */
+      .cart-badge {
+        background-color: #dc3545;
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 12px;
+        margin-left: 4px;
+        min-width: 18px;
+        text-align: center;
+      }
+
+      /* Search bar styling */
+      .search-form {
+          display: flex;
+          align-items: center;
+          margin-left: 20px; /* Adjust as needed for spacing */
+          flex-grow: 1; /* Allow it to take available space */
+           /* Limit width on larger screens */
+          min-width: 200px;
+          /* MODIFIED: Limit search form max width */
+          max-width: 500px;
+      }
+
+      .search-input {
+          border: 1px solid #ced4da;
+          border-radius: 0.25rem;
+          padding: 0.375rem 0.75rem;
+          font-size: 1rem;
+          line-height: 1.5;
+          color: #495057;
+          background-color: #fff;
+          background-clip: padding-box;
+          transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+          width: 100%; /* Take full width of its container */
+      }
+
+      .search-input:focus {
+          border-color: #80bdff;
+          outline: 0;
+          box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+      }
+
+      .search-button {
+          background-color: #28a745;
+          color: white;
+          border: 1px solid darkgreen;
+          border-radius: 0.25rem;
+          padding: 0.375rem 0.75rem;
+          margin-left: 5px;
+          cursor: pointer;
+          
+          transition: background-color 0.2s ease, border-color 0.2s ease;
+      }
+
+      .search-button:hover {
+          background-color: #ffb902ff;
+          border-color: rgb(216, 158, 11);
+      }
+        .btn-primary {
+              background-color:#ffb902ff;
+              color: #0d3056ff;
+              border-color: #ffb902ff;
+              font-weight: 600;
+              padding: 8px 20px;
+              border-radius: 5px;
+              transition: background-color 0.2s ease;
+          }
+
+          .btn:hover {
+              background-color: #ffb902ff;
+              border-color: rgb(231, 167, 6);
+          }
+
+
+      /* --- Styles for Tablet and Desktop --- */
+      @media (min-width: 700px) {
+        .navbar-toggle {
+          display: none;
+        }
+        
+        .navbar-top {
+          display: grid;
+          grid-template-columns: 1fr auto 1fr; 
+          align-items: center;
+          width: 100%;
+          /* MODIFIED: Reduced padding */
+          padding: 0px 20px;
+        }
+
+        .navbar-logo {
+          grid-column: 1;
+          justify-self: center;
+          padding: 0 10px;
+        }
+        
+        .navbar-actions {
+          grid-column: 3;
+          justify-self: end;
+          display: flex;
+          align-items: center;
+          /* MODIFIED: Reduced gap and padding */
+          gap: 15px;
+          padding-left: 15px;
+        }
+
+        /* Adjust search form for desktop */
+        .search-form {
+            grid-column: 2; /* Place it in the first column */
+            justify-self: start; /* Align to the start */
+            margin-left: 0; /* Reset margin */
+            max-width: 600px; /* MODIFIED: Smaller max-width for desktop */
+            min-width: 300px;
+        }
+        
+        .header-image {
+          /* MODIFIED: Slightly smaller logo */
+          width: 160px;
+          height: auto;
+          margin: 0;
+          padding: 5px 0;
+        }
+        
+        .navbar-menu {
+          position: static;
+          width: 100%;
+          height: auto;
+          left: 0 !important;
+          padding: 0;
+          box-shadow: none;
+          display: flex !important;
+          flex-direction: row;
+          justify-content: center;
+          background: transparent;
+          overflow: visible;
+          flex-wrap: wrap;
+        }
+
+        .mobile-navbar-header { 
+          display: none; 
+        }
+
+        .mobile-nav-list { 
+          display: flex; 
+          flex-direction: row; 
+          width: auto; 
+          flex-wrap: wrap; 
+          justify-content: center;
+        }
+
+        .mobile-nav-list > li { 
+          position: relative; 
+          border-bottom: none; 
+        }
+
+        .mobile-nav-list > li > a { 
+          /* MODIFIED: Reduced padding */
+          padding: 12px 15px; 
+          font-weight: normal; 
+          text-decoration: none !important; 
+        }
+
+        .close-btn, .overlay { 
+          display: none !important; 
+        }
+        
+        .dropdown {
+          position: absolute;
+          background: #fff;
+          max-height: none;
+          overflow: visible;
+          display: none;
+          min-width: 200px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          border: 1px solid #eee;
+          z-index: 1000;
+          top: 100%;
+          left: 0;
+        }
+
+        .has-dropdown:hover .dropdown { 
+          display: block; 
+        }
+
+        .dropdown li { 
+          border-bottom: 1px solid #eee; 
+        }
+
+        .dropdown li:last-child { 
+          border-bottom: none; 
+        }
+
+        .dropdown a {
+          padding: 12px 15px;
+          font-size: 14px;
+          color: #333;
+          white-space: nowrap;
+        }
+
+        .dropdown a:hover { 
+          background: #f8f9fa; 
+          color: #007bff; 
+        }
+
+        .dropdown-toggle::after {
+          font-size: 12px;
+          margin-left: 5px;
+          transform: none;
+        }
+      }
+        /* Additional responsive breakpoints for even larger screens */
+        @media (min-width: 1200px) {
+            .search-form {
+                max-width: 700px; /* Even larger on big screens */
+                min-width: 400px;
+            }
+        }
+
+        @media (min-width: 1600px) {
+            .search-form {
+                max-width: 800px; /* Maximum width for very large screens */
+                min-width: 500px;
+            }
+        }
+      @media (max-width: 699px) {
+        .navbar-top {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: center;
+          padding: 10px 15px;
+        }
+        
+        .navbar-toggle {
+          grid-column: 1;
+        }
+        
+        .navbar-logo {
+          grid-column: 2;
+          justify-self: center;
+        }
+        
+        .navbar-actions {
+          grid-column: 3;
+          justify-self: end;
+        }
+
+        /* Adjust search form for mobile */
+        .search-form {
+            order: 4; /* Place it below other elements in the grid */
+            grid-column: 1 / -1; /* Span full width */
+            margin-top: 10px; /* Add some space from elements above */
+            margin-left: 0; /* Reset margin */
+            padding: 0 15px; /* Add padding to match navbar-top */
+            max-width: none; /* Full width on mobile */
+        }
+      }
+
+      /* Small mobile devices */
+      @media (max-width: 480px) {
+        .navbar-top {
+          padding: 8px 10px;
+        }
+        
+        .navbar-logo {
+          padding: 0 10px;
+        }
+        
+        .navbar-actions {
+          gap: 10px;
+          padding-left: 10px;
+        }
+        
+        .navbar-actions a {
+          padding: 6px 8px;
+          font-size: 14px;
+        }
+        
+        .header-image {
+          width: 140px;
+        }
+      }
+
+      /* Very small devices */
+      @media (max-width: 360px) {
+        .navbar-top {
+          padding: 5px 8px;
+        }
+        
+        .navbar-logo {
+          padding: 0 8px;
+        }
+        
+        .navbar-actions {
+          gap: 8px;
+          padding-left: 8px;
+        }
+        
+        .navbar-actions a {
+          padding: 5px 6px;
+          font-size: 13px;
+        }
+        
+        .header-image {
+          width: 120px;
+        }
+        
+        .navbar-toggle {
+          font-size: 1.5rem;
+          min-width: 40px;
+          min-height: 40px;
+        }
+      }
+
+      footer { 
+        background: #0d3056ff; 
+        color: black; 
+        font-size: 14px; 
+        border-top: 2px solid white;
+      }
+
+      footer a { 
+        color:rgb(11, 228, 228); 
+        text-decoration: none; 
+      }
+
+      footer a:hover { 
+        color: lightblue; 
+      }
+
+      .footer__copyright { 
+        border-top: 1px solid #444; 
+        padding: 10px 0; 
+        font-size: 13px; 
+        text-align: center; 
+      }
+
+      .policies li { 
+        display: inline-flex; 
+        justify-content: center; 
+        align-items: center; 
+      }
+
+      .policies li::before { 
+        content: "\b7"; 
+        padding: 0.8rem; 
+      }
+
+      @media screen and (max-width: 699px) {
+        .list-social { 
+          justify-content: center; 
+        }
+      }
+      .srp{
+        color: #007bff;
+
+      }
+
+      .social{ 
+      margin-bottom: 20px;
+         
+        
+      }
+      .bgc{
+        padding-top: 10px;
+        padding-bottom: 5px;
+        background-color: #0d3056ff;
+      }
+      /* Added for flash messages */
+      .alert-container {
+          position: fixed;
+          top: 10px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 1050; /* Above navbar */
+          width: 90%;
+          max-width: 500px;
+      }
+</style>
+</head>
+<body>
+
+<!-- MODIFIED: Wrapped navbar in container for width control -->
+<div class="navbar-container">
+<nav class="navbar">
+   <div class="navbar-top">
+    <button class="navbar-toggle">☰</button>
+    <div class="navbar-logo">
+      <a href="/"><img src="{{ url_for('static', filename='images/logo5.png') }}" class="header-image" alt="Company Logo" ></a>
+    </div>
+    <!-- Search Form -->
+     
+    <form class="search-form" action="{{ url_for('search') }}" method="get">
+        <input type="search" name="query" placeholder="Search products..." class="search-input" value="{{ request.args.get('query', '') }}">
+        <button type="submit" class="search-button">Search</button>
+    </form>
+      
+    <div class="navbar-actions">
+      
+      
+     {% if session.get('user_id') %}
+        <span class="username" style="margin-right: 10px;">Hi, <span class="srp">{{session.get('user_name') }}</span> 👋</span>
+        <a href="{{ url_for('logout') }}">Logout</a>
+    {% else %}
+        <div class="dropdown">
+            <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="loginDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                Login
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="loginDropdown">
+                <li><a class="dropdown-item" href="{{ url_for('login') }}">Customer Login</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('seller_login') }}">Seller Login</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('admin_login') }}">Admin Login</a></li>
+            </ul>
+        </div>
+    {% endif %}
+       
+        <a href="/cart" class="nav-link">
+    <i class="fas fa-shopping-cart"></i>
+    <span class="badge bg-secondary" id="cart-count">
+        {{ cart_length if cart_length is not none else 0 }}
+    </span>
+</a>
+    </div>
+  </div>
+
+  
+  <div class="navbar-menu">
+    <span class="close-btn" style="padding: 20px;">×</span>
+    
+    <div class="mobile-navbar-header">
+      <div class="mobile-navbar-logo">
+        <a href="/"><img src="{{ url_for('static', filename='images/logo5.png') }}" class="header-image" alt="Company Logo"></a>
+      </div>
+    </div>
+    
+    <ul class="mobile-nav-list">
+      <li><a href="/">Home</a></li>
+      <li><a href="{{url_for('all_products_page')}}">All Products</a></li>
+      <li class="has-dropdown">
+        <a href="#" class="dropdown-toggle">Food and Health</a>
+        <ul class="dropdown">
+          <li><a href="{{url_for('collection', collection_id='milk-malts')}}">Milk Malts</a></li>
+          <li><a href="{{url_for('collection', collection_id='healthy-snacks')}}">Healthy Snacks</a></li>
+          <li><a href="{{url_for('collection', collection_id='amla-human-sanjeevani')}}">Amla-Human Sanjeevani</a></li>
+          <li><a href="{{url_for('collection', collection_id='sprouted-flours')}}">Sprouted Flours</a></li>
+          <li><a href="{{url_for('collection', collection_id='cooking-essentials')}}">Cooking Essentials</a></li>
+          <li><a href="{{url_for('collection', collection_id='kaaram-podis')}}">Kaaram Podi's</a></li>
+          <li><a href="{{url_for('collection', collection_id='basic-health')}}">Basic Health</a></li>
+          </ul>
+          <li><a href="{{url_for('collection', collection_id='kids-special')}}">Kids Special</a></li>
+          <li class="has-dropdown">
+            <a href="#" class="dropdown-toggle">Shop by Concern</a>
+            <ul class="dropdown">
+              <li><a href="{{url_for('collection', collection_id='iron-deficiency')}}">Iron Deficiency</a></li>
+              <li><a href="{{url_for('collection', collection_id='b-complex-deficiency')}}">B‑Complex Deficiency</a></li>
+              <li><a href="{{url_for('collection', collection_id='irregular-periods')}}">Irregular Periods</a></li>
+              <li><a href="{{url_for('collection', collection_id='constipation')}}">Constipation</a></li>
+              <li><a href="{{url_for('collection', collection_id='bones-strength')}}">Bones Strength</a></li>
+              <li><a href="{{url_for('collection', collection_id='immunity-booster')}}">Immunity Booster</a></li>
+              <li><a href="{{url_for('collection', collection_id='cold-and-cough')}}">Cold and Cough</a></li>
+            </ul>
+          </li>
+          <li class="has-dropdown">
+            <a href="#" class="dropdown-toggle">Shop by Care</a>
+            <ul class="dropdown">
+              <li><a href="{{url_for('collection', collection_id='pregnancy-care')}}">Pregnancy Care</a></li>
+              <li><a href="{{url_for('collection', collection_id='diabetic-care')}}">Diabetic Care</a></li>
+              <li><a href="{{url_for('collection', collection_id='baby-care')}}">Baby Care</a></li>
+            </ul>
+          </li>
+          <li><a href="{{url_for('collection', collection_id='skin-care')}}">Skin Care</a></li>
+          <li><a href="{{url_for('collection', collection_id='hair-care')}}">Hair Care</a></li>
+          <li><a href="{{url_for('collection', collection_id='tea-blends')}}">Tea Blends</a></li>
+          <li><a href="{{url_for('collection', collection_id='weight-management')}}">Weight Management</a></li>
+        
+      </li>
+      <li><a href="{{url_for('contact')}}">About Us</a></li>
+      
+      {% if session.get('user_id') %}
+        {% if session.get('user_role') == 'admin' %}
+            <li><a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a></li>
+        {% elif session.get('user_role') == 'seller' %}
+            <li><a href="{{ url_for('seller_dashboard') }}">Seller Dashboard</a></li>
+        {% endif %}
+        <li><a href="{{ url_for('logout') }}">Logout</a></li>
+    {% else %}
+        <li><a href="{{ url_for('login') }}">Customer Login</a></li>
+        <li><a href="{{ url_for('seller_login') }}">Seller Login</a></li>
+        <li><a href="{{ url_for('admin_login') }}">Admin Login</a></li>
+    {% endif %}
+      
+    </ul>
+  </div>
+</nav>
+</div>
+
+<div class="overlay"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const toggle = document.querySelector('.navbar-toggle');
+    const menu = document.querySelector('.navbar-menu');
+    const closeBtn = document.querySelector('.close-btn');
+    const overlay = document.querySelector('.overlay');
+    const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+
+    toggle.addEventListener('click', () => {
+      menu.classList.add('active');
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    });
+
+    function closeMenu() {
+        menu.classList.remove('active');
+        overlay.classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
+
+    closeBtn.addEventListener('click', closeMenu);
+    overlay.addEventListener('click', closeMenu);
+
+    dropdownToggles.forEach(item => {
+      item.addEventListener('click', e => {
+        e.preventDefault();
+        const parent = item.parentElement;
+        const isOpen = parent.classList.contains('open');
+        
+        document.querySelectorAll('.has-dropdown.open').forEach(openDropdown => {
+          if (openDropdown !== parent) {
+            openDropdown.classList.remove('open');
+          }
+        });
+        
+        parent.classList.toggle('open');
+      });
+    });
+
+    document.querySelectorAll('.navbar-menu a:not(.dropdown-toggle)').forEach(link => {
+      link.addEventListener('click', () => {
+        if (window.innerWidth < 700) {
+          closeMenu();
+        }
+      });
+    });
+  });
+</script>
+
+ <div class="alert-container {% if request.path.startswith('/admin') or request.path.startswith('/seller') %}dashboard-alert{% endif %}">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+   
+
+<!-- Main Page Content -->
+{% block content %}
+
+
+<section >
+<!-- Carousel wrapper -->
+<div id="maltsCarousel" class="carousel slide product-carousel" data-bs-ride="carousel">
+  <div class="carousel-indicators">
+    <button type="button" data-bs-target="#maltsCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+    <button type="button" data-bs-target="#maltsCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+    <button type="button" data-bs-target="#maltsCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+  </div>
+
+  <div class="carousel-inner">
+    <!-- Slide 1 -->
+    <div class="carousel-item active" data-bs-interval="6000">
+      <a href="{{url_for('collection', collection_id='skin-care')}}"><img 
+        src="{{ url_for('static', filename='images/Malts_Hero_Image_Final_7.png') }}"
+        srcset="
+          {{ url_for('static', filename='images/Malts_Hero_Image_Final_3.png') }} 375w,
+          {{ url_for('static', filename='images/Malts_Hero_Image_Final_4.png') }} 550w,
+          {{ url_for('static', filename='images/Malts_Hero_Image_Final_5.png') }} 750w,
+          {{ url_for('static', filename='images/Malts_Hero_Image_Final_2.png') }} 1100w,
+          {{ url_for('static', filename='images/Malts_Hero_Image_Final_1.png') }} 1500w,
+          {{ url_for('static', filename='images/Malts_Hero_Image_Final_6.png') }} 1780w,
+          {{ url_for('static', filename='images/Malts_Hero_Image_Final_7.png') }} 2000w,
+          {{ url_for('static', filename='images/Malts_Hero_Image_Final_8.png') }} 2800w,
+          {{ url_for('static', filename='images/Malts_Hero_Image_Final.png') }} 2800w
+        "
+        sizes="(max-width: 375px) 375px,
+               (max-width: 550px) 550px,
+               (max-width: 750px) 750px,
+               (max-width: 1100px) 1100px,
+               (max-width: 1500px) 1500px,
+               (max-width: 1780px) 1780px,
+               (max-width: 2000px) 2000px,
+               2800px"
+        alt="Premium Malts"
+        loading="eager"
+      >
+      <div class="carousel-caption d-none d-md-block">
+        <h3>Organic Malt Extracts</h3>
+        <p>100% natural energy boosters with no additives</p>
+      </div>
+    </div></a>
+      
+
+    <!-- Slide 2 -->
+    <div class="carousel-item" data-bs-interval="6000">
+      <a href="{{url_for('collection', collection_id='hair-care')}}"><img 
+        src="{{ url_for('static', filename='images/Hair_Care_Hero_Image_7.png') }}"
+        srcset="
+          {{ url_for('static', filename='images/Hair_Care_Hero_Image_3.png') }} 375w,
+          {{ url_for('static', filename='images/Hair_Care_Hero_Image_4.png') }} 550w,
+          {{ url_for('static', filename='images/Hair_Care_Hero_Image_5.png') }} 750w,
+          {{ url_for('static', filename='images/Hair_Care_Hero_Image_2.png') }} 1100w,
+          {{ url_for('static', filename='images/Hair_Care_Hero_Image_1.png') }} 1500w,
+          {{ url_for('static', filename='images/Hair_Care_Hero_Image_6.png') }} 1780w,
+          {{ url_for('static', filename='images/Hair_Care_Hero_Image_7.png') }} 2000w,
+          {{ url_for('static', filename='images/Hair_Care_Hero_Image_8.png') }} 2800w,
+          {{ url_for('static', filename='images/Hair_Care_Hero_Image.png') }} 2800w
+        "
+        sizes="(max-width: 375px) 375px,
+               (max-width: 550px) 550px,
+               (max-width: 750px) 750px,
+               (max-width: 1100px) 1100px,
+               (max-width: 1500px) 1500px,
+               (max-width: 1780px) 1780px,
+               (max-width: 2000px) 2000px,
+               2800px"
+        alt="Malt Products"
+        loading="lazy"
+      >
+      <div class="carousel-caption d-none d-md-block">
+        <h3>Hair Care</h3>
+        <p>Time-tested formulations for modern wellness</p>
+      </div>
+    </div>
+</a>
+      
+    <!-- Slide 3 -->
+    <div class="carousel-item" data-bs-interval="6000">
+      <a href="{{url_for('collection', collection_id='skin-care')}}"><img 
+        src="{{ url_for('static', filename='images/Skin_Care_Hero_Image_7.png') }}"
+        srcset="
+          {{ url_for('static', filename='images/Skin_Care_Hero_Image_3.png') }} 375w,
+          {{ url_for('static', filename='images/Skin_Care_Hero_Image_4.png') }} 550w,
+          {{ url_for('static', filename='images/Skin_Care_Hero_Image_5.png') }} 750w,
+          {{ url_for('static', filename='images/Skin_Care_Hero_Image_2.png') }} 1100w,
+          {{ url_for('static', filename='images/Skin_Care_Hero_Image_1.png') }} 1500w,
+          {{ url_for('static', filename='images/Skin_Care_Hero_Image_6.png') }} 1780w,
+          {{ url_for('static', filename='images/Skin_Care_Hero_Image_7.png') }} 2000w,
+          {{ url_for('static', filename='images/Skin_Care_Hero_Image_8.png') }} 2800w,
+          {{ url_for('static', filename='images/Skin_Care_Hero_Image.png') }} 2800w
+        "
+        sizes="(max-width: 375px) 375px,
+               (max-width: 550px) 550px,
+               (max-width: 750px) 750px,
+               (max-width: 1100px) 1100px,
+               (max-width: 1500px) 1500px,
+               (max-width: 1780px) 1780px,
+               (max-width: 2000px) 2000px,
+               2800px"
+        alt="Healthy Malts"
+        loading="lazy"
+      >
+      <div class="carousel-caption d-none d-md-block">
+        <h3>Skin care</h3>
+        <p>Packed with essential vitamins and minerals</p>
+      </div>
+    </div>
+  </a>
+
+  <button class="carousel-control-prev" type="button" data-bs-target="#maltsCarousel" data-bs-slide="prev">
+    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Previous</span>
+  </button>
+  <button class="carousel-control-next" type="button" data-bs-target="#maltsCarousel" data-bs-slide="next">
+    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Next</span>
+  </button>
+</div>
+
+
+</section>
+
+<div > 
+<section class="container" style="padding: 10px;border-radius:8px;">
+<div class="container mt-5">
+    <h1 class="collection-title text-center">Best Seller</h1>
+    <!-- <p class="collection-description text-center mb-4">{{ collection.description }}</p> -->
+
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
+        {% for product in collection.products %}
+              {% if product.price<600 and product.price>480 %}
+                    <div class="col">
+                        <div class="card h-100 product-card shadow-sm">
+                            <a href="{{ url_for('product', product_id=product.id) }}" class="product-image-link">
+                                <img src="{{ url_for('static', filename='images/' + product.image) }}" class="card-img-top product-image" alt="{{ product.title }}">
+                            </a>
+                            <div class="card-body d-flex flex-column product-card-body">
+                                <h5 class="card-title product-title">
+                                    <a href="{{ url_for('product', product_id=product.id) }}" class="text-decoration-none text-dark">
+                                        {{ product.title }}
+                                    </a>
+                                </h5>
+                                <div class="mt-auto product-pricing">
+                                    <p class="card-text mb-0 current-price">
+                                        <span class="price-symbol">₹</span>{{ "%.2f"|format(product.price) }}
+                                        {% if product.compare_price and product.compare_price > product.price %}
+                                        <small class="text-muted compare-price text-decoration-line-through ms-2">₹{{ "%.2f"|format(product.compare_price) }}</small>
+                                        {% endif %}
+                                    </p>
+                                    <div class="stock-badge mb-2">
+                                        {% if product.stock_quantity > 0 %}
+                                            <span class="badge bg-success">In Stock ({{ product.stock_quantity }})</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Out of Stock</span>
+                                        {% endif %}
+                                    </div>
+                                    <form method="POST" action="{{ url_for('add_to_cart') }}">
+                                        <input type="hidden" name="product_id" value="{{ product.id }}">
+                                        <button type="submit" class="btn btn-primary btn-sm mt-2">Add to Cart</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+</section>
+<section class="container" style="padding: 10px;">
+<div class="container mt-5">
+    <h1 class="collection-title text-center">New Products</h1>
+    <!-- <p class="collection-description text-center mb-4">{{ collection.description }}</p> -->
+
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
+        {% for product in collection.products %}
+              {% if product.price<500 and product.price>400 %}
+                    <div class="col">
+                        <div class="card h-100 product-card shadow-sm">
+                            <a href="{{ url_for('product', product_id=product.id) }}" class="product-image-link">
+                                <img src="{{ url_for('static', filename='images/' + product.image) }}" class="card-img-top product-image" alt="{{ product.title }}">
+                            </a>
+                            <div class="card-body d-flex flex-column product-card-body">
+                                <h5 class="card-title product-title">
+                                    <a href="{{ url_for('product', product_id=product.id) }}" class="text-decoration-none text-dark">
+                                        {{ product.title }}
+                                    </a>
+                                </h5>
+                                <div class="mt-auto product-pricing">
+                                    <p class="card-text mb-0 current-price">
+                                        <span class="price-symbol">₹</span>{{ "%.2f"|format(product.price) }}
+                                        {% if product.compare_price and product.compare_price > product.price %}
+                                        <small class="text-muted compare-price text-decoration-line-through ms-2">₹{{ "%.2f"|format(product.compare_price) }}</small>
+                                        {% endif %}
+                                    </p>
+                                    <div class="stock-badge mb-2">
+                                    {% if product.stock_quantity > 0 %}
+                                        <span class="badge bg-success">In Stock ({{ product.stock_quantity }})</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Out of Stock</span>
+                                    {% endif %}
+                                </div>
+                                    <form method="POST" action="{{ url_for('add_to_cart') }}">
+                                        <input type="hidden" name="product_id" value="{{ product.id }}">
+                                        <button type="submit" class="btn btn-primary btn-sm mt-2">Add to Cart</button>
+                                    </form>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+</section>  
+
+</div>
+
+
+<div class="bgc">
+<section class="container1" >
+  <div class="image-grid">
+    <a href="{{url_for('collection', collection_id='food-and-health')}}">
+      <img src="{{url_for('static',filename='images/Red_Banana_Malt_AI.png')}}" alt="Food and Health" loading="lazy">
+      <p>Food and Health</p>
+    </a>
+
+    <a href="{{url_for('collection', collection_id='kids-special')}}">
+      <img src="{{url_for('static',filename='images/AmlaCandy.png')}}" alt="Kids Special" loading="lazy">
+      <p>Kids Special</p>
+    </a>
+
+    <a href="{{url_for('collection', collection_id='shop-by-concern')}}">
+      <img src="{{url_for('static',filename='images/GuavaLeavesPowderAI.png')}}" alt="Immunity Booster" loading="lazy">
+      <p>Shop by Concern</p>
+    </a>
+
+    <a href="{{url_for('collection', collection_id='shop-by-care')}}">
+      <img src="{{url_for('static',filename='images/SathuMaavuAI.png')}}" alt="Immunity Booster" loading="lazy">
+      <p>Shop by Care </p>
+    </a>
+    
+    <a href="{{url_for('collection', collection_id='hair-care')}}">
+      <img src="{{url_for('static',filename='images/Hair_Care_Hero_Image.png')}}" alt="Hair Care" loading="lazy">
+      <p>Hair Care</p>
+    </a>
+    
+    <a href="{{url_for('collection', collection_id='skin-care')}}">
+      <img src="{{url_for('static',filename='images/Skin_Care_Hero_Image.png')}}" alt="Skin Care" loading="lazy">
+      <p>Skin Care</p>
+    </a>
+    
+    <a href="{{url_for('collection', collection_id='tea-blends')}}">
+      <img src="{{url_for('static',filename='images/ImmuneOBoost_AI.png')}}" alt="Tea Blends" loading="lazy">
+      <p>Tea Blends</p>
+    </a>
+    
+    <a href="{{url_for('collection', collection_id='weight-management')}}">
+      <img src="{{url_for('static',filename='images/Slimming_Combo_30_Days_AI_New.png')}}" alt="B-Complex Deficiency" loading="lazy">
+      <p>Weight Management</p>
+    </a>
+    
+    
+    
+    
+  </div>
+</section>
+
+</div>
+
+
+<a href="{{ url_for('contact') }}" title="Contact us" >
+  <img style="border-top: 2px solid white;"
+    src="{{ url_for('static', filename='images/Main_Banner_7.png') }}" 
+    srcset="
+      {{ url_for('static', filename='images/Main_Banner_2.png') }} 375w,
+      {{ url_for('static', filename='images/Main_Banner_3.png') }} 550w,
+      {{ url_for('static', filename='images/Main_Banner_4.png') }} 750w,
+      {{ url_for('static', filename='images/Main_Banner_1.png') }} 1100w,
+      {{ url_for('static', filename='images/Main_Banner_7.png') }} 1500w,
+      {{ url_for('static', filename='images/Main_Banner_5.png') }} 1780w,
+      {{ url_for('static', filename='images/Main_Banner_6.png') }} 2000w
+    "
+    sizes="100vw"
+    alt="about us" 
+    loading="lazy"
+    style="width: 100%; height: auto;"
+  >
+</a>
+
+{% endblock %}
+
+<!-- Footer -->
+ 
+<footer >
+  
+    <div class="container2 text-center" >
+        <h2>Subscribe to our channels</h2><hr>
+        <div class="social d-flex justify-content-center gap-3">
+          <a href="https://instagram.com/aarogyanutrimix" style="margin-top:20px"><img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" width="24" alt="Instagram "></a>
+          <a href="https://www.youtube.com/@AarogyaNutriMix" style="margin-top:20px"><img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" width="24" alt="YouTube"></a>
+        </div>
+    </div>
+    
+    <div class="footer__copyright caption">
+        <small class="copyright__content">© 2025, <a href="/" title="">Aarogya Nutri Mix</a></small>
+        <small class="copyright__content"><a target="_blank" rel="nofollow" href="{{url_for('home')}}"> </a></small>
+        <ul class="policies list-unstyled">
+            <li><small class="copyright__content"><a href="{{url_for('refund')}}">Refund policy</a></small></li>
+            <li><small class="copyright__content"><a href="{{url_for('privacy')}}">Privacy policy</a></small></li>
+            <li><small class="copyright__content"><a href="{{url_for('terms')}}">Terms of service</a></small></li>
+            <li><small class="copyright__content"><a href="{{url_for('shipping')}}">Shipping policy</a></small></li>
+            <li><small class="copyright__content"><a href="{{url_for('contact')}}">Contact information</a></small></li>
+        </ul>
+    </div>
+</footer>
+  
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    // Original navbar toggle script remains unchanged
+    
+    // Auto-dismiss alerts after 5 seconds
+    $(document).ready(function() {
+        setTimeout(function() {
+            $('.alert').alert('close');
+        }, 5000);
+        
+        // Prevent form submission on Enter key in dashboards
+        if (window.location.pathname.startsWith('/admin') || 
+            window.location.pathname.startsWith('/seller')) {
+            $('form').on('keyup keypress', function(e) {
+                var keyCode = e.keyCode || e.which;
+                if (keyCode === 13 && !$(e.target).is('textarea')) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        }
+    });
+</script>
+
+
+
+</body>
+</html>

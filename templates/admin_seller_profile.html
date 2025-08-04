@@ -1,0 +1,140 @@
+{% extends "admin_dashboard.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Seller Profile: {{ seller.name }}</h2>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Basic Information</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Name:</strong> {{ seller.name }}</p>
+                    <p><strong>Email:</strong> {{ seller.email }}</p>
+                    <p><strong>Mobile:</strong> {{ seller.mobile }}</p>
+                    <p><strong>Registered (User):</strong>
+  {% if seller.user_created_at %}
+    {{ seller.user_created_at.strftime('%Y-%m-%d') }}
+  {% else %}
+    Unknown
+  {% endif %}
+</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Status:</strong> 
+                        <span class="badge 
+                            {% if seller.approval_status == 'approved' %}bg-success
+                            {% elif seller.approval_status == 'rejected' %}bg-danger
+                            {% else %}bg-warning{% endif %}">
+                            {{ seller.approval_status|title }}
+                        </span>
+                    </p>
+                    {% if seller.approval_status == 'rejected' and seller.rejection_reason %}
+                        <p><strong>Rejection Reason:</strong> {{ seller.rejection_reason }}</p>
+                    {% endif %}
+                    {% if seller.approved_by_name %}
+                        <p><strong>Approved By:</strong> {{ seller.approved_by_name }}</p>
+                        <p><strong>Approval Date:</strong> {{ seller.approved_at.strftime('%Y-%m-%d') }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Business Information</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Company Name:</strong> {{ seller.company_name }}</p>
+                    <p><strong>PAN Number:</strong> {{ seller.pan_number }}</p>
+                    <p><strong>GST Number:</strong> {{ seller.gst_number or 'Not provided' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Bank Account:</strong> {{ seller.bank_account }}</p>
+                    <p><strong>IFSC Code:</strong> {{ seller.ifsc_code }}</p>
+                </div>
+            </div>
+            <p><strong>Address:</strong><br>{{ seller.address }}</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h4>Products ({{ product_count }})</h4>
+        </div>
+        <div class="card-body">
+            <a href="{{ url_for('admin_view_seller_products', seller_id=seller.id) }}" 
+               class="btn btn-primary">
+                View All Products
+            </a>
+        </div>
+    </div>
+    
+    <!-- Add this near the bottom of admin_seller_profile.html, before the closing content block -->
+<div class="d-flex justify-content-between mt-4">
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+        Back to Dashboard
+    </a>
+    
+    <div>
+        {% if seller.is_active %}
+            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deactivateModal">
+                Deactivate
+            </button>
+        {% else %}
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#activateModal">
+                Activate
+            </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Deactivate Confirmation Modal -->
+<div class="modal fade" id="deactivateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">Confirm Deactivation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to deactivate this seller account?</p>
+                <p class="text-danger">This will prevent the seller from logging in.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('admin_deactivate_seller', seller_id=seller.id) }}">
+                    <button type="submit" class="btn btn-danger">Deactivate</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Activate Confirmation Modal -->
+<div class="modal fade" id="activateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success">
+                <h5 class="modal-title">Confirm Activation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to activate this seller account?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('admin_activate_seller', seller_id=seller.id) }}">
+                    <button type="submit" class="btn btn-success">Activate</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

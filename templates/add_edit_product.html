@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if product %}Edit Product{% else %}Add New Product{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">{% if product %}Edit Product{% else %}Add New Product{% endif %}</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="alert-container">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <form action="{{ form_action }}" method="POST" enctype="multipart/form-data">
+                {% if not product %} {# Only show Product ID field if editing existing product #}
+                    <div class="mb-3">
+                        <label for="id" class="form-label">Product ID (Unique, Auto-Generated)</label>
+                        <input type="text" class="form-control" id="id" name="id" value="" readonly disabled>
+                        <small class="form-text text-muted">Product ID will be automatically generated from Category and Title.</small>
+                    </div>
+                    {% else %}
+                    <div class="mb-3">
+                        <label for="id" class="form-label">Product ID (Unique)</label>
+                        <input type="text" class="form-control" id="id" name="id" value="{{ product.id }}" readonly>
+                        <small class="form-text text-muted">Product ID cannot be changed once created.</small>
+                    </div>
+                    {% endif %}
+                <div class="mb-3">
+                    <label for="title" class="form-label">Title</label>
+                    <input type="text" class="form-control" id="title" name="title" value="{{ product.title if product else '' }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="price" class="form-label">Price (₹)</label>
+                    <input type="number" step="0.01" class="form-control" id="price" name="price" value="{{ "%.2f"|format(product.price) if product else '' }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="compare_price" class="form-label">Compare Price (Optional, ₹)</label>
+                    <input type="number" step="0.01" class="form-control" id="compare_price" name="compare_price" value="{{ "%.2f"|format(product.compare_price) if product and product.compare_price is not none else '' }}">
+
+                </div>
+               
+                <div class="mb-3">
+                    <label class="form-label">Discount (%)</label>
+                    <input type="number" step="0.01" class="form-control" name="discount">
+                </div>
+                <div class="mb-3">
+                    <label for="image" class="form-label">Product Image</label>
+                    <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                    {% if product and product.image %}
+                        <small class="form-text text-muted mt-2">Current Image: <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="{{ product.title }}" width="50" height="50" style="object-fit: cover; border-radius: 4px;"></small>
+                        <small class="form-text text-muted d-block mt-1">Leave blank to keep current image.</small>
+                    {% else %}
+                        <small class="form-text text-muted mt-2">No image uploaded yet.</small>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <label for="tags" class="form-label">Tags (Comma-separated)</label>
+                    <input type="text" class="form-control" id="tags" name="tags" value="{{ ','.join(product.tags) if product and product.tags else '' }}">
+                    <small class="form-text text-muted">e.g., healthy, organic, snack</small>
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="5">{{ product.description if product else '' }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="benefits" class="form-label">Benefits (Comma-separated)</label>
+                    <input type="text" class="form-control" id="benefits" name="benefits" value="{{ ','.join(product.benefits) if product and product.benefits else '' }}">
+                    <small class="form-text text-muted">e.g., boosts immunity, rich in protein</small>
+                </div>
+                <div class="mb-3">
+                    <label for="category" class="form-label">Category</label>
+                    <select class="form-control" id="category" name="category" required>
+                        <option value="">Select a Category</option>
+                        <option value="milk-malts" {% if product and product.category == 'milk-malts' %}selected{% endif %}>Milk Malts</option>
+                        <option value="healthy-snacks" {% if product and product.category == 'healthy-snacks' %}selected{% endif %}>Healthy Snacks</option>
+                        <option value="amla-human-sanjeevani" {% if product and product.category == 'amla-human-sanjeevani' %}selected{% endif %}>Amla-Human Sanjeevani</option>
+                        <option value="sprouted-flours" {% if product and product.category == 'sprouted-flours' %}selected{% endif %}>Sprouted Flours</option>
+                        <option value="cooking-essentials" {% if product and product.category == 'cooking-essentials' %}selected{% endif %}>Cooking Essentials</option>
+                        <option value="kaaram-podis" {% if product and product.category == 'kaaram-podis' %}selected{% endif %}>Kaaram Podi's</option>
+                        <option value="basic-health" {% if product and product.category == 'basic-health' %}selected{% endif %}>Basic Health</option>
+                        <option value="kids-special" {% if product and product.category == 'kids-special' %}selected{% endif %}>Kids Special</option>
+                        <option value="skin-care" {% if product and product.category == 'skin-care' %}selected{% endif %}>Skin Care</option>
+                        <option value="hair-care" {% if product and product.category == 'hair-care' %}selected{% endif %}>Hair Care</option>
+                        <option value="tea-blends" {% if product and product.category == 'tea-blends' %}selected{% endif %}>Tea Blends</option>
+                        <option value="weight-management" {% if product and product.category == 'weight-management' %}selected{% endif %}>Weight Management</option>
+                        <option value="iron-deficiency" {% if product and product.category == 'iron-deficiency' %}selected{% endif %}>Iron Deficiency</option>
+                        <option value="b-complex-deficiency" {% if product and product.category == 'b-complex-deficiency' %}selected{% endif %}>B-Complex Deficiency</option>
+                        <option value="irregular-periods" {% if product and product.category == 'irregular-periods' %}selected{% endif %}>Irregular Periods</option>
+                        <option value="constipation" {% if product and product.category == 'constipation' %}selected{% endif %}>Constipation</option>
+                        <option value="bones-strength" {% if product and product.category == 'bones-strength' %}selected{% endif %}>Bones Strength</option>
+                        <option value="immunity-booster" {% if product and product.category == 'immunity-booster' %}selected{% endif %}>Immunity Booster</option>
+                        <option value="cold-and-cough" {% if product and product.category == 'cold-and-cough' %}selected{% endif %}>Cold and Cough</option>
+                        <option value="pregnancy-care" {% if product and product.category == 'pregnancy-care' %}selected{% endif %}>Pregnancy Care</option>
+                        <option value="diabetic-care" {% if product and product.category == 'diabetic-care' %}selected{% endif %}>Diabetic Care</option>
+                        <option value="baby-care" {% if product and product.category == 'baby-care' %}selected{% endif %}>Baby Care</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">{% if product %}Update Product{% else %}Add Product{% endif %}</button>
+                <a href="{{ url_for('seller_dashboard') }}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

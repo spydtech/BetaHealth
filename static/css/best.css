@@ -1,0 +1,112 @@
+.collection-title {
+        font-size: 1.5rem; /* Larger font for main title */
+        font-weight: bold;
+        color: #007bff;
+        margin-bottom: 10px;
+        text-align: left;
+        text-decoration: underline; /* Remove default underline from h1 in base.css */
+    }
+
+    .collection-description {
+        font-size: 1.1rem;
+        color: #666;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .product-grid {
+        margin-top: 30px;
+    }
+
+    .product-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        overflow: hidden; /* Ensures rounded corners are visible */
+    }
+
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+
+    .product-image-link {
+        display: block; /* Make the whole image area clickable */
+        overflow: hidden; /* To handle image scaling within the link */
+        background-color: #f8f8f8; /* Light background for images */
+    }
+
+    .product-image {
+        width: 100%;
+        height: 220px; /* Consistent height for all images */
+        object-fit: contain; /* Ensures the whole image is visible */
+        padding: 15px; /* Padding around the image inside its container */
+        transition: transform 0.3s ease; /* Smooth zoom effect on hover */
+    }
+
+    .product-image-link:hover .product-image {
+        transform: scale(1.05); /* Slight zoom on hover */
+    }
+
+    .product-card-body {
+        padding: 15px;
+        text-align: center; /* Center align text in card body */
+    }
+
+    .product-title {
+        font-size: 1.15rem;
+        font-weight: 600;
+        min-height: 50px; /* Ensure consistent height for titles across cards */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 10px;
+        
+    }
+
+    .product-title a {
+        color: #0d3056ff; /* Darker text for title */
+        text-decoration: none;
+    }
+
+    .product-title a:hover {
+        color: #007bff; /* Hover color for title */
+    }
+
+    .product-short-description {
+        font-size: 0.9rem;
+        color: #777;
+        margin-bottom: 10px;
+    }
+
+    .product-pricing {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #000; /* Black for current price */
+        margin-top: auto; /* Pushes pricing to the bottom */
+    }
+
+    .price-symbol {
+        font-size: 0.9em; /* Slightly smaller currency symbol */
+        margin-right: 2px;
+    }
+
+    .compare-price {
+        font-size: 0.9em; /* Smaller font for compare price */
+        color: #888 !important; /* Lighter grey for struck-through price */
+    }
+
+    .add-to-cart-btn {
+        background-color: #28a745; /* Green button */
+        border-color: #28a745;
+        font-weight: 600;
+        padding: 8px 20px;
+        border-radius: 5px;
+        transition: background-color 0.2s ease;
+    }
+
+    .add-to-cart-btn:hover {
+        background-color: #218838; /* Darker green on hover */
+        border-color: #1e7e34;
+    }

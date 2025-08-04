@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}{{ collection.title }} - Aarogya Nutri Mix{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="text-center mb-4 subcategory-page-title">{{ collection.title }}</h1>
+    <p class="text-center lead mb-5 subcategory-page-description">{{ collection.description }}</p>
+
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
+        {% for subcategory in collection.subcategories %}
+        <div class="col">
+            <div class="card h-100 subcategory-card shadow-sm">
+                <div class="card-body d-flex flex-column text-center">
+                    <h5 class="card-title subcategory-card-title mt-2">{{ subcategory.name }}</h5>
+                    <div class="mt-auto">
+                        <a href="{{ url_for('collection', collection_id=subcategory.value) }}" class="btn btn-primary view-subcategory-btn">View Products</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .container{
+        background-color:antiquewhite;
+        border-radius: 8px;
+        padding: 10px;
+    }
+    .subcategory-page-title {
+        font-size: 2.8rem;
+        font-weight: bold;
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    .subcategory-page-description {
+        font-size: 1.2rem;
+        color: #777;
+    }
+
+    .subcategory-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        background-color: #fff;
+        min-height: 200px;
+    }
+
+    .subcategory-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+    }
+
+    .subcategory-card-title {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #007bff;
+        margin-bottom: 15px;
+    }
+
+    .view-subcategory-btn {
+        font-weight: 600;
+        padding: 10px 25px;
+        border-radius: 5px;
+        background-color: #ffb902ff; /* Green button */
+        border-color: #ffb902ff;
+    }
+
+    .view-subcategory-btn:hover {
+        background-color: #ffb902ff; /* Darker green on hover */
+        border-color: #ffb902ff;
+    }
+</style>
+{% endblock %}

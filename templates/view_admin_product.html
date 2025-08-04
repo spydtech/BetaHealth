@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>View Product (Admin)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            background-color: #f4f6f9;
+        }
+
+        .admin-navbar {
+            background: #2c3e50;
+            padding: 10px 30px;
+        }
+
+        .admin-navbar a,
+        .admin-navbar span {
+            color: #fff;
+            text-decoration: none;
+            padding: 8px 12px;
+            font-weight: 500;
+        }
+
+        .role-badge {
+            background-color: #e74c3c;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin-left: 5px;
+        }
+
+        footer {
+            background: #0d3056;
+            color: white;
+            font-size: 12px;
+            padding: 10px 0;
+        }
+
+        footer a {
+            color: rgb(11, 228, 228);
+            text-decoration: none;
+        }
+
+        .product-info-box {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .product-info-box h3 {
+            margin-bottom: 25px;
+        }
+
+        .product-detail-row {
+            margin-bottom: 12px;
+        }
+
+        .product-detail-label {
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Admin Navbar -->
+<nav class="admin-navbar d-flex justify-content-between align-items-center">
+    <div class="admin-navbar-logo">
+        <a href="/"><img src="{{ url_for('static', filename='images/logo.jpg') }}" height="40" alt="Logo"></a>
+    </div>
+    <div class="admin-navbar-actions d-flex align-items-center gap-3">
+        <span>
+            Hi, <strong>{{ session.get('user_name', 'Admin') }}</strong>
+            <span class="role-badge">ADMIN</span>
+        </span>
+        <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+</nav>
+
+<!-- Main Product Content -->
+<div class="row">
+        <div class="col-md-6 product-image-section text-center">
+            <img src="{{ url_for('static', filename='images/' + product.image) }}" class="img-fluid main-product-image" alt="{{ product.title }}">
+        </div>
+        <div class="col-md-6 product-info-section">
+            <h1 class="product-page-title">{{ product.title }}</h1>
+            <div class="product-price-section mb-3">
+                <span class="current-price-lg">₹{{ "%.2f"|format(product.price) }}</span>
+                {% if product.compare_price and product.compare_price > product.price %}
+                <span class="compare-price-lg text-decoration-line-through ms-3">₹{{ "%.2f"|format(product.compare_price) }}</span>
+                {% endif %}
+            </div>
+            <div class="availability mb-3">
+                {% if product.stock_quantity > 0 %}
+                    <i class="bi bi-check-circle-fill text-success"></i> Available ({{ product.stock_quantity }} in stock)
+                {% else %}
+                    <i class="bi bi-x-circle-fill text-danger"></i> Currently unavailable
+                {% endif %}
+            </div>
+
+            <p class="product-description">{{ product.description }}</p>
+
+            {% if product.benefits %}
+            <div class="product-benefits mb-4">
+                <h5 class="section-heading">Key Benefits:</h5>
+                <ul class="list-unstyled">
+                    {% for benefit in product.benefits %}
+                    <li><i class="bi bi-check-circle-fill me-2 text-success"></i>{{ benefit }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            
+            {% if product.tags %}
+            <div class="product-tags">
+                <h6 class="section-heading">Tags:</h6>
+                {% for tag in product.tags %}
+                <span class="badge bg-info text-dark product-tag-badge me-1">{{ tag }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+
+<!-- Footer -->
+<footer>
+    <div class="container text-center">
+        <h5>Follow Us</h5>
+        <div class="d-flex justify-content-center gap-3 mb-2">
+            <a href="https://instagram.com/aarogyanutrimix"><img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" width="24"></a>
+            <a href="https://www.youtube.com/@AarogyaNutriMix"><img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" width="24"></a>
+        </div>
+        <div class="small">
+            © 2025 <a href="/">Aarogya Nutri Mix</a> | 
+            <a href="#">Privacy Policy</a> | 
+            <a href="#">Terms</a> | 
+            <a href="#">Contact</a>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>

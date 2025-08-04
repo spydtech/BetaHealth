@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Hero Slider -->
+<div id="categoryCarousel" class="carousel slide" data-bs-ride="carousel">
+  <div class="carousel-inner">
+    <div class="carousel-item active">
+      <a href="{{ url_for('collection', collection_id='malts') }}">
+        <img src="{{ url_for('static', filename='images/malts-hero.jpg') }}" 
+             class="d-block w-100" 
+             alt="Malt Products"
+             style="height: 60vh; object-fit: cover;">
+        <div class="carousel-caption">
+          <h2>Malt Products</h2>
+          <p>Natural energy boosters</p>
+        </div>
+      </a>
+    </div>
+    
+    <div class="carousel-item">
+      <a href="{{ url_for('collection', collection_id='hair-care') }}">
+        <img src="{{ url_for('static', filename='images/hair-care-hero.jpg') }}" 
+             class="d-block w-100" 
+             alt="Hair Care"
+             style="height: 60vh; object-fit: cover;">
+        <div class="carousel-caption">
+          <h2>Hair Care</h2>
+          <p>Nourish your hair naturally</p>
+        </div>
+      </a>
+    </div>
+    
+    <div class="carousel-item">
+      <a href="{{ url_for('collection', collection_id='skin-care') }}">
+        <img src="{{ url_for('static', filename='images/skin-care-hero.jpg') }}" 
+             class="d-block w-100" 
+             alt="Skin Care"
+             style="height: 60vh; object-fit: cover;">
+        <div class="carousel-caption">
+          <h2>Skin Care</h2>
+          <p>Healthy skin solutions</p>
+        </div>
+      </a>
+    </div>
+  </div>
+  <button class="carousel-control-prev" type="button" data-bs-target="#categoryCarousel" data-bs-slide="prev">
+    <span class="carousel-control-prev-icon"></span>
+  </button>
+  <button class="carousel-control-next" type="button" data-bs-target="#categoryCarousel" data-bs-slide="next">
+    <span class="carousel-control-next-icon"></span>
+  </button>
+</div>
+
+<!-- Featured Categories -->
+<div class="container my-5">
+  <div class="row">
+    <div class="col-md-4 mb-4">
+      <a href="{{ url_for('collection', collection_id='malts') }}" class="category-card">
+        <img src="{{ url_for('static', filename='images/malts-thumbnail.jpg') }}" 
+             alt="Malts" 
+             class="img-fluid rounded">
+        <div class="category-info">
+          <h3>Malts</h3>
+          <p>Explore products</p>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-4 mb-4">
+      <a href="{{ url_for('collection', collection_id='hair-care') }}" class="category-card">
+        <img src="{{ url_for('static', filename='images/hair-care-thumbnail.jpg') }}" 
+             alt="Hair Care" 
+             class="img-fluid rounded">
+        <div class="category-info">
+          <h3>Hair Care</h3>
+          <p>Explore products</p>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-4 mb-4">
+      <a href="{{ url_for('collection', collection_id='skin-care') }}" class="category-card">
+        <img src="{{ url_for('static', filename='images/skin-care-thumbnail.jpg') }}" 
+             alt="Skin Care" 
+             class="img-fluid rounded">
+        <div class="category-info">
+          <h3>Skin Care</h3>
+          <p>Explore products</p>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Featured Products -->
+<div class="container my-5">
+  <h2 class="section-title">Featured Products</h2>
+  <div class="row">
+    {% for product in PRODUCTS['malts']['products'][:4] %}
+    <div class="col-lg-3 col-md-6 mb-4">
+      <div class="product-card">
+        <a href="{{ url_for('product', product_id=product.id) }}" class="product-image">
+          <img src="{{ url_for('static', filename='images/malts/' + product.image) }}" 
+               alt="{{ product.title }}"
+               class="img-fluid">
+          {% if 'best-seller' in product.tags %}
+          <span class="product-badge">Best Seller</span>
+          {% endif %}
+        </a>
+        <div class="product-info">
+          <h3>
+            <a href="{{ url_for('product', product_id=product.id) }}">{{ product.title }}</a>
+          </h3>
+          <div class="product-price">
+            <span class="price">₹{{ product.price }}</span>
+            {% if product.compare_price %}
+            <span class="compare-price">₹{{ product.compare_price }}</span>
+            {% endif %}
+          </div>
+          <button class="btn btn-primary add-to-cart">Add to Cart</button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

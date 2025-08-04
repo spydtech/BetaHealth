@@ -1,0 +1,43 @@
+<!-- templates/my_orders.html -->
+{% extends 'base.html' %}
+
+{% block title %}My Orders{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">My Orders</h2>
+
+    {% if orders %}
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Order ID</th>
+                <th>Items</th>
+                <th>Total (₹)</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Shipping Address</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.id }}</td>
+                <td>{{ order.items }}</td>
+                <td>{{ "%.2f"|format(order.total_amount) }}</td>
+                <td>
+                    <span class="badge bg-{% if order.status == 'paid' %}warning{% elif order.status == 'confirmed' %}success{% else %}secondary{% endif %}">
+                        {{ order.status|capitalize }}
+                    </span>
+                </td>
+                <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ order.shipping_address }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <div class="alert alert-info">You have no orders yet.</div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment Received for Order</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f8f9fa; padding: 15px; text-align: center; }
+        .order-details { margin: 20px 0; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+        .total { font-weight: bold; }
+        .footer { margin-top: 20px; font-size: 0.9em; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Payment Received for Order</h2>
+            <p>Order #{{ order.id }}</p>
+        </div>
+        
+        <div class="order-details">
+            <p>Order Date: {{ order.order_date.strftime('%B %d, %Y %I:%M %p') }}</p>
+            <p>Total Amount: ₹{{ "%.2f"|format(order.total_amount) }}</p>
+            
+            <h3>Your Products in This Order</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>{{ item.title }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>₹{{ "%.2f"|format(item.price) }}</td>
+                        <td>₹{{ "%.2f"|format(item.price * item.quantity) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="footer">
+            <p>Please prepare these items for shipping. The customer will be notified when you mark the order as shipped.</p>
+        </div>
+    </div>
+</body>
+</html>

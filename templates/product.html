@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.title }} - Aarogya Nutri Mix{% endblock %}
+
+{% block content %}
+<div class="container product-detail-container mt-5 mb-5">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('home') }}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('collection', collection_id=product.category) }}">{{ collection_title }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ product.title }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-6 product-image-section text-center">
+            <img src="{{ url_for('static', filename='images/' + product.image) }}" class="img-fluid main-product-image" alt="{{ product.title }}">
+        </div>
+        <div class="col-md-6 product-info-section">
+            <h1 class="product-page-title">{{ product.title }}</h1>
+            <div class="product-price-section mb-3">
+                <span class="current-price-lg">₹{{ "%.2f"|format(product.price) }}</span>
+                {% if product.compare_price and product.compare_price > product.price %}
+                <span class="compare-price-lg text-decoration-line-through ms-3">₹{{ "%.2f"|format(product.compare_price) }}</span>
+                {% endif %}
+            </div>
+            <div class="availability mb-3">
+                {% if product.stock_quantity > 0 %}
+                    <i class="bi bi-check-circle-fill text-success"></i> Available ({{ product.stock_quantity }} in stock)
+                {% else %}
+                    <i class="bi bi-x-circle-fill text-danger"></i> Currently unavailable
+                {% endif %}
+            </div>
+
+            <p class="product-description">{{ product.description }}</p>
+
+            {% if product.benefits %}
+            <div class="product-benefits mb-4">
+                <h5 class="section-heading">Key Benefits:</h5>
+                <ul class="list-unstyled">
+                    {% for benefit in product.benefits %}
+                    <li><i class="bi bi-check-circle-fill me-2 text-success"></i>{{ benefit }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <div class="product-actions d-grid gap-2 mb-4">
+                
+                <form method="POST" action="{{ url_for('add_to_cart') }}">
+                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                    <input type="hidden" name="title" value="{{ product.title }}">
+                    <input type="hidden" name="price" value="{{ product.price }}">
+                    <input type="hidden" name="image" value="{{ product.image }}">
+                    <button type="submit" class="btn btn-success btn-lg add-to-cart-btn-lg">Add to Cart</button>
+                </form>
+
+                <button class="btn btn-outline-secondary btn-lg buy-now-btn">Buy Now</button>
+            </div>
+
+            {% if product.tags %}
+            <div class="product-tags">
+                <h6 class="section-heading">Tags:</h6>
+                {% for tag in product.tags %}
+                <span class="badge bg-info text-dark product-tag-badge me-1">{{ tag }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="mt-5 product-extra-info">
+                <h5 class="section-heading">Additional Information</h5>
+                <!-- Bootstrap 5 CSS -->
+
+
+<!-- Nav Tabs -->
+                    <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab">Details</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="ingredients-tab" data-bs-toggle="tab" data-bs-target="#ingredients" type="button" role="tab">Ingredients</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviews" type="button" role="tab">Reviews</button>
+                    </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content pt-3" id="myTabContent">
+                    <div class="tab-pane fade show active" id="details" role="tabpanel" aria-labelledby="details-tab">
+                        <p>This product is carefully crafted using premium organic ingredients to provide optimal nutrition. It's ideal for daily consumption and supports overall well-being. Store in a cool, dry place away from direct sunlight.</p>
+                    </div>
+                    <div class="tab-pane fade" id="ingredients" role="tabpanel" aria-labelledby="ingredients-tab">
+                        <p><strong>Ingredients:</strong> Organic Barley, Sprouted Ragi, Green Gram, Chickpeas, Cardamom powder. (Example, add real ingredients to your PRODUCTS data)</p>
+                    </div>
+                    <div class="tab-pane fade" id="reviews" role="tabpanel" aria-labelledby="reviews-tab">
+                        <p>No reviews yet. Be the first to review this product!</p>
+                    </div>
+                    </div>
+
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Product Page Specific Styles (product.html) */
+    .product-detail-container {
+        max-width: 1200px; /* Wider container for product page */
+    }
+
+    .main-product-image {
+        max-height: 450px; /* Larger image on product page */
+        object-fit: contain;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        padding: 15px;
+    }
+
+    .product-page-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 15px;
+    }
+
+    .product-price-section {
+        margin-bottom: 25px;
+    }
+
+    .current-price-lg {
+        font-size: 2.2rem;
+        font-weight: bold;
+        color: #007bff;
+        margin-right: 10px;
+    }
+
+    .compare-price-lg {
+        font-size: 1.5rem;
+        color: #888;
+    }
+
+    .product-description {
+        font-size: 1.1rem;
+        color: #555;
+        line-height: 1.6;
+        margin-bottom: 30px;
+    }
+
+    .section-heading {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #444;
+        margin-bottom: 15px;
+    }
+
+    .product-benefits ul {
+        padding-left: 0; /* Remove default padding from ul */
+    }
+
+    .product-benefits li {
+        font-size: 1rem;
+        color: #555;
+        margin-bottom: 8px;
+        list-style-type: none; /* Remove bullet points */
+    }
+
+    .product-benefits li i {
+        color: #28a745; /* Green checkmark icon */
+        font-size: 1.1em;
+    }
+
+    .add-to-cart-btn-lg, .buy-now-btn {
+        padding: 12px 30px;
+        font-size: 1.2rem;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+
+    .add-to-cart-btn-lg {
+        background-color: #ffc107;
+        border-color: #ffc107;
+    }
+    .add-to-cart-btn-lg:hover {
+        background-color: #ffc107;
+        border-color: #ffc107;
+        color: white;
+    }
+
+    .buy-now-btn {
+        border-color: #6c757d;
+        color: #6c757d;
+    }
+    .buy-now-btn:hover {
+        background-color: #6c757d;
+        color: #fff;
+    }
+
+    .product-tag-badge {
+        font-size: 0.9em;
+        padding: 6px 10px;
+        border-radius: 5px;
+        background-color: #e9ecef !important; /* Light grey tag background */
+        color: #495057 !important; /* Darker tag text */
+        font-weight: normal;
+    }
+
+    /* Tab navigation for additional info */
+    .nav-tabs .nav-link {
+        font-weight: 600;
+        color: #666;
+        border: none;
+        border-bottom: 3px solid transparent;
+        transition: border-color 0.2s ease;
+    }
+    .nav-tabs .nav-link.active {
+        color: #007bff;
+        border-bottom-color: #007bff;
+        background-color: transparent;
+    }
+    .nav-tabs .nav-link:hover {
+        border-color: #e9ecef #e9ecef #007bff; /* Light hover border */
+    }
+    .tab-content {
+        border: 1px solid #dee2e6;
+        border-top: none;
+        padding: 20px;
+        border-bottom-left-radius: 8px;
+        border-bottom-right-radius: 8px;
+        background-color: #fff;
+    }
+    .btn {
+        width: 100%;
+    } 
+</style>
+{% endblock %}

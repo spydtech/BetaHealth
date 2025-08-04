@@ -1,0 +1,77 @@
+{% extends "admin_dashboard.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Products by {{ seller.name }}</h2>
+    <a href="{{ url_for('admin_view_seller', seller_id=seller.id) }}" 
+       class="btn btn-secondary mb-3">
+        Back to Seller Profile
+    </a>
+    
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Image</th>
+                    <th>Title</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td>{{ product.id }}</td>
+                    <td>
+                        {% if product.image %}
+                        <img src="{{ url_for('static', filename='images/' + product.image) }}" 
+                             alt="{{ product.title }}" width="50">
+                        {% else %}
+                        No Image
+                        {% endif %}
+                    </td>
+                    <td>{{ product.title }}</td>
+                    <td>₹{{ "%.2f"|format(product.price) }}</td>
+                    <td>{{ product.stock_quantity }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if product.approval_status == 'approved' %}bg-success
+                            {% elif product.approval_status == 'rejected' %}bg-danger
+                            {% else %}bg-warning{% endif %}">
+                            {{ product.status|title }}
+                        </span>
+                        {% if product.status == 'rejected' and product.rejection_reason %}
+                            <br><small>{{ product.rejection_reason }}</small>
+                        
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('product', product_id=product.id) }}" 
+                           class="btn btn-sm btn-info" target="_blank">
+                            View
+                        </a>
+                        {% if product.approval_status == 'pending' %}
+                            <button class="btn btn-sm btn-success approve-btn" 
+                                    data-product-id="{{ product.id }}">
+                                Approve
+                            </button>
+                            <button class="btn btn-sm btn-danger reject-btn" 
+                                    data-product-id="{{ product.id }}">
+                                Reject
+                            </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+        Back to Dashboard
+    </a>
+</div>
+{% endblock %}

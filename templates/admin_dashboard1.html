@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <link rel="shortcut icon" href="static/favicon_io/favicon.ico" type="image/x-icon">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            color: #007bff;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            max-height: 100vh; /* Prevent body from exceeding viewport */
+            overflow-x: hidden;
+        }
+
+        /* Main wrapper to contain content */
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0; /* Allow shrinking */
+        }
+
+        /* Add to your CSS section */
+        .table-danger td {
+            background-color: #f8d7da; /* Light red for out of stock */
+        }
+        .table-warning td {
+            background-color: #fff3cd; /* Light yellow for low stock */
+        }
+        .badge {
+            font-size: 0.85em;
+            padding: 0.35em 0.65em;
+        }
+
+        /* Admin navbar styling - matching seller style */
+        .admin-navbar {
+            background: #2c3e50 !important;
+            border-bottom: 1px solid #1a252f;
+            padding: 10px 0;
+            flex-shrink: 0; /* Prevent navbar from shrinking */
+        }
+        
+        .admin-navbar-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+        }
+        
+        .admin-navbar-logo a {
+            display: flex;
+            align-items: center;
+        }
+        
+        .header-image {
+            width: 160px;
+            height: auto;
+            padding: 5px;
+        }
+        
+        .admin-navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .admin-navbar-actions span,
+        .admin-navbar-actions a {
+            color: #fff !important;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 15px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .admin-navbar-actions a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .role-badge {
+            background-color: #e74c3c;
+            color: #fff;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+        }
+
+        .btn-primary {
+            background-color: #ffb902ff;
+            color: #0d3056ff;
+            border-color: #ffb902ff;
+            font-weight: 600;
+            padding: 8px 20px;
+            border-radius: 5px;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #ffb902ff;
+            border-color: rgb(231, 167, 6);
+        }
+
+        /* Content container */
+        .content-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Allow scrolling if content is too long */
+            min-height: 0; /* Allow shrinking */
+        }
+
+        /* Sidebar button styling */
+        .sidebar-btn {
+            width: 100%;
+            text-align: left;
+            border: none;
+            background: transparent;
+            color: #fff;
+            padding: 12px 20px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            transform: translateX(5px);
+        }
+
+        .sidebar-btn.active {
+            background-color: #ffb902ff;
+            color: #0d3056ff;
+            font-weight: 600;
+        }
+
+        .sidebar-btn i {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Content section styling */
+        .content-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Footer styling - stays at bottom of viewport */
+        footer {
+            background: #0d3056ff;
+            color: white;
+            font-size: 14px;
+            border-top: 2px solid white;
+            flex-shrink: 0; /* Prevent footer from shrinking */
+        }
+
+        footer a {
+            color: rgb(11, 228, 228);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: lightblue;
+        }
+
+        .footer__copyright {
+            border-top: 1px solid #444;
+            padding: 10px 0;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .policies li {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .policies li::before {
+            content: "\b7";
+            padding: 0.8rem;
+        }
+
+        .social {
+            margin-bottom: 20px;
+        }
+
+        .bgc {
+            padding-top: 10px;
+            padding-bottom: 5px;
+            background-color: #0d3056ff;
+        }
+
+        /* Alert container */
+        .alert-container {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1050;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        /* Ensure main content area is scrollable */
+        .main-content-area {
+            flex: 1;
+            overflow-y: auto; /* Allow content to scroll if needed */
+            padding-bottom: 20px; /* Add some spacing above footer */
+        }
+        .stretched-link::after {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 0;
+            content: "";
+        }
+        .position-relative {
+            position: relative;
+        }
+        .z-index-1 {
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-wrapper">
+        <!-- Custom Admin Navbar -->
+        <nav class="navbar admin-navbar">
+            <div class="admin-navbar-top">
+                <div class="admin-navbar-logo">
+                    <a href="/"><img src="{{ url_for('static', filename='images/logo.jpg') }}" class="header-image" alt="Company Logo"></a>
+                </div>
+                
+                <div class="admin-navbar-actions">
+                    <span>
+                        Hi, <strong>{{ session.get('user_name', 'Admin') }}</strong>
+                        <span class="role-badge">ADMIN</span>
+                    </span>
+                    <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+                    <a href="{{ url_for('logout') }}">Logout</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Alert container -->
+        <div class="alert-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <div class="content-container">
+            <div class="container-fluid mt-3 main-content-area">
+                <div class="row">
+                    <!-- Sidebar -->
+                    <div class="col-md-2 bg-dark text-white p-3">
+                        <h4 class="text-center mb-4">Admin Panel</h4>
+                        <div class="d-flex flex-column">
+                            <button class="sidebar-btn" data-target="dashboard-section">
+                                <i class="fas fa-tachometer-alt"></i>
+                                Dashboard
+                            </button>
+                            <button class="sidebar-btn" data-target="products-section">
+                                <i class="fas fa-boxes"></i>
+                                Products
+                            </button>
+                            <button class="sidebar-btn" data-target="sellers-section">
+                                <i class="fas fa-store"></i>
+                                Sellers
+                            </button>
+                            <button class="sidebar-btn" data-target="customers-section">
+                                <i class="fas fa-users"></i>
+                                Customers
+                            </button>
+                            <button class="sidebar-btn" data-target="orders-section">
+                                <i class="fas fa-shopping-cart"></i>
+                                Orders
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Main Content -->
+                    <div class="col-md-10">
+                        {%block content%}
+                        <!-- Dashboard Section - Now visible by default -->
+                        <div id="dashboard-section" class="content-section active">
+                            <h2 class="mb-4"><i class="fas fa-tachometer-alt me-2"></i>Admin Dashboard Overview</h2>
+                            <div class="row">
+                                <div class="col-md-3 mb-3">
+                                    <div class="card bg-primary text-white">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Products</h5>
+                                            <p class="card-text">{{ products|length if products else 0 }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card bg-success text-white">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Sellers</h5>
+                                            <p class="card-text">{{ sellers|length if sellers else 0 }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card bg-info text-white">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Customers</h5>
+                                            <p class="card-text">{{ customers|length if customers else 0 }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card bg-warning text-white">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Orders</h5>
+                                            <p class="card-text">0</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Products Section -->
+                        <div id="products-section" class="content-section">
+                            <h2 class="mb-4"><i class="fas fa-boxes me-2"></i>Products Management</h2>
+                            <p>Products content will go here...</p>
+                        </div>
+
+                        <!-- Sellers Section -->
+                        <div id="sellers-section" class="content-section">
+                            <h2 class="mb-4"><i class="fas fa-store me-2"></i>Sellers Management</h2>
+                            <p>Sellers content will go here...</p>
+                        </div>
+
+                        <!-- Customers Section -->
+                        <div id="customers-section" class="content-section">
+                            <h2 class="mb-4"><i class="fas fa-users me-2"></i>Customers Management</h2>
+                            <p>Customers content will go here...</p>
+                        </div>
+
+                        <!-- Orders Section -->
+                        <div id="orders-section" class="content-section">
+                            <h2 class="mb-4"><i class="fas fa-shopping-cart me-2"></i>Orders Management</h2>
+                            <p>Orders content will go here...</p>
+                        </div>
+                        {%endblock%}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer - Fixed at bottom -->
+    <footer>
+        <div class="container2 text-center">
+            <h2>Subscribe to our channels</h2><hr>
+            <div class="social d-flex justify-content-center gap-3">
+                <a href="https://instagram.com/aarogyanutrimix" style="margin-top:20px"><img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" width="24" alt="Instagram"></a>
+                <a href="https://www.youtube.com/@AarogyaNutriMix" style="margin-top:20px"><img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" width="24" alt="YouTube"></a>
+            </div>
+        </div>
+        
+        <div class="footer__copyright caption">
+            <small class="copyright__content">© 2025, <a href="/" title="">Aarogya Nutri Mix</a></small>
+            <small class="copyright__content"><a target="_blank" rel="nofollow" href="#"> </a></small>
+            <ul class="policies list-unstyled">
+                <li><small class="copyright__content"><a href="#">Refund policy</a></small></li>
+                <li><small class="copyright__content"><a href="#">Privacy policy</a></small></li>
+                <li><small class="copyright__content"><a href="#">Terms of service</a></small></li>
+                <li><small class="copyright__content"><a href="#">Shipping policy</a></small></li>
+                <li><small class="copyright__content"><a href="#">Contact information</a></small></li>
+            </ul>
+        </div>
+    </footer>
+
+    <!-- Product Rejection Modal -->
+    <div class="modal fade" id="rejectionModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Reject Product</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="productRejectionForm">
+                        <input type="hidden" id="rejectProductId" />
+                        <div class="mb-3">
+                            <label for="rejectionReason" class="form-label">Reason for Rejection</label>
+                            <textarea class="form-control" id="rejectionReason" rows="3" required></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmReject">Submit Rejection</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seller Rejection Modal -->
+    <div class="modal fade" id="rejectSellerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Reject Seller</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="sellerRejectionForm">
+                        <div class="mb-3">
+                            <label for="sellerRejectionReason" class="form-label">Reason for Rejection</label>
+                            <textarea class="form-control" id="sellerRejectionReason" rows="3" required></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmRejectSeller">Submit Rejection</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Make sure jQuery is loaded -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+    <script>
+    // Sidebar navigation functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebarButtons = document.querySelectorAll('.sidebar-btn');
+        const contentSections = document.querySelectorAll('.content-section');
+
+        // Set the first button as active by default
+        if (sidebarButtons.length > 0) {
+            sidebarButtons[0].classList.add('active');
+        }
+
+        sidebarButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target');
+                
+                // Remove active class from all buttons
+                sidebarButtons.forEach(btn => btn.classList.remove('active'));
+                
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Hide all content sections
+                contentSections.forEach(section => section.classList.remove('active'));
+                
+                // Show target section
+                const targetSection = document.getElementById(targetId);
+                if (targetSection) {
+                    targetSection.classList.add('active');
+                }
+            });
+        });
+    });  
+
+    $(document).ready(function() {
+        console.log('Admin dashboard loaded'); // Debug log
+        
+        // Approve product
+        $('.approve-btn').click(function() {
+            const productId = $(this).data('product-id');
+            console.log('Approving product:', productId); // Debug log
+            
+            if (confirm('Are you sure you want to approve this product?')) {
+                $.post('/admin/approve_product', { 
+                    product_id: productId,
+                    _token: '{{ csrf_token() if csrf_token else "" }}' // Add CSRF if needed
+                })
+                .done(function(response) {
+                    console.log('Approval response:', response); // Debug log
+                    alert('Product approved successfully!');
+                    location.reload();
+                })
+                .fail(function(xhr, status, error) {
+                    console.error('Approval failed:', xhr, status, error); // Debug log
+                    const message = xhr.responseJSON?.message || `Failed to approve product: ${error}`;
+                    alert('Error: ' + message);
+                });
+            }
+        });
+
+        // Reject product
+        $('.reject-btn').click(function() {
+            const productId = $(this).data('product-id');
+            console.log('Rejecting product:', productId); // Debug log
+            
+            $('#rejectProductId').val(productId);
+            $('#rejectionReason').val(''); // Clear previous reason
+            $('#rejectionModal').modal('show');
+        });
+
+        // Confirm product rejection
+        $('#confirmReject').click(function() {
+            const productId = $('#rejectProductId').val();
+            const reason = $('#rejectionReason').val().trim();
+            
+            console.log('Confirming rejection for product:', productId, 'with reason:', reason); // Debug log
+            
+            if (!reason) {
+                alert('Please provide a rejection reason');
+                return;
+            }
+
+            $.post('/admin/reject_product', { 
+                product_id: productId, 
+                reason: reason,
+                _token: '{{ csrf_token() if csrf_token else "" }}' // Add CSRF if needed
+            })
+            .done(function(response) {
+                console.log('Rejection response:', response); // Debug log
+                alert('Product rejected successfully!');
+                $('#rejectionModal').modal('hide');
+                location.reload();
+            })
+            .fail(function(xhr, status, error) {
+                console.error('Rejection failed:', xhr, status, error); // Debug log
+                const message = xhr.responseJSON?.message || `Failed to reject product: ${error}`;
+                alert('Error: ' + message);
+            });
+        });
+
+        // Approve seller
+        $('.approve-seller').click(function() {
+            const sellerId = $(this).data('seller-id');
+            console.log('Approving seller:', sellerId); // Debug log
+            
+            if (confirm('Are you sure you want to approve this seller?')) {
+                $.post(`/admin/approve_seller/${sellerId}`, {
+                    _token: '{{ csrf_token() if csrf_token else "" }}' // Add CSRF if needed
+                })
+                .done(function(response) {
+                    console.log('Seller approval response:', response); // Debug log
+                    alert('Seller approved successfully!');
+                    location.reload();
+                })
+                .fail(function(xhr, status, error) {
+                    console.error('Seller approval failed:', xhr, status, error); // Debug log
+                    const message = xhr.responseJSON?.message || `Failed to approve seller: ${error}`;
+                    alert('Error: ' + message);
+                });
+            }
+        });
+
+        // Reject seller
+        let currentSellerId;
+        $('.reject-seller').click(function() {
+            currentSellerId = $(this).data('seller-id');
+            console.log('Rejecting seller:', currentSellerId); // Debug log
+            
+            $('#sellerRejectionReason').val(''); // Clear previous reason
+            $('#rejectSellerModal').modal('show');
+        });
+
+        // Confirm seller rejection
+        $('#confirmRejectSeller').click(function() {
+            const reason = $('#sellerRejectionReason').val().trim();
+            
+            console.log('Confirming seller rejection:', currentSellerId, 'with reason:', reason); // Debug log
+            
+            if (!reason) {
+                alert('Please provide a rejection reason');
+            return;
+            }
+            
+            $.post(`/admin/reject_seller/${currentSellerId}`, { 
+                reason: reason,
+                _token: '{{ csrf_token() if csrf_token else "" }}' // Add CSRF if needed
+            })
+            .done(function(response) {
+                console.log('Seller rejection response:', response); // Debug log
+                alert('Seller rejected successfully!');
+                $('#rejectSellerModal').modal('hide');
+                location.reload();
+            })
+            .fail(function(xhr, status, error) {
+                console.error('Seller rejection failed:', xhr, status, error); // Debug log
+                const message = xhr.responseJSON?.message || `Failed to reject seller: ${error}`;
+                alert('Error: ' + message);
+            });
+        });
+
+        // Stock filter functionality
+        $('#stockFilter').change(function() {
+            const filter = $(this).val();
+            console.log('Filtering by stock:', filter); // Debug log
+            
+            $('#products-section tbody tr').each(function() {
+                const stockCell = $(this).find('td:nth-child(7)'); // Stock column
+                const stockText = stockCell.text().trim();
+                let showRow = true;
+                
+                if (filter === 'in_stock') {
+                    showRow = !stockText.includes('OUT');
+                } else if (filter === 'out_of_stock') {
+                    showRow = stockText.includes('OUT');
+                } else if (filter === 'low_stock') {
+                    const stockValue = parseInt(stockText) || 0;
+                    showRow = stockValue > 0 && stockValue < 5;
+                }
+                
+                $(this).toggle(showRow);
+            });
+        });
+    });
+    </script>
+
+    <!-- Add Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-dismiss alerts after 5 seconds
+        $(document).ready(function() {
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
+        });
+    </script>
+</body>
+</html>
