@@ -53,7 +53,7 @@ def get_db_connection():
             password="Spyd@2025",
             database="u861150102_metahealth" # !!! IMPORTANT: Changed to 'spy-d' for consistency with your app3.py
         )
-        print("✅ Connecting to database: spy-d")
+        print("✅ Connecting to database: ")
         return conn
     except mysql.connector.Error as err:
         print(f"❌ Database connection error: {err}")
@@ -3340,10 +3340,7 @@ def approve_seller(seller_id):
         """, (session['user_id'], seller_id))
 
         cursor.execute("UPDATE users SET is_active = TRUE WHERE id = %s", (seller_id,))
-        cursor.execute("SELECT id,email FROM users WHERE id = %s AND role = 'seller'", (seller_id,))
-        seller=cursor.fetchone()
         
-        send_seller_approval_email(seller.email, approved=True, reason=None)
         conn.commit()
         flash("Seller approved successfully", "success")
         return redirect(url_for('admin_sellers'))
