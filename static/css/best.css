@@ -4,7 +4,7 @@
         color: #007bff;
         margin-bottom: 10px;
         text-align: left;
-        text-decoration: underline; /* Remove default underline from h1 in base.css */
+        text-decoration: none; /* Remove default underline from h1 in base.css */
     }
 
     .collection-description {
@@ -17,6 +17,7 @@
 
     .product-grid {
         margin-top: 30px;
+        background-color: white;
     }
 
     .product-card {

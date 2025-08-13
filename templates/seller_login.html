@@ -77,6 +77,29 @@
             margin-bottom: 10px;
             display: inline-block;
         }
+        .flash-message {
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        font-size: 14px;
+        text-align: left;
+    }
+    .flash-success {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    .flash-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    .flash-warning {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    .flash-info {
+        background-color: #cce5ff;
+        color: #004085;
+    }
 
         .footer {
             margin-top: 20px;
@@ -96,7 +119,19 @@
         <a href="/"><img src="{{ url_for('static', filename='images/logo5.png') }}" class="header-image" alt="Company Logo"></a>
         <h2>Seller Login</h2>
         <p>Enter your email and password</p>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message flash-{{ category }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+        
         <form method="POST" action="{{ url_for('seller_login') }}">
+           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
             <input type="email" name="email" placeholder="Email" required>
 
             <div class="input-group">

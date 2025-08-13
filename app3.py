@@ -1,17 +1,19 @@
-from flask import Flask, render_template, redirect, url_for, request, session, abort, flash,jsonify,json
+from flask import Flask, render_template, redirect, url_for, request, session, abort, flash,jsonify,json,get_flashed_messages
 import difflib
 import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
 import random
+from flask_wtf import CSRFProtect
 from flask_mail import Mail, Message
 from functools import wraps
 import re # Import re for slugify
 import os # Import os for file path manipulation
 from werkzeug.utils import secure_filename
-# Add this at the top of app3.py
+
 import razorpay
 from flask_mail import Message
 import string
+from flask_caching import Cache
 
 # Razorpay Client Initialization (replace with your real keys)
 razorpay_client = razorpay.Client(auth=("rzp_test_yourkey", "your_secret"))
@@ -28,6 +30,8 @@ app.config['MAIL_USE_SSL'] = False
 mail = Mail(app)
 
 app.secret_key = 'your_secret_key_here'
+csrf = CSRFProtect(app)
+
 
 
 UPLOAD_FOLDER = 'static/images'
@@ -201,6 +205,162 @@ def init_db():
             FOREIGN KEY (parent_id) REFERENCES product_categories(id)
         )
     """)
+    # In the init_db() function, add:
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS carousel_slides (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            image_path VARCHAR(255) NOT NULL,
+            alt_text VARCHAR(255),
+            title VARCHAR(100),
+            description TEXT,
+            link_url VARCHAR(255),
+            is_active BOOLEAN DEFAULT TRUE,
+            sort_order INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS product_reviews (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            product_id VARCHAR(255) NOT NULL,
+            rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+            review TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+        )
+
+    """)
+    # In init_db(), after creating the product_categories table:
+
+    initial_categories = [
+        ('Food and Health', None),
+        ('Shop by Care', None),
+        ('Shop by Concern', None),
+        ('Kids Special', None),
+        ('Hair Care', None),
+        ('Skin Care', None),
+        ('Weight Management', None),
+        ('Tea Blends', None),
+        ('Milk Malts', 1),
+        ('Amla-Human-Sanjeevani', 1),
+        ('Sprouted Flours', 1),
+        ('Cooking Essentials', 1),
+        ('Kaaram Podis', 1),
+        ('Basic Health', 1),
+        ('Pregnancy Care', 2),
+        ('Diabetic Care', 2),
+        ('Baby Care', 2),
+        ('Iron Deficiency', 3),
+        ('B-Complex Deficiency', 3),
+        ('Irregular Periods', 3),
+        ('Constipation', 3),
+        ('Bones Strength', 3),
+        ('Immunity Booster', 3),
+        ('Cold and Cough', 3)
+    ]
+    
+    for name, parent_id in initial_categories:
+        cursor.execute("""
+        INSERT INTO product_categories (name, parent_id)
+        SELECT %s, %s
+        WHERE NOT EXISTS (
+            SELECT 1 FROM product_categories 
+            WHERE name = %s AND (parent_id = %s OR (%s IS NULL AND parent_id IS NULL))
+        )
+    """, (name, parent_id, name, parent_id, parent_id))
+        
+    # In init_db() function, add:
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS category_links (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    image_path VARCHAR(255) NOT NULL,
+    url VARCHAR(255) NOT NULL,
+    alt_text VARCHAR(255),
+    is_active BOOLEAN DEFAULT TRUE,
+    sort_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS navbar_links (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            slug VARCHAR(255) NOT NULL,
+            parent_id INT NULL,
+            is_active BOOLEAN DEFAULT TRUE,
+            sort_order INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (parent_id) REFERENCES navbar_links(id) ON DELETE CASCADE
+        )
+    """)
+
+    # 2. Fill table if empty
+    cursor.execute("SELECT COUNT(*) FROM navbar_links")
+    if cursor.fetchone()[0] == 0:
+        # Insert links (top-level & dropdowns)
+        cursor.execute("INSERT INTO navbar_links (title, slug, sort_order) VALUES ('Home', '/', 1)")
+        cursor.execute("INSERT INTO navbar_links (title, slug, sort_order) VALUES ('All Products', 'all-products', 2)")
+        cursor.execute("INSERT INTO navbar_links (title, slug, sort_order) VALUES ('Food and Health', 'food-and-health', 3)")
+        food_id = cursor.lastrowid
+        cursor.executemany(
+            "INSERT INTO navbar_links (title, slug, parent_id, sort_order) VALUES (%s, %s, %s, %s)",
+            [
+                ('Milk Malts', 'milk-malts', food_id, 1),
+                ('Healthy Snacks', 'healthy-snacks', food_id, 2),
+                ('Amla-Human Sanjeevani', 'amla-human-sanjeevani', food_id, 3),
+                ('Sprouted Flours', 'sprouted-flours', food_id, 4),
+                ('Cooking Essentials', 'cooking-essentials', food_id, 5),
+                ("Kaaram Podi's", 'kaaram-podis', food_id, 6),
+                ('Basic Health', 'basic-health', food_id, 7)
+            ]
+        )
+
+        cursor.execute("INSERT INTO navbar_links (title, slug, sort_order) VALUES ('Kids Special', 'kids-special', 4)")
+        cursor.execute("INSERT INTO navbar_links (title, slug, sort_order) VALUES ('Shop by Concern', 'shop-by-concern', 5)")
+        concern_id = cursor.lastrowid
+        cursor.executemany(
+            "INSERT INTO navbar_links (title, slug, parent_id, sort_order) VALUES (%s, %s, %s, %s)",
+            [
+                ('Iron Deficiency', 'iron-deficiency', concern_id, 1),
+                ('B-Complex Deficiency', 'b-complex-deficiency', concern_id, 2),
+                ('Irregular Periods', 'irregular-periods', concern_id, 3),
+                ('Constipation', 'constipation', concern_id, 4),
+                ('Bones Strength', 'bones-strength', concern_id, 5),
+                ('Immunity Booster', 'immunity-booster', concern_id, 6),
+                ('Cold and Cough', 'cold-and-cough', concern_id, 7)
+            ]
+        )
+
+        cursor.execute("INSERT INTO navbar_links (title, slug, sort_order) VALUES ('Shop by Care', 'shop-by-care', 6)")
+        care_id = cursor.lastrowid
+        cursor.executemany(
+            "INSERT INTO navbar_links (title, slug, parent_id, sort_order) VALUES (%s, %s, %s, %s)",
+            [
+                ('Pregnancy Care', 'pregnancy-care', care_id, 1),
+                ('Diabetic Care', 'diabetic-care', care_id, 2),
+                ('Baby Care', 'baby-care', care_id, 3)
+            ]
+        )
+
+        cursor.executemany(
+            "INSERT INTO navbar_links (title, slug, sort_order) VALUES (%s, %s, %s)",
+            [
+                ('Skin Care', 'skin-care', 7),
+                ('Hair Care', 'hair-care', 8),
+                ('Tea Blends', 'tea-blends', 9),
+                ('Weight Management', 'weight-management', 10),
+                ('About Us', 'contact', 11)
+            ]
+        )
+    
+    
+    
+    
 
     conn.commit()
     cursor.close()
@@ -281,6 +441,27 @@ def update_db_schema():
                 ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             """)
+            
+        cursor.execute("""
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'products'
+            AND COLUMN_NAME = 'details'
+        """)
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("ALTER TABLE products ADD COLUMN details TEXT;")
+            print("✅ Added 'details' column to products table")
+
+        # Check and add 'ingredients' column
+        cursor.execute("""
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'products'
+            AND COLUMN_NAME = 'ingredients'
+        """)
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("ALTER TABLE products ADD COLUMN ingredients TEXT;")
+            print("✅ Added 'ingredients' column to products table")
           
         
 
@@ -302,6 +483,20 @@ def update_db_schema():
             cursor.execute("""ALTER TABLE products ADD CONSTRAINT fk_product_approval 
                     FOREIGN KEY (id) REFERENCES product_approvals(product_id) ON DELETE CASCADE
                 """)
+            
+        # Add sold_quantity column to products table if it doesn't exist
+        cursor.execute("""
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE() 
+            AND TABLE_NAME = 'products' 
+            AND COLUMN_NAME = 'sold_quantity'
+        """)
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("""
+                ALTER TABLE products
+                ADD COLUMN sold_quantity INT DEFAULT 0
+            """)
+            print("✅ Added sold_quantity column to products table")
 
         # --- 6. Add foreign key fk_seller if not exists ---
         cursor.execute("""
@@ -316,7 +511,29 @@ def update_db_schema():
                 FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE SET NULL
             """)
         cursor.execute("ALTER TABLE orders AUTO_INCREMENT = 1001")
-
+        cursor.execute("""
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS 
+            WHERE CONSTRAINT_SCHEMA = DATABASE() 
+            AND TABLE_NAME = 'product_categories' 
+            AND CONSTRAINT_NAME = 'uc_category_name_parent'
+        """)
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("""
+                ALTER TABLE product_categories 
+                ADD CONSTRAINT uc_category_name_parent 
+                UNIQUE (name, parent_id)
+            """)
+        cursor.execute(f"""
+                SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                AND TABLE_NAME = 'orders' 
+                AND COLUMN_NAME = 'delivered_at'
+            """)
+        if cursor.fetchone()[0] == 0:
+                cursor.execute(f"""
+                    ALTER TABLE orders 
+                    ADD COLUMN delivered_at DATETIME 
+                """)
 
         conn.commit()
         print("✅ Database schema updated successfully")
@@ -335,14 +552,86 @@ def slugify(text):
 # IMPORTANT: This function is for initial migration.
 # After the first successful run, comment out the call to this function in if __name__ == '__main__':
 # to prevent re-running and potential issues.
-def migrate_products_to_db():
-    # Only import ALL_PRODUCTS if this function is called, to avoid dependency if not needed
-    try:
-        from all_products import ALL_PRODUCTS
-    except ImportError:
-        print("❌ all_products.py not found. Skipping product migration.")
-        return
+# def migrate_products_to_db():
+#     # Only import ALL_PRODUCTS if this function is called, to avoid dependency if not needed
+#     try:
+#         from all_products import ALL_PRODUCTS
+#     except ImportError:
+#         print("❌ all_products.py not found. Skipping product migration.")
+#         return
 
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+
+#     # Check if products table is empty
+#     cursor.execute("SELECT COUNT(*) FROM products")
+#     count = cursor.fetchone()[0]
+
+#     if count == 0:
+#         print("Migrating products from all_products.py to database...")
+
+#         # Ensure admin user with ID 1 exists for product assignment
+#         admin_user_id = 1
+#         cursor.execute("SELECT id FROM users WHERE id = %s", (admin_user_id,))
+#         if not cursor.fetchone():
+#             from werkzeug.security import generate_password_hash
+#             # Create a default admin user if ID 1 doesn't exist
+#             hashed_password = generate_password_hash("admin123") # Default password for admin
+#             cursor.execute("""
+#                 INSERT INTO users (id, name, email, password_hash, role)
+#                 VALUES (%s, %s, %s, %s, %s)
+#             """, (admin_user_id, 'Admin', 'admin@example.com', hashed_password, 'admin'))
+#             conn.commit() # Commit the new admin user
+#             print("✅ Created default admin user with ID 1 (admin@example.com / admin123)")
+#         else:
+#             print("Admin user with ID 1 already exists.")
+
+#         # Now migrate products
+#         for product in ALL_PRODUCTS:
+#             try:
+#                 # Insert product
+#                 cursor.execute(
+#                     """INSERT INTO products (id, seller_id, title, price, compare_price, image, tags, description, benefits, category, status)
+#                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'approved')""",
+#                     (product['id'],
+#                      admin_user_id, # Assign to default admin
+#                      product['title'],
+#                      product['price'],
+#                      product.get('compare_price'),
+#                      product.get('image'),
+#                      ','.join(product.get('tags', [])),
+#                      product.get('description'),
+#                      ','.join(product.get('benefits', [])),
+#                      product.get('category'))
+#                 )
+                
+#                 # Create inventory record with 0 stock - sellers will add stock themselves
+#                 cursor.execute("""
+#                     INSERT INTO inventory (product_id, stock_quantity)
+#                     VALUES (%s, %s)
+#                 """, (product['id'], 0))  # Start with 0 stock
+                
+#                 # Insert product approval record
+#                 cursor.execute("""
+#                     INSERT INTO product_approvals (product_id, status, reviewed_by, reviewed_at)
+#                     VALUES (%s, 'approved', %s, NOW())
+#                 """, (product['id'], admin_user_id))
+                
+#             except mysql.connector.Error as err:
+#                 if err.errno == 1062: # Duplicate entry for primary key 'id'
+#                     print(f"Product '{product['id']}' already exists. Skipping.")
+#                 else:
+#                     print(f"Error migrating product {product['id']}: {err}")
+        
+#         conn.commit()
+#         print(f"✅ Migrated {len(ALL_PRODUCTS)} products to the database. Stock quantities set to 0 - sellers can update them.")
+#     else:
+#         print("Products table is not empty. Skipping migration.")
+
+#     cursor.close()
+#     conn.close()
+def migrate_products_to_db():
+    """Initial migration setup without importing all_products.py"""
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -351,68 +640,28 @@ def migrate_products_to_db():
     count = cursor.fetchone()[0]
 
     if count == 0:
-        print("Migrating products from all_products.py to database...")
+        print("Products table is empty. No automatic migration will be performed.")
 
-        # Ensure admin user with ID 1 exists for product assignment
+        # Ensure admin user with ID 1 exists
         admin_user_id = 1
         cursor.execute("SELECT id FROM users WHERE id = %s", (admin_user_id,))
         if not cursor.fetchone():
             from werkzeug.security import generate_password_hash
-            # Create a default admin user if ID 1 doesn't exist
-            hashed_password = generate_password_hash("admin123") # Default password for admin
+            hashed_password = generate_password_hash("admin123")
             cursor.execute("""
                 INSERT INTO users (id, name, email, password_hash, role)
                 VALUES (%s, %s, %s, %s, %s)
             """, (admin_user_id, 'Admin', 'admin@example.com', hashed_password, 'admin'))
-            conn.commit() # Commit the new admin user
+            conn.commit()
             print("✅ Created default admin user with ID 1 (admin@example.com / admin123)")
         else:
             print("Admin user with ID 1 already exists.")
-
-        # Now migrate products
-        for product in ALL_PRODUCTS:
-            try:
-                # Insert product
-                cursor.execute(
-                    """INSERT INTO products (id, seller_id, title, price, compare_price, image, tags, description, benefits, category, status)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'approved')""",
-                    (product['id'],
-                     admin_user_id, # Assign to default admin
-                     product['title'],
-                     product['price'],
-                     product.get('compare_price'),
-                     product.get('image'),
-                     ','.join(product.get('tags', [])),
-                     product.get('description'),
-                     ','.join(product.get('benefits', [])),
-                     product.get('category'))
-                )
-                
-                # Create inventory record with 0 stock - sellers will add stock themselves
-                cursor.execute("""
-                    INSERT INTO inventory (product_id, stock_quantity)
-                    VALUES (%s, %s)
-                """, (product['id'], 0))  # Start with 0 stock
-                
-                # Insert product approval record
-                cursor.execute("""
-                    INSERT INTO product_approvals (product_id, status, reviewed_by, reviewed_at)
-                    VALUES (%s, 'approved', %s, NOW())
-                """, (product['id'], admin_user_id))
-                
-            except mysql.connector.Error as err:
-                if err.errno == 1062: # Duplicate entry for primary key 'id'
-                    print(f"Product '{product['id']}' already exists. Skipping.")
-                else:
-                    print(f"Error migrating product {product['id']}: {err}")
-        
-        conn.commit()
-        print(f"✅ Migrated {len(ALL_PRODUCTS)} products to the database. Stock quantities set to 0 - sellers can update them.")
     else:
         print("Products table is not empty. Skipping migration.")
 
     cursor.close()
     conn.close()
+
     
 
     
@@ -464,7 +713,7 @@ def get_all_products_from_db():
     cursor.execute("""
         SELECT p.*, COALESCE(i.stock_quantity, 0) AS stock_quantity 
         FROM products p
-        LEFT JOIN inventory i ON p.id = i.product_id
+        LEFT JOIN inventory i ON p.id = i.product_id WHERE p.status = 'approved'
     """)
     products = cursor.fetchall()
     conn.close()
@@ -495,7 +744,7 @@ def get_product_by_id_from_db(product_id):
         SELECT p.*, COALESCE(i.stock_quantity, 0) AS stock_quantity 
         FROM products p
         LEFT JOIN inventory i ON p.id = i.product_id
-        WHERE p.id = %s
+        WHERE p.id = %s AND p.status = 'approved'
     """, (product_id,))
     product = cursor.fetchone()
     conn.close()
@@ -529,20 +778,16 @@ def add_product_to_db(product_data):
         compare_price = float(product_data['compare_price']) if product_data.get('compare_price') is not None else None
 
         cursor.execute(
-            """INSERT INTO products (id, seller_id, title, price, compare_price, image, tags, description, benefits, category,sub_category)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s)""",
-            (product_data['id'],
-             product_data['seller_id'],
-             product_data['title'],
-             price,
-             compare_price,
-             product_data.get('image'),
-             ','.join(product_data.get('tags', [])),
-             product_data.get('description'),
-             ','.join(product_data.get('benefits', [])),
-             product_data.get('category'),
-             product_data.get('sub_category'))
+            """INSERT INTO products 
+            (id, seller_id, title, price, compare_price, image, tags, description, benefits, category, sub_category, details, ingredients)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            (product_data['id'], product_data['seller_id'], product_data['title'], price, compare_price,
+            product_data.get('image'), ','.join(product_data.get('tags', [])),
+            product_data.get('description'), ','.join(product_data.get('benefits', [])),
+            product_data.get('category'), product_data.get('sub_category'),
+            product_data.get('details'), product_data.get('ingredients'))
         )
+
         cursor.execute("""
             INSERT INTO inventory (product_id, stock_quantity)
             VALUES (%s, %s)
@@ -565,24 +810,42 @@ def update_product_in_db(product_id, product_data):
         compare_price = float(product_data['compare_price']) if product_data.get('compare_price') is not None else None
 
         cursor.execute(
-            """UPDATE products SET title = %s, price = %s, compare_price = %s, image = %s,
-               tags = %s, description = %s, benefits = %s, category = %s
-               WHERE id = %s AND seller_id = %s""",
-            (product_data['title'],
-             price,
-             compare_price,
-             product_data.get('image'),
-             ','.join(product_data.get('tags', [])),
-             product_data.get('description'),
-             ','.join(product_data.get('benefits', [])),
-             product_data.get('category'),
-             product_id,
-             product_data['seller_id'])
+            """UPDATE products 
+               SET title = %s,
+                   price = %s,
+                   compare_price = %s,
+                   image = %s,
+                   tags = %s,
+                   description = %s,
+                   benefits = %s,
+                   category = %s,
+                   sub_category = %s,
+                   details = %s,
+                   ingredients = %s
+             WHERE id = %s AND seller_id = %s""",
+            (
+                product_data['title'],
+                price,
+                compare_price,
+                product_data.get('image'),
+                ','.join(product_data.get('tags', [])),
+                product_data.get('description'),
+                ','.join(product_data.get('benefits', [])),
+                product_data.get('category'),
+                product_data.get('sub_category'),
+                product_data.get('details'),
+                product_data.get('ingredients'),
+                product_id,
+                product_data['seller_id']
+            )
         )
+
+        # Update inventory quantity
         cursor.execute("""
             UPDATE inventory SET stock_quantity = %s
             WHERE product_id = %s
         """, (product_data['stock_quantity'], product_id))
+
         conn.commit()
         return cursor.rowcount > 0
     except mysql.connector.Error as err:
@@ -591,6 +854,7 @@ def update_product_in_db(product_id, product_data):
     finally:
         cursor.close()
         conn.close()
+
 
 def delete_product_from_db(product_id, seller_id):
     """Deletes a product from the database."""
@@ -644,7 +908,7 @@ def get_products_by_category_from_db(category_name):
         SELECT p.*, COALESCE(i.stock_quantity, 0) AS stock_quantity 
         FROM products p
         LEFT JOIN inventory i ON p.id = i.product_id
-        WHERE p.category = %s OR p.sub_category = %s
+        WHERE (p.category = %s OR p.sub_category = %s) AND p.status = 'approved'
     """, (category_name,category_name))
     products = cursor.fetchall()
     conn.close()
@@ -734,9 +998,17 @@ def role_required(role):
 
 @app.route('/')
 def home():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM carousel_slides WHERE is_active = TRUE ORDER BY sort_order")
+    carousel_slides = cursor.fetchall()
+    cursor.execute("SELECT * FROM category_links WHERE is_active = TRUE ORDER BY sort_order ASC")
+    category_links = cursor.fetchall()
+    conn.close()
     cart_length = get_cart_length()
     all_products_data = get_all_products_from_db()
 
+    # Get unique products (by title)
     unique_products = []
     seen_titles = set()
     for product_item in all_products_data:
@@ -744,10 +1016,28 @@ def home():
             unique_products.append(product_item)
             seen_titles.add(product_item['title'])
 
+    # Get newest approved products
+    newest_products = sorted(
+        [p for p in all_products_data if p.get('status') == 'approved'],
+        key=lambda x: x.get('created_at', ''), 
+        reverse=True
+    )[:8]
+
+    # Get best selling products (sorted by sold_quantity)
+    best_sellers = sorted(
+        [p for p in all_products_data if p.get('sold_quantity', 0) > 0],
+        key=lambda x: x.get('sold_quantity', 0),
+        reverse=True
+    )[:8]  # Limit to 8 best sellers
+
     return render_template("base.html", 
-                           collection={'products': unique_products},
-                           current_collection='all-products',
-                           cart_length=cart_length)
+                         carousel_slides=carousel_slides,
+                         category_links=category_links,
+                         collection={'products': unique_products},
+                         newest_products=newest_products,
+                         best_sellers=best_sellers,
+                         current_collection='all-products',
+                         cart_length=cart_length)
 
 
 @app.route('/collections/<collection_id>')
@@ -781,6 +1071,56 @@ def all_products_page():
     return render_template('collection.html',
                            collection={'title': 'All Products', 'products': unique_products},
                            current_collection='all-products')
+    
+
+
+@app.route('/category/<parent_slug>')
+def parent_category_page(parent_slug):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # First, get the category name from the slug
+    cursor.execute("""
+        SELECT name FROM product_categories 
+        WHERE parent_id IS NULL 
+        AND is_active = TRUE
+        AND %s = LOWER(REPLACE(name, ' ', '-'))
+    """, (parent_slug,))
+    category = cursor.fetchone()
+    
+    if not category:
+        abort(404)
+        
+    category_name = category['name']
+
+    # Get all active subcategories for this parent category
+    cursor.execute("""
+        SELECT 
+            c.id AS child_id,
+            c.name AS child_name,
+            c.parent_id,
+            p.name AS parent_name
+        FROM 
+            product_categories c
+        JOIN 
+            product_categories p ON c.parent_id = p.id
+        WHERE 
+            p.name = %s
+            AND c.is_active = TRUE
+        ORDER BY c.name
+    """, (category_name,))
+    
+    subcategories = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return render_template('subcategory_list.html',
+                           parent_category=category_name,
+                           parent_slug=parent_slug,
+                           subcategories=subcategories)
+
+
+
 
 # --- Explicit Routes for Each Category ---
 @app.route('/milk-malts')
@@ -941,15 +1281,34 @@ def baby_care_collection():
 @app.route('/products/<product_id>')
 def product(product_id):
     product_item = get_product_by_id_from_db(product_id)
-    
     if not product_item:
         abort(404)
-    
+
+    # Get reviews for the product
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT r.*, u.name as user_name FROM product_reviews r
+        JOIN users u ON r.user_id = u.id
+        WHERE r.product_id = %s
+        ORDER BY r.created_at DESC
+    """, (product_id,))
+    reviews = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    user_has_purchased = False
+    if 'user_id' in session:
+        user_has_purchased = user_has_purchased_product(session['user_id'], product_id)
+
     collection_title = product_item.get('category', 'Products').replace('-', ' ').title()
-    
+
     return render_template('product.html',
                            product=product_item,
-                           collection_title=collection_title)
+                           collection_title=collection_title,
+                           reviews=reviews,
+                           user_has_purchased=user_has_purchased)
+
 
 @app.route('/cart')
 def cart():
@@ -1446,10 +1805,25 @@ def seller_login():
         user = get_user_by_email(email)
         if user and check_password_hash(user['password_hash'], password):
             if user['role'] != 'seller':
-                
                 flash("This account is not registered as a seller", "danger")
                 return redirect(url_for('seller_login'))
-                
+            
+            # Check seller approval status
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("""
+                SELECT approval_status 
+                FROM seller_profiles 
+                WHERE user_id = %s
+            """, (user['id'],))
+            profile = cursor.fetchone()
+            conn.close()
+
+            if not profile or profile['approval_status'] != 'approved':
+                flash("Your account is awaiting admin approval.", "warning")
+                return redirect(url_for('seller_login'))
+
+            # Seller approved → set session
             session['user_id'] = user['id']
             session['user_name'] = user['name']
             session['user_role'] = user['role']
@@ -1459,6 +1833,7 @@ def seller_login():
         flash("Invalid email or password", "danger")
     
     return render_template('seller_login.html')
+
 
 @app.route('/verify-otp', methods=['GET', 'POST'])
 def verify_otp():
@@ -1730,23 +2105,19 @@ def admin_approve_product():
     try:
         product_id = request.form.get('product_id')
         if not product_id:
-            return jsonify({'success': False, 'message': 'Product ID is required'}), 400
-            
-        print(f"DEBUG: Approving product {product_id}")
-        
+            flash("Product ID is required", "danger")
+            return redirect(url_for('admin_products'))
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        
-        # Start transaction
         conn.start_transaction()
-        
-        # Check if product exists first
+
         cursor.execute("SELECT id FROM products WHERE id = %s", (product_id,))
         if not cursor.fetchone():
             conn.rollback()
-            return jsonify({'success': False, 'message': 'Product not found'}), 404
-        
-        # Update product_approvals table (INSERT or UPDATE)
+            flash("Product not found", "danger")
+            return redirect(url_for('admin_products'))
+
         cursor.execute("""
             INSERT INTO product_approvals (product_id, status, reviewed_by, reviewed_at)
             VALUES (%s, 'approved', %s, NOW())
@@ -1756,38 +2127,29 @@ def admin_approve_product():
                 reviewed_at = NOW(),
                 rejection_reason = NULL
         """, (product_id, session['user_id']))
-        
-        # Update products table
-        cursor.execute("""
-            UPDATE products 
-            SET status = 'approved' 
-            WHERE id = %s
-        """, (product_id,))
-        
-        # Check if update was successful
+
+        cursor.execute("UPDATE products SET status = 'approved' WHERE id = %s", (product_id,))
         if cursor.rowcount == 0:
             conn.rollback()
-            return jsonify({'success': False, 'message': 'Failed to update product status'}), 500
-        
+            flash("Failed to update product status", "danger")
+            return redirect(url_for('admin_products'))
+
         conn.commit()
-        print(f"DEBUG: Product {product_id} approved successfully")
-        return jsonify({'success': True, 'message': 'Product approved successfully'})
-        
+        flash("Product approved successfully", "success")
+        return redirect(url_for('admin_products'))
+
     except mysql.connector.Error as db_err:
-        if conn:
-            conn.rollback()
-        print(f"DEBUG: Database error approving product: {str(db_err)}")
-        return jsonify({'success': False, 'message': f'Database error: {str(db_err)}'}), 500
+        if conn: conn.rollback()
+        flash(f"Database error: {db_err}", "danger")
+        return redirect(url_for('admin_products'))
     except Exception as e:
-        if conn:
-            conn.rollback()
-        print(f"DEBUG: Error approving product: {str(e)}")
-        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+        if conn: conn.rollback()
+        flash(f"Error: {e}", "danger")
+        return redirect(url_for('admin_products'))
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
+
 
 @app.route('/admin/reject_product', methods=['POST'])
 @role_required('admin')
@@ -1796,35 +2158,26 @@ def admin_reject_product():
     cursor = None
     try:
         product_id = request.form.get('product_id')
-        reason = request.form.get('reason', '').strip()
-        
+        reason = request.form.get('rejection_reason', '').strip()
+
         if not product_id:
-            return jsonify({'success': False, 'message': 'Product ID is required'}), 400
+            flash("Product ID is required", "danger")
+            return redirect(url_for('admin_products'))
         if not reason:
-            return jsonify({'success': False, 'message': 'Rejection reason is required'}), 400
-            
-        print(f"DEBUG: Rejecting product {product_id} with reason: {reason}")
-        
+            flash("Rejection reason is required", "danger")
+            return redirect(url_for('admin_products'))
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        
-        # Start transaction
         conn.start_transaction()
-        
-        # Check if product exists first
+
         cursor.execute("SELECT id FROM products WHERE id = %s", (product_id,))
         if not cursor.fetchone():
             conn.rollback()
-            return jsonify({'success': False, 'message': 'Product not found'}), 404
-        
-        # Update products table first
-        cursor.execute("""
-            UPDATE products 
-            SET status = 'rejected' 
-            WHERE id = %s
-        """, (product_id,))
-        
-        # Update product_approvals table (INSERT or UPDATE)
+            flash("Product not found", "danger")
+            return redirect(url_for('admin_products'))
+
+        cursor.execute("UPDATE products SET status = 'rejected' WHERE id = %s", (product_id,))
         cursor.execute("""
             INSERT INTO product_approvals (product_id, status, rejection_reason, reviewed_by, reviewed_at)
             VALUES (%s, 'rejected', %s, %s, NOW())
@@ -1834,31 +2187,392 @@ def admin_reject_product():
                 reviewed_by = VALUES(reviewed_by),
                 reviewed_at = NOW()
         """, (product_id, reason, session['user_id']))
-        
-        # Check if update was successful
+
         if cursor.rowcount == 0:
             conn.rollback()
-            return jsonify({'success': False, 'message': 'Failed to update product status'}), 500
+            flash("Failed to update product status", "danger")
+            return redirect(url_for('admin_products'))
+
+        conn.commit()
+        flash("Product rejected successfully", "warning")
+        return redirect(url_for('admin_products'))
+
+    except mysql.connector.Error as db_err:
+        if conn: conn.rollback()
+        flash(f"Database error: {db_err}", "danger")
+        return redirect(url_for('admin_products'))
+    except Exception as e:
+        if conn: conn.rollback()
+        flash(f"Error: {e}", "danger")
+        return redirect(url_for('admin_products'))
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+            
+@app.route('/admin/carousel', methods=['GET', 'POST'])
+@role_required('admin')
+def admin_carousel():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    if request.method == 'POST':
+        # Handle form submission for adding/editing slides
+        action = request.form.get('action')
+        
+        if action == 'add':
+            # Process new slide
+            image_file = request.files.get('image')
+            if image_file and allowed_file(image_file.filename):
+                filename = secure_filename(image_file.filename)
+                image_path = os.path.join('images', filename).replace('\\', '/')
+                full_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                image_file.save(full_path)
+                
+                cursor.execute("""
+                    INSERT INTO carousel_slides 
+                    (image_path, alt_text, title, description, link_url, sort_order)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (
+                    image_path,
+                    request.form.get('alt_text'),
+                    request.form.get('title'),
+                    request.form.get('description'),
+                    request.form.get('link_url'),
+                    request.form.get('sort_order', 0)
+                ))
+                conn.commit()
+                flash('New slide added successfully!', 'success')
+        
+        elif action == 'update':
+            # Process slide update
+            slide_id = request.form.get('slide_id')
+            updates = []
+            params = []
+            
+            if 'image' in request.files and request.files['image'].filename:
+                image_file = request.files['image']
+                if allowed_file(image_file.filename):
+                    filename = secure_filename(image_file.filename)
+                    image_path = os.path.join('images', filename)
+                    full_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    image_file.save(full_path)
+                    updates.append("image_path = %s")
+                    params.append(image_path)
+            
+            for field in ['alt_text', 'title', 'description', 'link_url', 'sort_order']:
+                if field in request.form:
+                    updates.append(f"{field} = %s")
+                    params.append(request.form[field])
+            
+            if updates:
+                params.append(slide_id)
+                query = f"UPDATE carousel_slides SET {', '.join(updates)} WHERE id = %s"
+                cursor.execute(query, params)
+                conn.commit()
+                flash('Slide updated successfully!', 'success')
+        
+        elif action == 'delete':
+            slide_id = request.form.get('slide_id')
+            cursor.execute("DELETE FROM carousel_slides WHERE id = %s", (slide_id,))
+            conn.commit()
+            flash('Slide deleted successfully!', 'success')
+    
+    # Get all slides
+    cursor.execute("SELECT * FROM carousel_slides ORDER BY sort_order, created_at DESC")
+    slides = cursor.fetchall()
+    conn.close()
+    
+    return render_template('admin_carousel.html', slides=slides,active_section='carousel')
+
+@app.route('/admin/links', methods=['GET', 'POST'])
+@role_required('admin')
+def admin_links():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'add':
+            title = request.form['title']
+            alt_text = request.form.get('alt_text')
+            url = request.form['url']
+            sort_order = int(request.form.get('sort_order', 0))
+            image = request.files['image']
+
+            if image and allowed_file(image.filename):
+                filename = secure_filename(image.filename)
+                image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                image.save(image_path)
+                db_path = os.path.relpath(image_path, 'static')
+
+                cursor.execute("""INSERT INTO category_links (title, image_path, alt_text, url, sort_order) 
+                                  VALUES (%s, %s, %s, %s, %s)""",
+                               (title, db_path, alt_text, url, sort_order))
+                conn.commit()
+
+        elif action == 'update':
+            link_id = request.form['link_id']
+            title = request.form['title']
+            alt_text = request.form.get('alt_text')
+            url = request.form['url']
+            sort_order = int(request.form.get('sort_order', 0))
+            image = request.files['image']
+
+            if image and allowed_file(image.filename):
+                filename = secure_filename(image.filename)
+                image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                image.save(image_path)
+                db_path = os.path.relpath(image_path, 'static')
+                cursor.execute("""UPDATE category_links SET title=%s, image_path=%s, alt_text=%s, url=%s, sort_order=%s WHERE id=%s""",
+                               (title, db_path, alt_text, url, sort_order, link_id))
+            else:
+                cursor.execute("""UPDATE category_links SET title=%s, alt_text=%s, url=%s, sort_order=%s WHERE id=%s""",
+                               (title, alt_text, url, sort_order, link_id))
+
+            conn.commit()
+
+        elif action == 'delete':
+            link_id = request.form['link_id']
+            cursor.execute("DELETE FROM category_links WHERE id = %s", (link_id,))
+            conn.commit()
+
+    cursor.execute("SELECT * FROM category_links ORDER BY sort_order ASC")
+    links = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return render_template("admin_links.html", links=links, active_section='links')
+
+
+
+
+
+
+def cleanup_duplicate_categories():
+    """Temporary function to clean up duplicate categories"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            CREATE TEMPORARY TABLE temp_categories AS
+            SELECT MIN(id) as id, name, parent_id
+            FROM product_categories
+            GROUP BY name, parent_id;
+        """)
+        
+        cursor.execute("""
+            DELETE FROM product_categories
+            WHERE id NOT IN (SELECT id FROM temp_categories);
+        """)
+        
+        cursor.execute("DROP TEMPORARY TABLE temp_categories;")
+        conn.commit()
+        print("✅ Duplicate categories cleaned up successfully")
+    except Exception as e:
+        conn.rollback()
+        print(f"Error cleaning duplicates: {e}")
+    finally:
+        conn.close()
+
+
+
+# Add these new routes to your app3.py
+cache = Cache(config={'CACHE_TYPE': 'SimpleCache'})
+cache.init_app(app)
+
+
+
+@cache.cached(timeout=300)
+
+@app.route('/admin/categories')
+@role_required('admin')
+def admin_categories():
+    """Admin view to manage product categories and subcategories"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Get all categories with their hierarchy information
+    cursor.execute("""
+        SELECT 
+            c.id,
+            c.name,
+            c.is_active,
+            c.parent_id,
+            p.name AS parent_name
+        FROM product_categories c
+        LEFT JOIN product_categories p ON c.parent_id = p.id
+        ORDER BY COALESCE(c.parent_id, c.id), c.id
+    """)
+    
+    all_categories = cursor.fetchall()
+    conn.close()
+    
+    # Organize categories into a dictionary
+    categories_dict = {}
+    for cat in all_categories:
+        if cat['parent_id'] is None:
+            # It's a parent category
+            if cat['id'] not in categories_dict:
+                categories_dict[cat['id']] = {
+                    'id': cat['id'],
+                    'name': cat['name'],
+                    'is_active': cat['is_active'],
+                    'subcategories': []
+                }
+        else:
+            # It's a subcategory
+            if cat['parent_id'] in categories_dict:
+                categories_dict[cat['parent_id']]['subcategories'].append({
+                    'id': cat['id'],
+                    'name': cat['name'],
+                    'is_active': cat['is_active']
+                })
+    
+    # Convert dictionary to list for template
+    categories = list(categories_dict.values())
+    
+    # Get just parent categories for the form dropdown
+    parent_categories = [{
+        'id': cat['id'],
+        'name': cat['name']
+    } for cat in categories_dict.values()]
+    
+    # Convert flash messages to JSON
+    flash_messages = [
+        {'category': cat, 'message': msg} 
+        for cat, msg in get_flashed_messages(with_categories=True)
+    ]
+    
+    return render_template('admin_categories.html',
+                         parent_categories=parent_categories,
+                         categories=categories,
+                         active_section='categories',
+                         flash_messages_json=json.dumps(flash_messages))  # Add this line
+
+@app.route('/admin/add_category', methods=['POST'])
+@role_required('admin')
+def add_category():
+    """Add a new category or subcategory"""
+    name = request.form.get('name', '').strip()
+    parent_id = request.form.get('parent_id') or None
+    
+    if not name:
+        flash('Category name is required', 'danger')
+        return redirect(url_for('admin_categories'))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Check if the category exists at any level with the same name
+        cursor.execute("""
+            SELECT 1 FROM product_categories 
+            WHERE name = %s AND (parent_id = %s OR (%s IS NULL AND parent_id IS NULL))
+            LIMIT 1
+        """, (name, parent_id, parent_id))
+            
+        if cursor.fetchone():
+            flash(f'A category with name "{name}" already exists at this level', 'danger')
+            return redirect(url_for('admin_categories'))
+        
+        # Insert the new category
+        cursor.execute("""
+            INSERT INTO product_categories (name, parent_id)
+            VALUES (%s, %s)
+        """, (name, parent_id))
         
         conn.commit()
-        print(f"DEBUG: Product {product_id} rejected successfully")
-        return jsonify({'success': True, 'message': 'Product rejected successfully'})
         
-    except mysql.connector.Error as db_err:
-        if conn:
-            conn.rollback()
-        print(f"DEBUG: Database error rejecting product: {str(db_err)}")
-        return jsonify({'success': False, 'message': f'Database error: {str(db_err)}'}), 500
-    except Exception as e:
-        if conn:
-            conn.rollback()
-        print(f"DEBUG: Error rejecting product: {str(e)}")
-        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+        if parent_id:
+            flash(f'Subcategory "{name}" added successfully', 'success')
+        else:
+            flash(f'Main category "{name}" added successfully', 'success')
+            
+    except mysql.connector.Error as err:
+        conn.rollback()
+        flash(f'Error adding category: {err}', 'danger')
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        conn.close()
+    
+    return redirect(url_for('admin_categories'))
+
+@app.route('/admin/toggle_category/<int:category_id>', methods=['POST'])
+@role_required('admin')
+def toggle_category(category_id):
+    """Toggle category active status"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Get current status
+        cursor.execute("SELECT is_active FROM product_categories WHERE id = %s", (category_id,))
+        category = cursor.fetchone()
+        
+        if not category:
+            flash('Category not found', 'danger')
+            return redirect(url_for('admin_categories'))
+        
+        new_status = not category['is_active']
+        
+        # Update status
+        cursor.execute("""
+            UPDATE product_categories 
+            SET is_active = %s 
+            WHERE id = %s
+        """, (new_status, category_id))
+        
+        # If deactivating a parent category, also deactivate its subcategories
+        if not new_status:
+            cursor.execute("""
+                UPDATE product_categories 
+                SET is_active = FALSE 
+                WHERE parent_id = %s
+            """, (category_id,))
+        
+        conn.commit()
+        status = 'activated' if new_status else 'deactivated'
+        flash(f'Category {status} successfully', 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error updating category: {str(e)}', 'danger')
+    finally:
+        conn.close()
+    
+    return redirect(url_for('admin_categories'))
+
+@app.route('/admin/delete_category/<int:category_id>', methods=['POST'])
+@role_required('admin')
+def delete_category(category_id):
+    """Delete a category or subcategory"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Check if category has products
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM products 
+            WHERE category = (SELECT name FROM product_categories WHERE id = %s)
+               OR sub_category = (SELECT name FROM product_categories WHERE id = %s)
+        """, (category_id, category_id))
+        
+        product_count = cursor.fetchone()[0]
+        if product_count > 0:
+            flash('Cannot delete category with associated products', 'danger')
+            return redirect(url_for('admin_categories'))
+        
+        # Delete the category
+        cursor.execute("DELETE FROM product_categories WHERE id = %s", (category_id,))
+        conn.commit()
+        flash('Category deleted successfully', 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error deleting category: {str(e)}', 'danger')
+    finally:
+        conn.close()
+    
+    return redirect(url_for('admin_categories'))
 
 # Replace the current admin_dashboard route with these separate routes:
 
@@ -1886,35 +2600,121 @@ def admin_reject_product():
 #                          customers_count=customers_count,
 #                          orders_count=orders_count)
 
+@app.route('/admin/navbar')
+def admin_navbar():
+    if session.get('user_role') != 'admin':
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("SELECT * FROM navbar_links ORDER BY sort_order")
+    links = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    # Get only top-level links for parent dropdown
+    parents = [link for link in links if not link['parent_id']]
+
+    return render_template('admin_navbar.html', links=links, parents=parents,active_section='navbar')
+
+
+@app.route('/admin/navbar/add', methods=['POST'])
+def add_navbar_link():
+    if session.get('user_role') != 'admin':
+        return redirect(url_for('login'))
+
+    title = request.form['title']
+    slug = request.form['slug']
+    parent_id = request.form.get('parent_id') or None
+    sort_order = request.form.get('sort_order') or 0
+    is_active = 1 if request.form.get('is_active') == 'on' else 0
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO navbar_links (title, slug, parent_id, sort_order, is_active)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (title, slug, parent_id, sort_order, is_active))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    flash('Navbar link added successfully!', 'success')
+    return redirect(url_for('admin_navbar'))
+
+
+@app.route('/admin/navbar/edit/<int:link_id>', methods=['POST'])
+def edit_navbar_link(link_id):
+    if session.get('user_role') != 'admin':
+        return redirect(url_for('login'))
+
+    title = request.form['title']
+    slug = request.form['slug']
+    parent_id = request.form.get('parent_id') or None
+    sort_order = request.form.get('sort_order') or 0
+    is_active = 1 if request.form.get('is_active') == 'on' else 0
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE navbar_links
+        SET title=%s, slug=%s, parent_id=%s, sort_order=%s, is_active=%s
+        WHERE id=%s
+    """, (title, slug, parent_id, sort_order, is_active, link_id))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    flash('Navbar link updated successfully!', 'success')
+    return redirect(url_for('admin_navbar'))
+
+
+@app.route('/admin/navbar/delete/<int:link_id>', methods=['POST'])
+def delete_navbar_link(link_id):
+    if session.get('user_role') != 'admin':
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM navbar_links WHERE id=%s", (link_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    flash('Navbar link deleted successfully!', 'danger')
+    return redirect(url_for('admin_navbar'))
+
+
 
 @app.route('/admin')
 @role_required('admin')
 def admin_dashboard():
-    # Redirect to products by default
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
     # Get counts for dashboard
     cursor.execute("SELECT COUNT(*) as count FROM products")
-    products_count = cursor.fetchone()['count']
+    products = cursor.fetchone()['count']
     
     cursor.execute("SELECT COUNT(*) as count FROM users WHERE role = 'seller'")
-    sellers_count = cursor.fetchone()['count']
+    sellers = cursor.fetchone()['count']
     
     cursor.execute("SELECT COUNT(*) as count FROM users WHERE role = 'customer'")
-    customers_count = cursor.fetchone()['count']
+    customers = cursor.fetchone()['count']
     
     cursor.execute("SELECT COUNT(*) as count FROM orders")
-    orders_count = cursor.fetchone()['count']
+    orders = cursor.fetchone()['count']
     
     conn.close()
     
     return render_template('admin_dashboard.html',
-                         products_count=products_count,
-                         sellers_count=sellers_count,
-                         customers_count=customers_count,
-                         orders_count=orders_count)
-    return render_template('admin_dashboard.html')
+                         products=products,
+                         sellers=sellers,
+                         customers=customers,
+                         orders=orders,
+                         active_section='dashboard')
 
 @app.route('/admin/products')
 @role_required('admin')
@@ -1942,8 +2742,8 @@ def admin_products():
     
     conn.close()
     
-    return render_template('products_section.html',
-                         products=products
+    return render_template('admin_products.html',
+                         products=products,active_section='products'
                         )
     
     
@@ -1981,8 +2781,8 @@ def admin_sellers():
     
     conn.close()
     
-    return render_template('sellers_section.html',
-                         sellers=sellers
+    return render_template('admin_sellers.html',
+                         sellers=sellers,active_section='sellers'
                          )
 
 @app.route('/admin/customers')
@@ -2010,8 +2810,8 @@ def admin_customers():
     
     conn.close()
     
-    return render_template('customers_section.html',
-                         customers=customers
+    return render_template('admin_customers.html',
+                         customers=customers,active_section='customers'
                          )
 
 @app.route('/admin/orders')
@@ -2044,8 +2844,8 @@ def admin_orders():
     
     conn.close()
     
-    return render_template('orders_section.html',
-                         orders=orders
+    return render_template('admin_orders.html',
+                         orders=orders,active_section='orders'
                          )
 
 
@@ -2075,6 +2875,63 @@ def get_user_by_id(user_id):
     conn.close()
     return user
 
+
+def get_navbar_links():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT * FROM navbar_links
+        WHERE is_active = TRUE
+        ORDER BY sort_order
+    """)
+    links = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return links
+
+
+
+
+
+
+
+def build_category_map():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("SELECT id, name, parent_id FROM product_categories WHERE is_active = TRUE")
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    category_map = {}
+    parent_id_to_slug = {}
+
+    # Step 1: Create slug map for parent categories
+    for row in rows:
+        if row['parent_id'] is None:
+            slug = slugify(row['name'])
+            category_map[slug] = []
+            parent_id_to_slug[row['id']] = slug
+
+    # Step 2: Assign subcategories
+    for row in rows:
+        if row['parent_id']:
+            parent_slug = parent_id_to_slug.get(row['parent_id'])
+            if parent_slug:
+                category_map[parent_slug].append(row['name'])
+
+    return category_map
+@app.route('/get_category_map')
+def get_category_map():
+    return jsonify(build_category_map())
+
+
+
+
+
+
+
 # --- Seller Routes ---
 @app.route('/seller')
 @role_required('seller')
@@ -2099,13 +2956,28 @@ def seller_dashboard():
         SELECT 
             p.*,
             COALESCE(i.stock_quantity, 0) as stock_quantity,
-            (p.price * (1 - p.discount/100)) AS calculated_discounted_price
+            (p.price * (1 - p.discount/100)) AS calculated_discounted_price,
+            pa.rejection_reason,
+            pa.reviewed_at
         FROM products p
         LEFT JOIN inventory i ON p.id = i.product_id
+        LEFT JOIN product_approvals pa ON p.id = pa.product_id
         WHERE p.seller_id = %s
         ORDER BY p.created_at DESC
     """, (seller_id,))
     products = cursor.fetchall()
+    category_map=build_category_map()
+
+    cursor.execute("""
+    SELECT id, name, 
+           LOWER(REPLACE(REPLACE(REPLACE(name, ' ', '-'), '&', 'and'), '.', '')) as slug 
+    FROM product_categories 
+    WHERE parent_id IS NULL AND is_active = 1
+""")
+    categories = cursor.fetchall()
+
+    cursor.execute("SELECT id, name, parent_id FROM product_categories WHERE parent_id IS NOT NULL AND is_active = 1")
+    subcategories = cursor.fetchall()
     
     # Get customers who bought seller's products
     cursor.execute("""
@@ -2165,7 +3037,7 @@ def seller_dashboard():
                          products=products,
                          customers=customers,
                          seller_orders=orders,
-                         seller_profile=seller_profile)
+                         seller_profile=seller_profile,categories=categories, subcategories=subcategories,category_map=category_map)
     
     
 
@@ -2190,62 +3062,59 @@ def add_product():
     seller_id = session['user_id']
     conn = None
     cursor = None
-    
+
     try:
-        # Validate form data
+        # Validate and parse form data
         price = float(request.form['price'])
         discount = float(request.form.get('discount', 0))
         compare_price = float(request.form['compare_price']) if request.form.get('compare_price') else None
-        stock_quantity = int(request.form['stock_quantity'])  # Get stock quantity
-        
+        stock_quantity = int(request.form['stock_quantity'])
+
         # Handle file upload
         file = request.files['image']
         if not (file and allowed_file(file.filename)):
             flash('Invalid image file', 'danger')
             return redirect(url_for('seller_dashboard'))
-        
+
         filename = secure_filename(file.filename)
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        
-        # Generate product ID - prioritize sub-category if available
+
+        # Product ID generation
         category = request.form['category']
         sub_category = request.form.get('sub_category', '')
-        
-        # Use sub-category if available, otherwise use category
         base_name = sub_category if sub_category else category
         base_id = slugify(f"{base_name}-{request.form['title']}")
-        
         product_id = base_id
         suffix = 1
-        
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        
-        # Check for existing ID
+
+        # Ensure product_id is unique
         while True:
             cursor.execute("SELECT id FROM products WHERE id = %s", (product_id,))
             if not cursor.fetchone():
                 break
             product_id = f"{base_id}-{suffix}"
             suffix += 1
-            
-        # Disable foreign key checks temporarily
+
+        # Disable foreign key checks
         cursor.execute("SET FOREIGN_KEY_CHECKS=0")
-        
+
         try:
             # Insert into product_approvals
             cursor.execute("""
                 INSERT INTO product_approvals (product_id, status)
                 VALUES (%s, 'pending')
             """, (product_id,))
-            
-            # Insert into products
+
+            # Insert into products (now with details and ingredients)
             cursor.execute("""
                 INSERT INTO products (
                     id, seller_id, title, price, discount, compare_price,
-                    image, description, tags, benefits, 
-                    category, sub_category, status
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending')
+                    image, description, tags, benefits,
+                    category, sub_category, details, ingredients, status
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending')
             """, (
                 product_id,
                 seller_id,
@@ -2258,19 +3127,21 @@ def add_product():
                 request.form.get('tags', ''),
                 request.form.get('benefits', ''),
                 category,
-                sub_category
+                sub_category,
+                request.form.get('details', ''),
+                request.form.get('ingredients', '')
             ))
-            
+
             # Insert into inventory
             cursor.execute("""
                 INSERT INTO inventory (product_id, stock_quantity)
                 VALUES (%s, %s)
             """, (product_id, stock_quantity))
-            
-            # Re-enable foreign key checks
+
+            # Re-enable foreign key checks and commit
             cursor.execute("SET FOREIGN_KEY_CHECKS=1")
             conn.commit()
-            
+
             log_seller_activity(
                 seller_id=seller_id,
                 action="product_added",
@@ -2281,13 +3152,13 @@ def add_product():
                     "status": "pending"
                 }
             )
-            
+
             flash('Product submitted for approval with stock quantity', 'success')
-            
+
         except Exception as e:
             cursor.execute("SET FOREIGN_KEY_CHECKS=1")
             raise e
-            
+
     except ValueError:
         if conn:
             conn.rollback()
@@ -2301,8 +3172,9 @@ def add_product():
             cursor.close()
         if conn:
             conn.close()
-    
+
     return redirect(url_for('seller_dashboard'))
+
 
 @app.route('/seller/edit_profile', methods=['GET', 'POST'])
 @role_required('seller')
@@ -2365,25 +3237,25 @@ def reject_seller(seller_id):
     conn = None
     cursor = None
     try:
-        reason = request.form.get('reason', '').strip()
+        reason = request.form.get('rejection_reason', '').strip()
         if not reason:
-            return jsonify({'success': False, 'message': 'Rejection reason is required'}), 400
-            
-        print(f"DEBUG: Rejecting seller {seller_id} with reason: {reason}")
-        
+            flash("Rejection reason is required", "danger")
+            return redirect(url_for('admin_sellers'))
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        
-        # Start transaction
         conn.start_transaction()
-        
-        # Check if seller exists first
-        cursor.execute("SELECT id FROM users WHERE id = %s AND role = 'seller'", (seller_id,))
-        if not cursor.fetchone():
+
+        # Get seller's email along with the ID
+        cursor.execute("SELECT id, email FROM users WHERE id = %s AND role = 'seller'", (seller_id,))
+        seller = cursor.fetchone()
+        if not seller:
             conn.rollback()
-            return jsonify({'success': False, 'message': 'Seller not found'}), 404
-        
-        # Update seller profile
+            flash("Seller not found", "danger")
+            return redirect(url_for('admin_sellers'))
+
+        seller_id, seller_email = seller
+
         cursor.execute("""
             UPDATE seller_profiles 
             SET is_approved = FALSE, 
@@ -2393,33 +3265,33 @@ def reject_seller(seller_id):
                 approved_at = NOW()
             WHERE user_id = %s
         """, (reason, session['user_id'], seller_id))
-        
-        # Deactivate the user account
-        cursor.execute("""
-            UPDATE users 
-            SET is_active = FALSE 
-            WHERE id = %s
-        """, (seller_id,))
-        
+
+        cursor.execute("UPDATE users SET is_active = FALSE WHERE id = %s", (seller_id,))
+
         conn.commit()
-        print(f"DEBUG: Seller {seller_id} rejected successfully")
-        return jsonify({'success': True, 'message': 'Seller rejected successfully'})
         
+        # Send rejection email
+        try:
+            send_seller_approval_email(seller_email, approved=False, reason=reason)
+        except Exception as email_error:
+            # Log the email error but don't fail the whole operation
+            app.logger.error(f"Failed to send rejection email: {email_error}")
+
+        flash("Seller rejected successfully", "warning")
+        return redirect(url_for('admin_sellers'))
+
     except mysql.connector.Error as db_err:
-        if conn:
-            conn.rollback()
-        print(f"DEBUG: Database error rejecting seller: {str(db_err)}")
-        return jsonify({'success': False, 'message': f'Database error: {str(db_err)}'}), 500
+        if conn: conn.rollback()
+        flash(f"Database error: {db_err}", "danger")
+        return redirect(url_for('admin_sellers'))
     except Exception as e:
-        if conn:
-            conn.rollback()
-        print(f"DEBUG: Error rejecting seller: {str(e)}")
-        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+        if conn: conn.rollback()
+        flash(f"Error: {e}", "danger")
+        return redirect(url_for('admin_sellers'))
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
+
 
 
 def log_seller_activity(seller_id, action, product_id=None, details=None):
@@ -2441,28 +3313,22 @@ def log_seller_activity(seller_id, action, product_id=None, details=None):
 
 
 
-
 @app.route('/admin/approve_seller/<int:seller_id>', methods=['POST'])
 @role_required('admin')
 def approve_seller(seller_id):
     conn = None
     cursor = None
     try:
-        print(f"DEBUG: Approving seller {seller_id}")
-        
         conn = get_db_connection()
         cursor = conn.cursor()
-        
-        # Start transaction
         conn.start_transaction()
-        
-        # Check if seller exists first
+
         cursor.execute("SELECT id FROM users WHERE id = %s AND role = 'seller'", (seller_id,))
         if not cursor.fetchone():
             conn.rollback()
-            return jsonify({'success': False, 'message': 'Seller not found'}), 404
-        
-        # Update seller profile
+            flash("Seller not found", "danger")
+            return redirect(url_for('admin_sellers'))
+
         cursor.execute("""
             UPDATE seller_profiles 
             SET is_approved = TRUE, 
@@ -2472,106 +3338,130 @@ def approve_seller(seller_id):
                 rejection_reason = NULL
             WHERE user_id = %s
         """, (session['user_id'], seller_id))
+
+        cursor.execute("UPDATE users SET is_active = TRUE WHERE id = %s", (seller_id,))
+        cursor.execute("SELECT id,email FROM users WHERE id = %s AND role = 'seller'", (seller_id,))
+        seller=cursor.fetchone()
         
-        # Activate the user account
-        cursor.execute("""
-            UPDATE users 
-            SET is_active = TRUE 
-            WHERE id = %s
-        """, (seller_id,))
-        
+        send_seller_approval_email(seller.email, approved=True, reason=None)
         conn.commit()
-        print(f"DEBUG: Seller {seller_id} approved successfully")
-        return jsonify({'success': True, 'message': 'Seller approved successfully'})
-        
+        flash("Seller approved successfully", "success")
+        return redirect(url_for('admin_sellers'))
+
     except mysql.connector.Error as db_err:
-        if conn:
-            conn.rollback()
-        print(f"DEBUG: Database error approving seller: {str(db_err)}")
-        return jsonify({'success': False, 'message': f'Database error: {str(db_err)}'}), 500
+        if conn: conn.rollback()
+        flash(f"Database error: {db_err}", "danger")
+        return redirect(url_for('admin_sellers'))
     except Exception as e:
-        if conn:
-            conn.rollback()
-        print(f"DEBUG: Error approving seller: {str(e)}")
-        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+        if conn: conn.rollback()
+        flash(f"Error: {e}", "danger")
+        return redirect(url_for('admin_sellers'))
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
+
             
+def user_has_purchased_product(user_id, product_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT COUNT(*) FROM order_items 
+        WHERE product_id = %s AND order_id IN (
+            SELECT id FROM orders WHERE user_id = %s
+        )
+    """, (product_id, user_id))
+    result = cursor.fetchone()[0]
+    conn.close()
+    return result > 0
+
+@app.route('/submit_review/<product_id>', methods=['POST'])
+def submit_review(product_id):
+    if 'user_id' not in session:
+        flash("Please login to submit a review.", "warning")
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    if not user_has_purchased_product(user_id, product_id):
+        flash("You must purchase this product to review it.", "danger")
+        return redirect(url_for('product', product_id=product_id))
+
+    rating = int(request.form['rating'])
+    review = request.form['review'].strip()
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO product_reviews (user_id, product_id, rating, review)
+        VALUES (%s, %s, %s, %s)
+    """, (user_id, product_id, rating, review))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    flash("Thank you for your review!", "success")
+    return redirect(url_for('product', product_id=product_id))
 
 
 
 
-@app.route('/seller/edit_product/<string:product_id>', methods=['GET', 'POST'])
+@app.route('/seller/edit_product/<product_id>', methods=['GET', 'POST'])
 @role_required('seller')
 def edit_product(product_id):
     seller_id = session['user_id']
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    # Fetch current product
-    cursor.execute("""
-        SELECT p.*, i.stock_quantity, pa.status AS approval_status
-        FROM products p
-        LEFT JOIN inventory i ON p.id = i.product_id
-        LEFT JOIN product_approvals pa ON p.id = pa.product_id
-        WHERE p.id = %s AND p.seller_id = %s
-    """, (product_id, seller_id))
-    product = cursor.fetchone()
+    try:
+        # Fetch product with inventory and approval info
+        cursor.execute("""
+            SELECT p.*, i.stock_quantity, pa.status AS approval_status
+            FROM products p
+            LEFT JOIN inventory i ON p.id = i.product_id
+            LEFT JOIN product_approvals pa ON p.id = pa.product_id
+            WHERE p.id = %s AND p.seller_id = %s
+        """, (product_id, seller_id))
+        product = cursor.fetchone()
 
-    if not product:
-        flash("Product not found or you don't have permission to edit it.", "danger")
-        return redirect(url_for('seller_dashboard'))
+        if not product:
+            flash("Product not found or unauthorized.", "danger")
+            return redirect(url_for('seller_dashboard'))
+        
 
-    if request.method == 'POST':
-        try:
-            # Gather data
+        if request.method == 'POST':
+            # Read form values
             title = request.form['title']
             price = float(request.form['price'])
-            compare_price = float(request.form.get('compare_price', price))
+            compare_price = float(request.form['compare_price']) if request.form.get('compare_price') else None
             discount = float(request.form.get('discount', 0))
-            stock_quantity = int(request.form['stock_quantity'])
+            stock_quantity = int(request.form.get('stock_quantity', 0))
             category = request.form['category']
             sub_category = request.form.get('sub_category', '')
-            description = request.form['description']
-            tags = request.form.get('tags', '').strip()
-            benefits = request.form.get('benefits', '').strip()
-            product['tags'] = product['tags'].split(',') if product.get('tags') else []
-            product['benefits'] = product['benefits'].split(',') if product.get('benefits') else []
+            description = request.form.get('description')
+            tags = request.form.get('tags', '').split(',')
+            benefits = request.form.get('benefits', '').split(',')
+            details = request.form.get('details')
+            ingredients = request.form.get('ingredients')
 
-
-
-            # Validate
+            # Validations
             if price <= 0:
                 raise ValueError("Price must be positive.")
             if discount < 0 or discount > 100:
                 raise ValueError("Discount must be between 0 and 100.")
             if stock_quantity < 0:
-                raise ValueError("Stock quantity cannot be negative")
-            if stock_quantity > 10000:  # Reasonable upper limit
-                raise ValueError("Stock quantity too high")
-            
-           
+                raise ValueError("Stock quantity cannot be negative.")
+            if stock_quantity > 10000:
+                raise ValueError("Stock quantity too high.")
 
-            # Handle image
-            image_filename = product['image']
+            # Handle image upload
+            image = product.get('image')
             if 'image' in request.files:
                 file = request.files['image']
-                if file and file.filename:
-                    if allowed_file(file.filename):
-                        if image_filename:
-                            try:
-                                os.remove(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))
-                            except OSError:
-                                pass
-                        image_filename = secure_filename(file.filename)
-                        file.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))
-                    else:
-                        raise ValueError("Invalid image format.")
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    image = filename
 
-            # Regenerate product_id if title/category changed
+            # Regenerate product_id if needed
             base_name = sub_category if sub_category else category
             base_id = slugify(f"{base_name}-{title}")
             new_product_id = base_id
@@ -2585,36 +3475,39 @@ def edit_product(product_id):
                 else:
                     break
 
+            if new_product_id != product_id:
+                cursor.execute("UPDATE inventory SET product_id = %s WHERE product_id = %s", (new_product_id, product_id))
+                cursor.execute("UPDATE product_approvals SET product_id = %s WHERE product_id = %s", (new_product_id, product_id))
+                cursor.execute("UPDATE products SET id = %s WHERE id = %s", (new_product_id, product_id))
+
             # Update product
             cursor.execute("""
                 UPDATE products SET
-                    id = %s,
                     title = %s,
                     price = %s,
                     compare_price = %s,
                     discount = %s,
                     image = %s,
-                    description = %s,
                     tags = %s,
+                    description = %s,
                     benefits = %s,
                     category = %s,
                     sub_category = %s,
-                    updated_at = NOW()
+                    details = %s,
+                    ingredients = %s
                 WHERE id = %s AND seller_id = %s
             """, (
-                new_product_id, title, price, compare_price, discount,
-                image_filename, description, tags, benefits,
-                category, sub_category,
-                product_id, seller_id
+                title, price, compare_price, discount, image,
+                ','.join(tags), description, ','.join(benefits),
+                category, sub_category, details, ingredients,
+                new_product_id, seller_id
             ))
 
-            # Update inventory and approvals if product_id changed
-            if new_product_id != product_id:
-                cursor.execute("UPDATE inventory SET product_id = %s WHERE product_id = %s", (new_product_id, product_id))
-                cursor.execute("UPDATE product_approvals SET product_id = %s WHERE product_id = %s", (new_product_id, product_id))
-
-            # Update stock
-            cursor.execute("UPDATE inventory SET stock_quantity = %s WHERE product_id = %s", (stock_quantity, new_product_id))
+            # Update inventory
+            cursor.execute("""
+                UPDATE inventory SET stock_quantity = %s
+                WHERE product_id = %s
+            """, (stock_quantity, new_product_id))
 
             # Reset approval if stock changed
             if stock_quantity != product['stock_quantity']:
@@ -2625,7 +3518,6 @@ def edit_product(product_id):
 
             conn.commit()
 
-            # Log
             log_seller_activity(
                 seller_id=seller_id,
                 action="product_updated",
@@ -2639,32 +3531,25 @@ def edit_product(product_id):
                 }
             )
 
-            flash("Product updated successfully!" + (" Changes require admin re-approval." if stock_quantity != product['stock_quantity'] else ""), "success")
+            flash("Product updated successfully.", "success")
             return redirect(url_for('seller_dashboard'))
 
-        except Exception as e:
-            conn.rollback()
-            app.logger.error(f"Error updating product {product_id}: {e}", exc_info=True)
-            flash("Error updating product. Please try again.", "danger")
-        finally:
-            cursor.close()
-            conn.close()
-
-    # GET request: load form
-    try:
+        # Handle GET request — prepare product data for form
         product['tags'] = product['tags'].split(',') if product.get('tags') else []
         product['benefits'] = product['benefits'].split(',') if product.get('benefits') else []
 
-        cursor.execute("SELECT name FROM product_categories WHERE is_active = TRUE")
-        categories = [row['name'] for row in cursor.fetchall()]
+        cursor.execute("SELECT name,LOWER(REPLACE(REPLACE(REPLACE(name, ' ', '-'), '&', 'and'), '.', '')) as slug FROM product_categories WHERE is_active = TRUE and parent_id IS NULL")
+        categories = cursor.fetchall()
+        category_map=build_category_map()
+        
 
-        return render_template('edit_product.html',
-                               product=product,
-                               categories=categories)
+        return render_template('edit_product.html', product=product, categories=categories,category_map=category_map)
+
     except Exception as e:
         app.logger.error(f"Error loading product for editing: {e}", exc_info=True)
         flash("Failed to load product for editing.", "danger")
         return redirect(url_for('seller_dashboard'))
+
     finally:
         cursor.close()
         conn.close()
@@ -2696,6 +3581,33 @@ def delete_product(product_id):
         flash("Failed to delete product or product not found.", "danger")
     return redirect(url_for('seller_dashboard'))
 
+@app.route('/buy-now', methods=['POST'])
+def buy_now():
+    product_id = request.form.get('product_id')
+    product = get_product_by_id_from_db(product_id)
+
+    if not product or product.get('stock_quantity', 0) < 1:
+        flash("This product is currently out of stock", "danger")
+        return redirect(url_for('product', product_id=product_id))
+
+    # Store buy now product in session
+    session['buy_now_product'] = {
+        'id': product_id,
+        'title': product['title'],
+        'price': float(product['price']),
+        'image': product['image'],
+        'quantity': 1
+    }
+
+    # If not logged in, redirect to login
+    if 'user_id' not in session:
+        flash("Please log in to proceed with your purchase.", "warning")
+        return redirect(url_for('login'))
+
+    # For logged in users, proceed directly to checkout
+    return redirect(url_for('checkout'))
+
+
 
 
 # Route to render checkout page and create Razorpay order
@@ -2706,27 +3618,37 @@ def checkout():
         return redirect(url_for('login'))
 
     user_id = session['user_id']
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
     
-    # Get cart items with stock check - FIXED QUERY
-    cursor.execute("""
-        SELECT 
-            ci.*,
-            COALESCE(i.stock_quantity, 0) as stock_quantity
-        FROM cart_items ci
-        LEFT JOIN inventory i ON ci.product_id = i.product_id
-        WHERE ci.user_id = %s
-    """, (user_id,))
-    cart_items = cursor.fetchall()
+    # Check if we're doing a "buy now" checkout
+    buy_now_product = session.pop('buy_now_product', None)
     
+    if buy_now_product:
+        # For "buy now", we only show the single product
+        cart_items = [buy_now_product]
+        total_price = buy_now_product['price']
+    else:
+        # Regular checkout with all cart items
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT 
+                ci.*,
+                COALESCE(i.stock_quantity, 0) as stock_quantity
+            FROM cart_items ci
+            LEFT JOIN inventory i ON ci.product_id = i.product_id
+            WHERE ci.user_id = %s
+        """, (user_id,))
+        cart_items = cursor.fetchall()
+        conn.close()
+        
+        total_price = sum(item['price'] * item['quantity'] for item in cart_items)
+
     # Check stock availability
-    out_of_stock = [item for item in cart_items if item['quantity'] > item['stock_quantity']]
+    out_of_stock = [item for item in cart_items if item['quantity'] > item.get('stock_quantity', 1)]
     if out_of_stock:
         flash(f"Some items in your cart are out of stock", "danger")
         return redirect(url_for('cart'))
-    
-    total_price = sum(item['price'] * item['quantity'] for item in cart_items)
 
     if request.method == 'POST':
         # Create Razorpay order
@@ -2736,7 +3658,7 @@ def checkout():
             "payment_capture": 1,
             "notes": {
                 "user_id": user_id,
-                "items": json.dumps([{"id": item['product_id'], "quantity": item['quantity']} for item in cart_items])
+                "items": json.dumps([{"id": item['id'], "quantity": item['quantity']} for item in cart_items])
             }
         }
         
@@ -2755,20 +3677,20 @@ def checkout():
                 },
                 'razorpay_order_id': razorpay_order['id'],
                 'total_amount': total_price,
-                'cart_items': [{'id': item['product_id'], 'quantity': item['quantity']} for item in cart_items]
+                'cart_items': [{'id': item['id'], 'quantity': item['quantity']} for item in cart_items],
+                'is_buy_now': bool(buy_now_product)  # Track if this is a buy now order
             }
             
             return render_template("checkout.html", 
                                  razorpay_order_id=razorpay_order['id'],
                                  total_amount=total_price,
-                                 razorpay_key="your_razorpay_key_here",  # Replace with actual key
+                                 razorpay_key="your_razorpay_key_here",
                                  cart_items=cart_items)
             
         except Exception as e:
             flash(f"Error creating payment order: {str(e)}", "danger")
             return redirect(url_for('cart'))
 
-    conn.close()
     return render_template("checkout.html", 
                          cart_items=cart_items,
                          total_price=total_price)
@@ -2792,6 +3714,7 @@ def update_orders_schema():
             ("razorpay_payment_id", "VARCHAR(100)"),
             ("tracking_number", "VARCHAR(100)"),
             ("shipped_at", "DATETIME"),
+            
         ]
         
         for column_name, column_type in additional_columns:
@@ -2820,36 +3743,43 @@ def update_orders_schema():
 # Handle successful payment webhook (mocked via client-side fetch)
 @app.route('/payment-success', methods=['POST'])
 def payment_success():
+    """Handle successful payment confirmation and create order"""
+    # Validate session
     if 'user_id' not in session or 'checkout_info' not in session:
         return jsonify({'status': 'error', 'message': 'Invalid session'}), 400
-        
-    data = request.get_json()
-    user_id = session['user_id']
     checkout_info = session['checkout_info']
-    
+    is_buy_now = checkout_info.get('is_buy_now', False)    
     # Verify payment signature
-    params_dict = {
-        'razorpay_order_id': data['razorpay_order_id'],
-        'razorpay_payment_id': data['razorpay_payment_id'],
-        'razorpay_signature': data['razorpay_signature']
-    }
-    
     try:
-        razorpay_client.utility.verify_payment_signature(params_dict)
+        razorpay_client.utility.verify_payment_signature({
+            'razorpay_order_id': request.json['razorpay_order_id'],
+            'razorpay_payment_id': request.json['razorpay_payment_id'],
+            'razorpay_signature': request.json['razorpay_signature']
+        })
     except Exception as e:
+        app.logger.error(f"Payment verification failed: {str(e)}")
         return jsonify({'status': 'error', 'message': 'Invalid payment signature'}), 400
     
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    user_id = session['user_id']
+    checkout_info = session['checkout_info']
+    conn = None
+    cursor = None
     
     try:
-        # Create order record
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Begin transaction
+        conn.start_transaction()
+        
+        # 1. Create order record
         cursor.execute("""
-            INSERT INTO orders (user_id, total_amount, payment_method, status, 
-                              shipping_address, shipping_city, shipping_state, 
-                              shipping_pincode, shipping_phone, customer_name,
-                              razorpay_order_id, razorpay_payment_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO orders (
+                user_id, total_amount, payment_method, status,
+                shipping_address, shipping_city, shipping_state,
+                shipping_pincode, shipping_phone, customer_name,
+                razorpay_order_id, razorpay_payment_id
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             user_id,
             checkout_info['total_amount'],
@@ -2861,25 +3791,59 @@ def payment_success():
             checkout_info['shipping_info']['pincode'],
             checkout_info['shipping_info']['phone'],
             checkout_info['shipping_info']['full_name'],
-            data['razorpay_order_id'],
-            data['razorpay_payment_id']
+            request.json['razorpay_order_id'],
+            request.json['razorpay_payment_id']
         ))
         order_id = cursor.lastrowid
         
-        # Create order items
+        # 2. Process each item in cart
         for item in checkout_info['cart_items']:
-            # Get product details including seller_id
+            # Verify product exists and get details
             cursor.execute("""
-                SELECT seller_id, price FROM products WHERE id = %s
+                SELECT id, seller_id, price, title 
+                FROM products 
+                WHERE id = %s AND status = 'approved'
+                FOR UPDATE  -- Lock row for inventory update
             """, (item['id'],))
             product = cursor.fetchone()
             
+            if not product:
+                conn.rollback()
+                app.logger.error(f"Product {item['id']} not found or not approved")
+                return jsonify({
+                    'status': 'error',
+                    'message': f'Product "{item.get("title", item["id"])}" is no longer available'
+                }), 400
+            
+            # Verify sufficient stock
             cursor.execute("""
-                INSERT INTO order_items (order_id, product_id, seller_id, quantity, price)
-                VALUES (%s, %s, %s, %s, %s)
+                SELECT stock_quantity 
+                FROM inventory 
+                WHERE product_id = %s
+                FOR UPDATE  -- Lock row for inventory update
+            """, (item['id'],))
+            stock = cursor.fetchone()
+            
+            if not stock or stock['stock_quantity'] < item['quantity']:
+                conn.rollback()
+                app.logger.warning(
+                    f"Insufficient stock for {product['title']}. "
+                    f"Requested: {item['quantity']}, Available: {stock['stock_quantity'] if stock else 0}"
+                )
+                return jsonify({
+                    'status': 'error',
+                    'message': f'Not enough stock for "{product["title"]}"'
+                }), 400
+            
+            # Create order item
+            cursor.execute("""
+                INSERT INTO order_items (
+                    order_id, product_id, seller_id, 
+                    quantity, price
+                ) VALUES (%s, %s, %s, %s, %s)
             """, (
                 order_id,
-                item['id'],
+                product['id'],
                 product['seller_id'],
                 item['quantity'],
                 product['price']
@@ -2888,32 +3852,54 @@ def payment_success():
             # Update inventory
             cursor.execute("""
                 UPDATE inventory 
-                SET stock_quantity = stock_quantity - %s
+                SET stock_quantity = stock_quantity - %s 
                 WHERE product_id = %s
-            """, (item['quantity'], item['id']))
+            """, (item['quantity'], product['id']))
+            
+            # Update sales count
+            cursor.execute("""
+                UPDATE products 
+                SET sold_quantity = sold_quantity + %s 
+                WHERE id = %s
+            """, (item['quantity'], product['id']))
         
-        # Clear cart
-        cursor.execute("DELETE FROM cart_items WHERE user_id = %s", (user_id,))
+        # 3. Clear cart after successful order
+        if not is_buy_now:
+            cursor.execute("DELETE FROM cart_items WHERE user_id = %s", (user_id,))
         
+        # Commit transaction
         conn.commit()
         
-        # Send confirmation email
-        send_order_confirmation_email(user_id, order_id)
-        send_payment_received_notification(order_id)
+        # Send notifications (outside transaction)
+        try:
+            send_order_confirmation_email(user_id, order_id)
+            send_payment_received_notification(order_id)
+        except Exception as e:
+            app.logger.error(f"Notification failed: {str(e)}")
         
         # Clear checkout session
         session.pop('checkout_info', None)
         
         return jsonify({
             'status': 'success',
-            'order_id': order_id
+            'order_id': order_id,
+            'message': 'Order placed successfully'
         })
         
     except Exception as e:
-        conn.rollback()
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        if conn:
+            conn.rollback()
+        app.logger.error(f"Order processing failed: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': 'Failed to process order. Please contact support.'
+        }), 500
+        
     finally:
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
         
         
 @app.route('/order-confirmation/<int:order_id>')
@@ -3100,9 +4086,21 @@ def my_orders():
     user_id = session['user_id']
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+    
+    # Get all orders with their items
     cursor.execute("""
-        SELECT o.id, o.status, o.total_amount, o.order_date, o.shipping_address, o.tracking_id,
-               GROUP_CONCAT(p.title SEPARATOR ', ') AS items
+        SELECT 
+            o.id, 
+            o.status, 
+            o.total_amount, 
+            o.order_date, 
+            o.shipping_address,
+            o.shipping_city,
+            o.shipping_state,
+            o.shipping_pincode,
+            o.tracking_number,
+            o.shipped_at,
+            GROUP_CONCAT(p.title SEPARATOR ', ') AS items
         FROM orders o
         JOIN order_items oi ON o.id = oi.order_id
         JOIN products p ON oi.product_id = p.id
@@ -3111,10 +4109,44 @@ def my_orders():
         ORDER BY o.order_date DESC
     """, (user_id,))
     orders = cursor.fetchall()
-    cursor.close()
+    
     conn.close()
 
     return render_template("my_orders.html", orders=orders)
+
+@app.route('/order-delivered/<int:order_id>', methods=['POST'])
+def mark_order_delivered(order_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Verify this order belongs to the user
+        cursor.execute("SELECT 1 FROM orders WHERE id = %s AND user_id = %s", (order_id, user_id))
+        if not cursor.fetchone():
+            flash("Order not found or not authorized", "danger")
+            return redirect(url_for('my_orders'))
+        
+        # Update status to delivered
+        cursor.execute("""
+            UPDATE orders 
+            SET status = 'delivered', 
+                delivered_at = NOW() 
+            WHERE id = %s AND user_id = %s
+        """, (order_id, user_id))
+        
+        conn.commit()
+        flash("Order marked as delivered", "success")
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error updating order status: {str(e)}", "danger")
+    finally:
+        conn.close()
+    
+    return redirect(url_for('my_orders'))
 
 
 def send_order_confirmation_email(user_id, order_id):
@@ -3277,7 +4309,9 @@ def send_payment_received_notification(order_id):
 
 
 
-
+@app.context_processor
+def inject_navbar():
+    return {'navbar_links':get_navbar_links()}
 
 
 
@@ -3286,6 +4320,7 @@ def send_payment_received_notification(order_id):
 
 if __name__ == '__main__':
     init_db()
+    cleanup_duplicate_categories()
     # --- IMPORTANT: FOR INITIAL SETUP ONLY ---
     # This function creates a default admin user (admin@example.com / admin123)
     # and migrates products from all_products.py to the database.
@@ -3297,5 +4332,4 @@ if __name__ == '__main__':
     update_orders_schema()
     # ----------------------------------------
     # app.run(host='192.168.1.3',port=3000,debug=True)
-    # app.run(debug=True)
     app.run(host='0.0.0.0',port=5001,debug=True)

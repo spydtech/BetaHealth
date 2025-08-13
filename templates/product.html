@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ product.title }} - Aarogya Nutri Mix{% endblock %}
+{% block title %}{{ product.title }} - BetaHealth{% endblock %}
 
 {% block content %}
 <div class="container product-detail-container mt-5 mb-5">
@@ -48,6 +48,8 @@
             <div class="product-actions d-grid gap-2 mb-4">
                 
                 <form method="POST" action="{{ url_for('add_to_cart') }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                     <input type="hidden" name="product_id" value="{{ product.id }}">
                     <input type="hidden" name="title" value="{{ product.title }}">
                     <input type="hidden" name="price" value="{{ product.price }}">
@@ -55,7 +57,12 @@
                     <button type="submit" class="btn btn-success btn-lg add-to-cart-btn-lg">Add to Cart</button>
                 </form>
 
-                <button class="btn btn-outline-secondary btn-lg buy-now-btn">Buy Now</button>
+                <form method="POST" action="{{ url_for('buy_now') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                    <button type="submit" class="btn btn-outline-secondary btn-lg buy-now-btn">Buy Now</button>
+                </form>
+
             </div>
 
             {% if product.tags %}
@@ -88,14 +95,55 @@
                     <!-- Tab Content -->
                     <div class="tab-content pt-3" id="myTabContent">
                     <div class="tab-pane fade show active" id="details" role="tabpanel" aria-labelledby="details-tab">
-                        <p>This product is carefully crafted using premium organic ingredients to provide optimal nutrition. It's ideal for daily consumption and supports overall well-being. Store in a cool, dry place away from direct sunlight.</p>
+                        <p>{{ product.details or 'No details available.' }}</p>
                     </div>
                     <div class="tab-pane fade" id="ingredients" role="tabpanel" aria-labelledby="ingredients-tab">
-                        <p><strong>Ingredients:</strong> Organic Barley, Sprouted Ragi, Green Gram, Chickpeas, Cardamom powder. (Example, add real ingredients to your PRODUCTS data)</p>
+                        <p><strong>Ingredients:</strong> {{ product.ingredients or 'No ingredients listed.' }}</p>
                     </div>
                     <div class="tab-pane fade" id="reviews" role="tabpanel" aria-labelledby="reviews-tab">
+                        {% if session.user_id %}
+                            {% if user_has_purchased %}
+                                <form method="POST" action="{{ url_for('submit_review', product_id=product.id) }}">
+                                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                    <div class="mb-3">
+                                        <label for="rating" class="form-label">Rating:</label>
+                                        <select name="rating" id="rating" class="form-select" required>
+                                            <option value="">Select</option>
+                                            {% for i in range(1, 6) %}
+                                            <option value="{{ i }}">{{ i }} Star{{ 's' if i > 1 }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="review" class="form-label">Review:</label>
+                                        <textarea name="review" id="review" class="form-control" rows="3" required></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Submit Review</button>
+                                </form>
+                            {% else %}
+                                <p class="text-muted">You must purchase this product to leave a review.</p>
+                            {% endif %}
+                        {% else %}
+                            <p><a href="{{ url_for('login') }}">Login</a> to leave a review.</p>
+                        {% endif %}
+                    <hr>
+                    {% if reviews %}
+                        <h6>Customer Reviews:</h6>
+                        {% for r in reviews %}
+                            <div class="border rounded p-3 mb-2">
+                                <strong>{{ r.user_name }}</strong> – <span>{{ r.rating }}★</span><br>
+                                <small class="text-muted">{{ r.created_at.strftime('%b %d, %Y') }}</small>
+                                <p class="mb-0">{{ r.review }}</p>
+                            </div>
+                        {% endfor %}
+                    {% else %}
                         <p>No reviews yet. Be the first to review this product!</p>
+                    {% endif %}
+
+
                     </div>
+
                     </div>
 
 <!-- Bootstrap 5 JS -->

@@ -1,0 +1,131 @@
+{% extends "admin_dashboard.html" %}
+
+{% block content %}
+<div id="carousel-section" class="content-section active">
+    <h2><i class="fas fa-images me-3"></i>Manage Carousel</h2>
+    
+    <!-- Add New Slide -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h4>Add New Slide</h4>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <input type="hidden" name="action" value="add">
+                <div class="mb-3">
+                    <label class="form-label">Image</label>
+                    <input type="file" class="form-control" name="image" required>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" class="form-control" name="title" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Alt Text</label>
+                        <input type="text" class="form-control" name="alt_text" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" name="description" rows="2"></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label">Link URL</label>
+                        <input type="text" class="form-control" name="link_url" placeholder="e.g. /collections/skin-care">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Sort Order</label>
+                        <input type="number" class="form-control" name="sort_order" value="0">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Slide</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Current Slides -->
+    <div class="card">
+        <div class="card-body">
+            <h4>Current Slides</h4>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Preview</th>
+                            <th>Title</th>
+                            <th>Link</th>
+                            <th>Order</th>
+                            <th>Edit</th>
+                            <th>Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for slide in slides %}
+                        <tr>
+                            <td>
+                                <img src="{{ url_for('static', filename=slide.image_path.replace('\\','/')) }}" 
+                                     style="max-width: 100px; max-height: 60px;" 
+                                     alt="{{ slide.alt_text }}">
+                            </td>
+                            <td>{{ slide.title }}</td>
+                            <td>{{ slide.link_url }}</td>
+                            <td>{{ slide.sort_order }}</td>
+                            <td>
+                                <form method="POST" enctype="multipart/form-data" class="border p-2 rounded bg-light">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                    <input type="hidden" name="action" value="update">
+                                    <input type="hidden" name="slide_id" value="{{ slide.id }}">
+
+                                    <div class="mb-2">
+                                        <label class="form-label">Change Image</label>
+                                        <input type="file" class="form-control" name="image">
+                                        <small class="text-muted">Leave blank to keep current image</small>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Title</label>
+                                        <input type="text" class="form-control" name="title" value="{{ slide.title }}" required>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Alt Text</label>
+                                        <input type="text" class="form-control" name="alt_text" value="{{ slide.alt_text }}" required>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Description</label>
+                                        <textarea class="form-control" name="description" rows="2">{{ slide.description }}</textarea>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Link URL</label>
+                                        <input type="text" class="form-control" name="link_url" value="{{ slide.link_url }}">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Sort Order</label>
+                                        <input type="number" class="form-control" name="sort_order" value="{{ slide.sort_order }}">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-save"></i> Save
+                                    </button>
+                                </form>
+                            </td>
+                            <td>
+                                <form method="POST" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="slide_id" value="{{ slide.id }}">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this slide?')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends 'admin_dashboard.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Manage Navbar Links</h2>
+
+    <!-- Add Link Form -->
+    <form action="{{ url_for('add_navbar_link') }}" method="POST" class="mb-4 border p-3 rounded">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="row">
+            <div class="col-md-3">
+                <input name="title" class="form-control" placeholder="Title" required>
+            </div>
+            <div class="col-md-3">
+                <input name="slug" class="form-control" placeholder="Slug" required>
+            </div>
+            <div class="col-md-3">
+                <select name="parent_id" class="form-control">
+                    <option value="">-- No Parent (Top-level) --</option>
+                    {% for parent in parents %}
+                        <option value="{{ parent.id }}">{{ parent.title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1">
+                <input name="sort_order" type="number" class="form-control" placeholder="Order" min="0">
+            </div>
+            <div class="col-md-1 d-flex align-items-center">
+                <input type="checkbox" name="is_active" checked> Active
+            </div>
+            <div class="col-md-1">
+                <button class="btn btn-primary w-100">Add</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Links Table -->
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Slug</th>
+                <th>Parent</th>
+                <th>Sort</th>
+                <th>Active</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for link in links %}
+                <tr>
+                    <form action="{{ url_for('edit_navbar_link', link_id=link.id) }}" method="POST">
+                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <td><input name="title" value="{{ link.title }}" class="form-control" required></td>
+                        <td><input name="slug" value="{{ link.slug }}" class="form-control" required></td>
+                        <td>
+                            <select name="parent_id" class="form-control">
+                                <option value="">-- None --</option>
+                                {% for parent in parents %}
+                                    <option value="{{ parent.id }}" {% if link.parent_id == parent.id %}selected{% endif %}>
+                                        {{ parent.title }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><input name="sort_order" type="number" value="{{ link.sort_order }}" class="form-control"></td>
+                        <td>
+                            <input type="checkbox" name="is_active" {% if link.is_active %}checked{% endif %}>
+                        </td>
+                        <td>
+                            <button class="btn btn-success btn-sm">Save</button>
+                    </form>
+                            <form action="{{ url_for('delete_navbar_link', link_id=link.id) }}" method="POST" style="display:inline-block;">
+                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                <button class="btn btn-danger btn-sm" onclick="return confirm('Delete this link?')">Delete</button>
+                            </form>
+                        </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}{{ parent_category }} - Subcategories | BetaHealth{% endblock %}
+
+{% block content %}
+<main style="min-height: calc(100vh - 400px); padding-bottom: 50px;">
+    <div class="container mt-5 mb-5">
+        <!-- Updated H1 with better styling -->
+        <h1 class="text-center mb-5" style="color: #0d3056; 
+              font-weight: 600; 
+              text-transform: capitalize;
+              position: relative;
+              display: inline-block;
+              left: 50%;
+              transform: translateX(-50%);
+              padding-bottom: 15px;">
+            <span style="border-bottom: 3px solid #ffb902; padding-bottom: 5px;">
+                {{ parent_category }} Subcategories
+            </span>
+        </h1>
+        
+        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-4">
+            {% for sub in subcategories %}
+                {% set slug = sub.child_name.lower().replace(' ', '-').replace('&', 'and') %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0" style="border-radius: 12px; overflow: hidden;">
+                        <a href="/collections/{{ slug }}" class="text-decoration-none">
+                            <!-- Card with improved styling -->
+                            <div class="card-body text-center d-flex flex-column justify-content-center p-4"
+                                 style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                                <h5 class="card-title mb-0" 
+                                    style="color: #0d3056;
+                                           font-weight: 500;
+                                           font-size: 1.1rem;
+                                           text-transform: capitalize;">
+                                    {{ sub.child_name }}
+                                </h5>
+                                <div class="mt-2" style="color: #007bff; font-size: 0.9rem;">
+                                    Explore Products <i class="fas fa-arrow-right ms-1"></i>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</main>
+
+<style>
+    .card {
+        transition: all 0.3s ease;
+        border: none;
+    }
+    
+    .card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 24px rgba(0, 123, 255, 0.15);
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        h1 {
+            font-size: 1.8rem;
+            padding-bottom: 10px;
+        }
+        
+        .card-title {
+            font-size: 1rem !important;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        h1 {
+            font-size: 1.5rem;
+            width: 90%;
+        }
+        
+        .card-body {
+            padding: 1.5rem !important;
+        }
+    }
+</style>
+{% endblock %}

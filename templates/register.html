@@ -114,6 +114,8 @@
         <a href="/"><img src="{{ url_for('static', filename='images/logo5.png') }}" class="header-image" alt="Company Logo"></a>
         <p>Create your account to get started</p>
         <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
             <input type="text" name="name" placeholder="Full Name" required>
             <input type="email" name="email" placeholder="Email" required>
             

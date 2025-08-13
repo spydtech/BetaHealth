@@ -96,6 +96,8 @@
         <h2>Admin Login</h2>
         <p>Enter your email and password</p>
         <form method="POST" action="{{ url_for('login') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
             <input type="hidden" name="login_type" value="admin">
 
             <input type="email" name="email" placeholder="Email" required>

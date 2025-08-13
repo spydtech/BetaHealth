@@ -1,9 +1,9 @@
-<!-- admin_sellers.html -->
 {% extends "admin_dashboard.html" %}
 
 {% block content %}
 <div id="sellers-section" class="content-section active mb-5">
-    <h2 class="mb-4"><i class="fas fa-store me-2"></i>Seller Profiles</h2>
+    <h2 class="mb-4"><i class="fas fa-store me-2"></i>Seller Management</h2>
+    
     <div class="table-responsive">
         <table class="table table-striped table-hover">
             <thead class="table-dark">
@@ -14,8 +14,7 @@
                     <th>Mobile</th>
                     <th>Status</th>
                     <th>Products</th>
-                    <th>Profiles</th>
-                    <th>Products</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -35,14 +34,29 @@
                     </td>
                     <td>{{ seller.product_count }}</td>
                     <td>
-                        <a href="{{ url_for('admin_view_seller', seller_id=seller.user_id) }}" 
-                        class="btn btn-sm btn-primary">
-                            Profile
-                        </a></td>
-                       <td> <a href="{{ url_for('admin_view_seller_products', seller_id=seller.user_id) }}" 
-                        class="btn btn-sm btn-primary">
-                            Products
+                        <a href="{{ url_for('admin_view_seller', seller_id=seller.user_id) }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-user"></i> Profile
                         </a>
+                        <a href="{{ url_for('admin_view_seller_products', seller_id=seller.user_id) }}" class="btn btn-info btn-sm">
+                            <i class="fas fa-boxes"></i> Products
+                        </a>
+                        {% if seller.approval_status == 'pending' %}
+                            <form action="{{ url_for('approve_seller', seller_id=seller.user_id) }}" method="post" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </form>
+                            <form action="{{ url_for('reject_seller', seller_id=seller.user_id) }}" method="post" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                <input type="text" name="rejection_reason" placeholder="Reason" required>
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -50,36 +64,4 @@
         </table>
     </div>
 </div>
-
-<!-- Include seller-specific scripts -->
-<script>
-$(document).ready(function() {
-    // Approve seller
-    $('.approve-seller').click(function() {
-        const sellerId = $(this).data('seller-id');
-        
-        if (confirm('Are you sure you want to approve this seller?')) {
-            $.post(`/admin/approve_seller/${sellerId}`, {
-                _token: '{{ csrf_token() if csrf_token else "" }}'
-            })
-            .done(function(response) {
-                alert('Seller approved successfully!');
-                location.reload();
-            })
-            .fail(function(xhr, status, error) {
-                const message = xhr.responseJSON?.message || `Failed to approve seller: ${error}`;
-                alert('Error: ' + message);
-            });
-        }
-    });
-
-    // Reject seller
-    let currentSellerId;
-    $('.reject-seller').click(function() {
-        currentSellerId = $(this).data('seller-id');
-        $('#sellerRejectionReason').val('');
-        $('#rejectSellerModal').modal('show');
-    });
-});
-</script>
 {% endblock %}

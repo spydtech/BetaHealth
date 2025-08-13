@@ -91,6 +91,8 @@
           </div>
           <div class="card-body">
             <form method="POST" action="{{ url_for('edit_seller_profile') }}">
+             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
               <h4 class="mb-3">Business Information</h4>
               <div class="row mb-3">
                 <div class="col-md-6">
@@ -152,7 +154,7 @@
           <img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" width="24" alt="YouTube">
         </a>
       </div>
-      <small>© 2025, <a href="/">Aarogya Nutri Mix</a></small>
+      <small>© 2025, <a href="/">BetaHealth</a></small>
       <ul class="list-inline mt-2">
         <li class="list-inline-item"><a href="#">Refund Policy</a></li>
         <li class="list-inline-item"><a href="#">Privacy Policy</a></li>

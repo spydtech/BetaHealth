@@ -125,6 +125,8 @@
         <p>Enter your details to create a seller account</p>
 
         <form method="POST" action="{{ url_for('seller_register') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
             <div class="section-title">Basic Information</div>
             <div class="row">
                 <div class="col"><input type="text" name="name" placeholder="Full Name*" required></div>

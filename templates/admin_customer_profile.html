@@ -111,6 +111,8 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <form method="POST" action="{{ url_for('admin_deactivate_customer', customer_id=customer.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                     <button type="submit" class="btn btn-danger">Deactivate</button>
                 </form>
             </div>
@@ -132,6 +134,8 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <form method="POST" action="{{ url_for('admin_activate_customer', customer_id=customer.id) }}">
+                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                     <button type="submit" class="btn btn-success">Activate</button>
                 </form>
             </div>
