@@ -1784,7 +1784,7 @@ def seller_register():
             ))
             
             conn.commit()
-            flash("Seller registration successful! Please login.", "success")
+            flash("Seller registration successful! Waiting for admin to approve.", "success")
             
         except Exception as e:
             conn.rollback()
