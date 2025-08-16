@@ -16,6 +16,52 @@
             flex: 1;
             max-width: 500px;
         }
+
+        /* Mobile-friendly cart */
+        @media (max-width: 768px) {
+            table.table thead {
+                display: none; /* hide table headers */
+            }
+            table.table, 
+            table.table tbody, 
+            table.table tr, 
+            table.table td {
+                display: block;
+                width: 100%;
+            }
+            table.table tr {
+                margin-bottom: 1rem;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 10px;
+                background: #fff;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            }
+            table.table td {
+                text-align: left;
+                padding-left: 40%;
+                position: relative;
+                border: none;
+                border-bottom: 1px solid #eee;
+            }
+            table.table td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 10px;
+                top: 50%;
+                transform: translateY(-50%);
+                font-weight: 600;
+                color: #444;
+            }
+            table.table td:last-child {
+                border-bottom: none;
+            }
+            td img {
+                max-width: 100px;
+                height: auto;
+                margin-bottom: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -36,55 +82,56 @@
             </tr>
         </thead>
         <tbody>
-    {% for item in cart_items %}
-    <tr class="{% if not item.in_stock %}table-secondary{% endif %}">
-        <td>
-            <a href="{{ url_for('product', product_id=item.id) }}">
-                <img src="{{ url_for('static', filename='images/' + item.image) }}" alt="{{ item.title }}" style="width: 80px;">
-            </a>
-            <p>{{ item.title }}</p>
-            {% if not item.in_stock %}
-            <div class="alert alert-warning p-2 mt-2 mb-0">
-                <i class="bi bi-exclamation-triangle-fill"></i> This item is no longer available
-            </div>
-            {% endif %}
-        </td>
-        <td>
-            {% if item.in_stock %}
-            <input type="number" min="1" value="{{ item.quantity }}" class="form-control quantity-input" data-id="{{ item.id }}">
-            {% else %}
-            <span class="text-muted">N/A</span>
-            {% endif %}
-        </td>
-        <td>₹{{ "%.2f"|format(item.price) }}</td>
-        <td>₹{{ "%.2f"|format(item.price * item.quantity) }}</td>
-    </tr>
-    {% endfor %}
-    <tr id="no-match-message" style="display: none;">
-        <td colspan="6" style="text-align: center; color: red;">No products found.</td>
-    </tr>
-</tbody>
+        {% for item in cart_items %}
+        <tr class="{% if not item.in_stock %}table-secondary{% endif %}">
+            <td data-label="Product">
+                <a href="{{ url_for('product', product_id=item.id) }}">
+                    <img src="{{ url_for('static', filename='images/' + item.image) }}" alt="{{ item.title }}" style="width: 80px;">
+                </a>
+                <p>{{ item.title }}</p>
+                {% if not item.in_stock %}
+                <div class="alert alert-warning p-2 mt-2 mb-0">
+                    <i class="bi bi-exclamation-triangle-fill"></i> This item is no longer available
+                </div>
+                {% endif %}
+            </td>
+            <td data-label="Quantity">
+                {% if item.in_stock %}
+                <input type="number" min="1" value="{{ item.quantity }}" class="form-control quantity-input" data-id="{{ item.id }}">
+                {% else %}
+                <span class="text-muted">N/A</span>
+                {% endif %}
+            </td>
+            <td data-label="Price">₹{{ "%.2f"|format(item.price) }}</td>
+            <td data-label="Total">₹{{ "%.2f"|format(item.price * item.quantity) }}</td>
+        </tr>
+        {% endfor %}
+        <tr id="no-match-message" style="display: none;">
+            <td colspan="6" style="text-align: center; color: red;">No products found.</td>
+        </tr>
+        </tbody>
     </table>
 
     <div class="text-end mt-3">
         <h4>Total Amount: ₹{{ "%.2f"|format(total_price) }}</h4>
     </div>
 
-    <div class="d-flex justify-content-between mt-3">
-        <div>
-            <a href="/" class="btn btn-secondary">Continue Shopping</a>
-            <a href="{{ url_for('my_orders') }}" class="btn btn-primary ms-2">My Orders</a>
+    <!-- ✅ Buttons fixed for desktop + mobile -->
+    <div class="d-flex flex-column flex-md-row justify-content-between mt-3 gap-3">
+        <div class="d-flex flex-column flex-md-row gap-2">
+            <a href="/" class="btn btn-secondary w-100 w-md-auto">Continue Shopping</a>
+            <a href="{{ url_for('my_orders') }}" class="btn btn-primary w-100 w-md-auto">My Orders</a>
         </div>
-        <div>
-            <form action="{{ url_for('clear_cart') }}" method="POST" style="display: inline;">
+        <div class="d-flex flex-column flex-md-row gap-2">
+            <form action="{{ url_for('clear_cart') }}" method="POST" class="d-inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                <button type="submit" class="btn btn-danger">Clear Cart</button>
+                <button type="submit" class="btn btn-danger w-100 w-md-auto">Clear Cart</button>
             </form>
-            <a href="{{ url_for('checkout') }}" class="btn btn-success ms-2">Proceed to Checkout</a>
+            <a href="{{ url_for('checkout') }}" class="btn btn-success w-100 w-md-auto">Proceed to Checkout</a>
         </div>
     </div>
 </div>
+
 <script>
 document.querySelector('.search-input').addEventListener('input', function () {
     const query = this.value.toLowerCase();
@@ -93,8 +140,7 @@ document.querySelector('.search-input').addEventListener('input', function () {
 
     rows.forEach(row => {
         const isMessageRow = row.id === 'no-match-message';
-        if (isMessageRow) return; // Skip the "no match" message row
-
+        if (isMessageRow) return;
         const title = row.querySelector('td p')?.textContent.toLowerCase() || '';
         const visible = title.includes(query);
         row.style.display = visible ? '' : 'none';
@@ -104,21 +150,16 @@ document.querySelector('.search-input').addEventListener('input', function () {
     const noMatchRow = document.getElementById('no-match-message');
     noMatchRow.style.display = matchCount === 0 ? '' : 'none';
 });
+
 document.querySelectorAll('.quantity-input').forEach(input => {
     input.addEventListener('change', function() {
         const productId = this.dataset.id;
         const newQuantity = this.value;
         fetch('/update-cart', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({id: productId, quantity: newQuantity})
-        }).then(response => {
-            if (response.ok) {
-                location.reload();
-            }
-        });
+        }).then(response => { if (response.ok) location.reload(); });
     });
 });
 </script>

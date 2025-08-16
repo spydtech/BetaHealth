@@ -3320,11 +3320,12 @@ def approve_seller(seller_id):
     cursor = None
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)  # ✅ Use dictionary cursor for column names
         conn.start_transaction()
 
-        cursor.execute("SELECT id FROM users WHERE id = %s AND role = 'seller'", (seller_id,))
-        if not cursor.fetchone():
+        cursor.execute("SELECT id, email FROM users WHERE id = %s AND role = 'seller'", (seller_id,))
+        seller = cursor.fetchone()
+        if not seller:
             conn.rollback()
             flash("Seller not found", "danger")
             return redirect(url_for('admin_sellers'))
@@ -3341,6 +3342,9 @@ def approve_seller(seller_id):
 
         cursor.execute("UPDATE users SET is_active = TRUE WHERE id = %s", (seller_id,))
         
+        # ✅ Now send email with seller's email
+        send_seller_approval_email(seller['email'], approved=True, reason=None)
+
         conn.commit()
         flash("Seller approved successfully", "success")
         return redirect(url_for('admin_sellers'))
