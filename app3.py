@@ -1953,7 +1953,7 @@ def search():
 @app.route('/add-to-cart', methods=['POST'])
 def add_to_cart():
     product_id = request.form.get('product_id')
-    product = get_product_by_id_from_db(product_id)  # Now includes stock_quantity
+    product = get_product_by_id_from_db(product_id)
 
     if not product or product.get('stock_quantity', 0) < 1:
         flash("This product is currently out of stock", "danger")
@@ -1962,9 +1962,16 @@ def add_to_cart():
     title = product['title']
     price = float(product['price'])
     image = product['image']
-    user_id = session.get('user_id')
 
-    if user_id:
+    user_id = session.get('user_id')
+    user_role = session.get('user_role')
+
+    # 🚫 Block sellers and admins
+    if user_role in ['seller', 'admin']:
+        flash("Only customers can add products to the cart.", "danger")
+        return redirect(url_for('home'))
+
+    if user_id:  # ✅ Logged in customer
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT quantity FROM cart_items WHERE user_id = %s AND product_id = %s", (user_id, product_id))
@@ -1972,7 +1979,8 @@ def add_to_cart():
 
         if existing_item:
             new_quantity = existing_item[0] + 1
-            cursor.execute("UPDATE cart_items SET quantity = %s WHERE user_id = %s AND product_id = %s", (new_quantity, user_id, product_id))
+            cursor.execute("UPDATE cart_items SET quantity = %s WHERE user_id = %s AND product_id = %s",
+                           (new_quantity, user_id, product_id))
         else:
             cursor.execute(
                 "INSERT INTO cart_items (user_id, product_id, title, price, image, quantity) VALUES (%s, %s, %s, %s, %s, %s)",
@@ -1980,7 +1988,7 @@ def add_to_cart():
             )
         conn.commit()
         conn.close()
-    else:
+    else:  # ✅ Guest user (session cart)
         cart = session.get('cart', [])
         for item in cart:
             if item['id'] == product_id:
@@ -1989,9 +1997,10 @@ def add_to_cart():
         else:
             cart.append({'id': product_id, 'title': title, 'price': price, 'image': image, 'quantity': 1})
         session['cart'] = cart
-    
+
     flash(f"{title} added to cart!", "success")
     return redirect(url_for('cart'))
+
 
 
 def check_stock_availability(product_id, quantity=1):
@@ -3591,22 +3600,34 @@ def buy_now():
         flash("This product is currently out of stock", "danger")
         return redirect(url_for('product', product_id=product_id))
 
-    # Store buy now product in session
-    session['buy_now_product'] = {
-        'id': product_id,
-        'title': product['title'],
-        'price': float(product['price']),
-        'image': product['image'],
-        'quantity': 1
-    }
+    title = product['title']
+    price = float(product['price'])
+    image = product['image']
 
-    # If not logged in, redirect to login
-    if 'user_id' not in session:
-        flash("Please log in to proceed with your purchase.", "warning")
-        return redirect(url_for('login'))
+    user_id = session.get('user_id')
+    user_role = session.get('user_role')
 
-    # For logged in users, proceed directly to checkout
+    # 🚫 Block sellers and admins
+    if user_role in ['seller', 'admin']:
+        flash("Only customers can buy products.", "danger")
+        return redirect(url_for('home'))
+
+    if user_id:  # ✅ Logged in customer
+        # Clear existing cart for buy-now flow
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM cart_items WHERE user_id = %s", (user_id,))
+        cursor.execute(
+            "INSERT INTO cart_items (user_id, product_id, title, price, image, quantity) VALUES (%s, %s, %s, %s, %s, %s)",
+            (user_id, product_id, title, price, image, 1)
+        )
+        conn.commit()
+        conn.close()
+    else:  # ✅ Guest user (session cart)
+        session['cart'] = [{'id': product_id, 'title': title, 'price': price, 'image': image, 'quantity': 1}]
+
     return redirect(url_for('checkout'))
+
 
 
 
