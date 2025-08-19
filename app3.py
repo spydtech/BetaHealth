@@ -3600,11 +3600,6 @@ def buy_now():
         flash("This product is currently out of stock", "danger")
         return redirect(url_for('product', product_id=product_id))
 
-    title = product['title']
-    price = float(product['price'])
-    image = product['image']
-
-    user_id = session.get('user_id')
     user_role = session.get('user_role')
 
     # 🚫 Block sellers and admins
@@ -3612,19 +3607,14 @@ def buy_now():
         flash("Only customers can buy products.", "danger")
         return redirect(url_for('home'))
 
-    if user_id:  # ✅ Logged in customer
-        # Clear existing cart for buy-now flow
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM cart_items WHERE user_id = %s", (user_id,))
-        cursor.execute(
-            "INSERT INTO cart_items (user_id, product_id, title, price, image, quantity) VALUES (%s, %s, %s, %s, %s, %s)",
-            (user_id, product_id, title, price, image, 1)
-        )
-        conn.commit()
-        conn.close()
-    else:  # ✅ Guest user (session cart)
-        session['cart'] = [{'id': product_id, 'title': title, 'price': price, 'image': image, 'quantity': 1}]
+    # ✅ Store this single product in session for checkout
+    session['buy_now_product'] = {
+        'id': product['id'],
+        'title': product['title'],
+        'price': float(product['price']),
+        'image': product['image'],
+        'quantity': 1
+    }
 
     return redirect(url_for('checkout'))
 
@@ -3632,31 +3622,24 @@ def buy_now():
 
 
 
+
 # Route to render checkout page and create Razorpay order
 @app.route('/checkout', methods=['GET', 'POST'])
+@role_required('customer')
 def checkout():
-    if 'user_id' not in session:
-        flash("Please log in to checkout", "warning")
-        return redirect(url_for('login'))
-
     user_id = session['user_id']
     
     # Check if we're doing a "buy now" checkout
     buy_now_product = session.pop('buy_now_product', None)
     
     if buy_now_product:
-        # For "buy now", we only show the single product
         cart_items = [buy_now_product]
         total_price = buy_now_product['price']
     else:
-        # Regular checkout with all cart items
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        
         cursor.execute("""
-            SELECT 
-                ci.*,
-                COALESCE(i.stock_quantity, 0) as stock_quantity
+            SELECT ci.*, COALESCE(i.stock_quantity, 0) as stock_quantity
             FROM cart_items ci
             LEFT JOIN inventory i ON ci.product_id = i.product_id
             WHERE ci.user_id = %s
@@ -3666,14 +3649,13 @@ def checkout():
         
         total_price = sum(item['price'] * item['quantity'] for item in cart_items)
 
-    # Check stock availability
+    # Stock check
     out_of_stock = [item for item in cart_items if item['quantity'] > item.get('stock_quantity', 1)]
     if out_of_stock:
-        flash(f"Some items in your cart are out of stock", "danger")
+        flash("Some items in your cart are out of stock", "danger")
         return redirect(url_for('cart'))
 
     if request.method == 'POST':
-        # Create Razorpay order
         order_data = {
             "amount": int(total_price * 100),
             "currency": "INR",
@@ -3686,8 +3668,6 @@ def checkout():
         
         try:
             razorpay_order = razorpay_client.order.create(data=order_data)
-            
-            # Store checkout info in session
             session['checkout_info'] = {
                 'shipping_info': {
                     'full_name': request.form['full_name'],
@@ -3700,7 +3680,7 @@ def checkout():
                 'razorpay_order_id': razorpay_order['id'],
                 'total_amount': total_price,
                 'cart_items': [{'id': item['id'], 'quantity': item['quantity']} for item in cart_items],
-                'is_buy_now': bool(buy_now_product)  # Track if this is a buy now order
+                'is_buy_now': bool(buy_now_product)
             }
             
             return render_template("checkout.html", 
@@ -3716,6 +3696,7 @@ def checkout():
     return render_template("checkout.html", 
                          cart_items=cart_items,
                          total_price=total_price)
+
     
     
     
