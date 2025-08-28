@@ -17,7 +17,35 @@
             <img src="{{ url_for('static', filename='images/' + product.image) }}" class="img-fluid main-product-image" alt="{{ product.title }}">
         </div>
         <div class="col-md-6 product-info-section">
-            <h1 class="product-page-title">{{ product.title }}</h1>
+            <div class="d-flex align-items-center justify-content-between">
+                <h1 class="product-page-title mb-0">{{ product.title }}</h1>
+
+                <!-- Wishlist Heart Button -->
+                <!-- Wishlist Heart Button - Only show for customers -->
+                
+                <!-- <button id="wishlistBtn" 
+                        class="wishlist-btn ms-3" 
+                        data-product-id="{{ product.id }}">
+                    {% if in_wishlist %}
+                        ❤️
+                    {% else %}
+                        🤍
+                    {% endif %}
+                </button> -->
+                {% if session.user_role == 'customer' %}
+                    <button id="wishlistBtn" 
+                            class="wishlist-btn ms-3" 
+                            data-product-id="{{ product.id }}">
+                        {% if in_wishlist %}
+                        ❤️
+                        {% else %}
+                        🤍
+                        {% endif %}
+                    </button>
+                    {% endif %}
+                
+            </div>
+
             <div class="product-price-section mb-3">
                 <span class="current-price-lg">₹{{ "%.2f"|format(product.price) }}</span>
                 {% if product.compare_price and product.compare_price > product.price %}
@@ -157,6 +185,16 @@
 </div>
 
 <style>
+    .wishlist-btn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+.wishlist-btn:hover {
+    transform: scale(1.2);
+}
     /* Product Page Specific Styles (product.html) */
     .product-detail-container {
         max-width: 1200px; /* Wider container for product page */
@@ -286,4 +324,32 @@
         width: 100%;
     } 
 </style>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const wishlistBtn = document.getElementById("wishlistBtn");
+    if (!wishlistBtn) return;
+
+    wishlistBtn.addEventListener("click", function(e) {
+        e.preventDefault();
+
+        const productId = this.dataset.productId;
+        const csrfToken = "{{ csrf_token() }}";
+
+        fetch(`/toggle-wishlist/${productId}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken
+            },
+            body: JSON.stringify({})
+        })
+        .then(res => res.json())
+        .then(data => {
+            wishlistBtn.innerHTML = data.in_wishlist ? "❤️" : "🤍";
+        })
+        .catch(err => console.error("Wishlist toggle failed", err));
+    });
+});
+</script>
+
 {% endblock %}

@@ -6,6 +6,37 @@
 <div class="container mt-5">
     <div class="row">
         <div class="col-md-8">
+
+            <!-- ✅ Saved Addresses Section -->
+            {% if addresses %}
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h4>Choose a Saved Address</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('checkout') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        {% for addr in addresses %}
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="address_id" value="{{ addr.id }}"
+                                   {% if addr.is_default %}checked{% endif %}>
+                            <label class="form-check-label">
+                                <strong>{{ addr.name }}</strong> ({{ addr.mobile }}) <br>
+                                {{ addr.address_line1 }} {{ addr.address_line2 }},<br>
+                                {{ addr.city }}, {{ addr.state }} - {{ addr.pincode }}, {{ addr.country }}
+                                {% if addr.is_default %}
+                                <span class="badge bg-success">Default</span>
+                                {% endif %}
+                            </label>
+                        </div>
+                        {% endfor %}
+                        <button type="submit" class="btn btn-primary">Deliver to This Address</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ✅ Existing Shipping Information Form -->
             <div class="card mb-4">
                 <div class="card-header bg-primary text-white">
                     <h4>Shipping Information</h4>
@@ -42,12 +73,17 @@
                                 <input type="tel" class="form-control" name="phone" required>
                             </div>
                         </div>
+                        <div class="form-check mb-3">
+                            <input type="checkbox" name="is_default" class="form-check-input" value="1">
+                            <label class="form-check-label">Set as default address</label>
+                        </div>
                         <input type="hidden" name="total_amount" value="{{ total_price }}">
                     </form>
                 </div>
             </div>
         </div>
         
+        <!-- ✅ Order Summary -->
         <div class="col-md-4">
             <div class="card">
                 <div class="card-header bg-primary text-white">
@@ -77,6 +113,7 @@
     </div>
 </div>
 
+<!-- ✅ Razorpay Script -->
 {% if razorpay_order_id %}
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
@@ -117,7 +154,6 @@
         }
     };
     
-    // Auto-open Razorpay when returning from checkout POST
     document.addEventListener('DOMContentLoaded', function() {
         var rzp = new Razorpay(options);
         rzp.open();

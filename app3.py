@@ -13,6 +13,7 @@ from werkzeug.utils import secure_filename
 import razorpay
 from flask_mail import Message
 import string
+import time
 from flask_caching import Cache
 
 # Razorpay Client Initialization (replace with your real keys)
@@ -157,6 +158,25 @@ def init_db():
             FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
         )
     """)
+    cursor.execute("""
+       CREATE TABLE IF NOT EXISTS user_addresses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,       -- receiver name
+    mobile VARCHAR(15) NOT NULL,      -- delivery phone
+    address_line1 VARCHAR(255) NOT NULL,
+    address_line2 VARCHAR(255),
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(100) NOT NULL,
+    pincode VARCHAR(10) NOT NULL,
+    country VARCHAR(100) DEFAULT 'India',
+    is_default TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+
+    """)
 
     # --- seller_profiles ---
     cursor.execute("""
@@ -231,6 +251,18 @@ def init_db():
             FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
         )
 
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS wishlist_items (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            product_id VARCHAR(255) NOT NULL,
+            title VARCHAR(255) NOT NULL,
+            price DECIMAL(10, 2) NOT NULL,
+            image VARCHAR(255),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+        )
     """)
     # In init_db(), after creating the product_categories table:
 
@@ -1277,13 +1309,64 @@ def baby_care_collection():
                            collection={'title': 'Baby Care', 'products': products},
                            current_collection='baby-care')
 
+@app.route('/toggle-wishlist/<product_id>', methods=['POST'])
+def toggle_wishlist(product_id):
+    if 'user_id' not in session:
+        return jsonify({"success": False, "message": "Please log in to use wishlist"}), 401
+    if session.get('user_role') != 'customer':
+        return jsonify({"success": False, "message": "Wishlist is only available for customers"}), 403
+    
+    
+    user_id = session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM wishlist_items WHERE user_id=%s AND product_id=%s",
+                   (user_id, product_id))
+    existing = cursor.fetchone()
+
+    in_wishlist = False
+    if existing:
+        cursor.execute("DELETE FROM wishlist_items WHERE user_id=%s AND product_id=%s",
+                       (user_id, product_id))
+        conn.commit()
+        in_wishlist = False
+    else:
+        cursor.execute("SELECT title, price, image FROM products WHERE id=%s", (product_id,))
+        product = cursor.fetchone()
+        if product:
+            cursor.execute(
+                "INSERT INTO wishlist_items (user_id, product_id, title, price, image) VALUES (%s,%s,%s,%s,%s)",
+                (user_id, product_id, product[0], product[1], product[2])
+            )
+            conn.commit()
+            in_wishlist = True
+
+    cursor.close()
+    conn.close()
+    return jsonify({"success": True, "in_wishlist": in_wishlist})
+
 
 @app.route('/products/<product_id>')
 def product(product_id):
     product_item = get_product_by_id_from_db(product_id)
     if not product_item:
         abort(404)
+    recently_viewed = session.get('recently_viewed', [])
+    # Remove if already exists
+    recently_viewed = [p for p in recently_viewed if p['id'] != product_item['id']]
+    # Insert at beginning
+    recently_viewed.insert(0, {
+    'id': product_item['id'],
+    'title': product_item['title'],
+    'image': product_item['image'],
+    'price': product_item['price'],
+    'in_stock': product_item['stock_quantity'] > 0
+})
 
+    # Keep only last 5 viewed
+    recently_viewed = recently_viewed[:6]
+    session['recently_viewed'] = recently_viewed
     # Get reviews for the product
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -1300,6 +1383,17 @@ def product(product_id):
     user_has_purchased = False
     if 'user_id' in session:
         user_has_purchased = user_has_purchased_product(session['user_id'], product_id)
+        
+    in_wishlist = False
+    if 'user_id' in session:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM wishlist_items WHERE user_id=%s AND product_id=%s",
+                    (session['user_id'], product_id))
+        in_wishlist = cursor.fetchone() is not None
+        cursor.close()
+        conn.close()
+
 
     collection_title = product_item.get('category', 'Products').replace('-', ' ').title()
 
@@ -1307,11 +1401,185 @@ def product(product_id):
                            product=product_item,
                            collection_title=collection_title,
                            reviews=reviews,
-                           user_has_purchased=user_has_purchased)
+                           user_has_purchased=user_has_purchased,in_wishlist=in_wishlist)
+
+@app.route('/wishlist')
+def wishlist():
+    if 'user_id' not in session:
+        flash("Please log in to use wishlist", "warning")
+        return redirect(url_for('login'))
+    if session.get('user_role') != 'customer':
+        flash("Wishlist functionality is only available for customers", "warning")
+        return redirect(url_for('home'))
+   
+    
+    user_id = session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT w.product_id as id, w.title, w.price, w.image,
+               COALESCE(i.stock_quantity, 0) as stock_quantity
+        FROM wishlist_items w
+        LEFT JOIN inventory i ON w.product_id = i.product_id
+        WHERE w.user_id = %s
+    """, (user_id,))
+    wishlist_items = cursor.fetchall()
+    conn.close()
+
+    return render_template("wishlist.html", wishlist_items=wishlist_items)
+
+def get_wishlist_length():
+    """Returns the number of items in the user's wishlist"""
+    if 'user_id' not in session:
+        return 0
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM wishlist_items WHERE user_id = %s", (session['user_id'],))
+    count = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
+    return count
+
+
+
+@app.route('/move-to-wishlist/<product_id>', methods=['POST'])
+def move_to_wishlist(product_id):
+    if 'user_id' not in session:
+        flash("Please log in to use wishlist", "warning")
+        return redirect(url_for('login'))
+    if session.get('user_role') != 'customer':
+        flash("Wishlist functionality is only available for customers", "warning")
+        return redirect(url_for('home'))
+
+    user_id = session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Get product details from cart
+    cursor.execute("SELECT title, price, image FROM cart_items WHERE user_id=%s AND product_id=%s",
+                   (user_id, product_id))
+    product = cursor.fetchone()
+
+    if product:
+        # ✅ Check if already in wishlist
+        cursor.execute("SELECT id FROM wishlist_items WHERE user_id=%s AND product_id=%s",
+                       (user_id, product_id))
+        existing = cursor.fetchone()
+
+        if existing:
+            flash("This item is already in your wishlist ❤️", "info")
+        else:
+            cursor.execute("""INSERT INTO wishlist_items (user_id, product_id, title, price, image) 
+                              VALUES (%s, %s, %s, %s, %s)""",
+                           (user_id, product_id, product["title"], product["price"], product["image"]))
+            flash("Moved to Wishlist ❤️", "success")
+
+        # Always remove from cart (to avoid duplicates in cart)
+        cursor.execute("DELETE FROM cart_items WHERE user_id=%s AND product_id=%s",
+                       (user_id, product_id))
+        conn.commit()
+
+    cursor.close()
+    conn.close()
+    return redirect(url_for('cart'))
+
+
+
+@app.route('/move-to-cart/<product_id>', methods=['POST'])
+def move_to_cart(product_id):
+    if 'user_id' not in session:
+        flash("Please log in to use wishlist", "warning")
+        return redirect(url_for('login'))
+    if session.get('user_role') != 'customer':
+        flash("Wishlist functionality is only available for customers", "warning")
+        return redirect(url_for('home'))
+
+    user_id = session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Get product details from wishlist
+    cursor.execute("SELECT title, price, image FROM wishlist_items WHERE user_id=%s AND product_id=%s",
+                   (user_id, product_id))
+    product = cursor.fetchone()
+
+    if product:
+        # Check if already in cart
+        cursor.execute("SELECT id, quantity FROM cart_items WHERE user_id=%s AND product_id=%s",
+                       (user_id, product_id))
+        existing_cart = cursor.fetchone()
+
+        if existing_cart:
+            # Update quantity instead of creating duplicate row
+            new_quantity = existing_cart["quantity"] + 1
+            cursor.execute("UPDATE cart_items SET quantity=%s WHERE id=%s",
+                           (new_quantity, existing_cart["id"]))
+        else:
+            # Insert new cart row
+            cursor.execute("""INSERT INTO cart_items (user_id, product_id, title, price, image, quantity)
+                              VALUES (%s, %s, %s, %s, %s, %s)""",
+                           (user_id, product_id, product["title"], product["price"], product["image"], 1))
+
+        # Remove from wishlist
+        cursor.execute("DELETE FROM wishlist_items WHERE user_id=%s AND product_id=%s",
+                       (user_id, product_id))
+
+        conn.commit()
+        flash("Moved to Cart 🛒", "success")
+
+    cursor.close()
+    conn.close()
+    
+    # Smart redirect logic - same as remove_from_wishlist
+    redirect_to = request.args.get('redirect_to')
+    if redirect_to == 'wishlist':
+        return redirect(url_for('wishlist'))
+    elif redirect_to == 'profile':
+        return redirect(url_for('profile'))
+    else:
+        # Use referer to automatically detect where user came from
+        referer = request.headers.get('Referer', '')
+        if 'wishlist' in referer:
+            return redirect(url_for('wishlist'))
+        else:
+            return redirect(url_for('profile'))
+
+@app.route('/remove-from-wishlist/<product_id>', methods=['POST'])
+def remove_from_wishlist(product_id):
+    if 'user_id' not in session:
+        flash("Please log in to use wishlist", "warning")
+        return redirect(url_for('login'))
+    if session.get('user_role') != 'customer':
+        flash("Wishlist functionality is only available for customers", "warning")
+        return redirect(url_for('home'))
+
+    user_id = session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM wishlist_items WHERE user_id=%s AND product_id=%s", 
+                   (user_id, product_id))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    flash("Item removed from wishlist ❌", "info")
+    
+    # Check for redirect parameter to determine where to go
+    redirect_to = request.args.get('redirect_to', 'profile')  # Default to 'profile'
+    
+    if redirect_to == 'profile':
+        return redirect(url_for('profile'))
+    else:
+        return redirect(url_for('wishlist'))
 
 
 @app.route('/cart')
 def cart():
+    message = request.args.get('message')
+    product_title = request.args.get('product_title')
+    
+    if message == 'out_of_stock' and product_title:
+        flash(f"{product_title} added to cart! Note: This product is currently out of stock.", "warning")
     user_id = session.get('user_id')
     cart_items = []
 
@@ -1339,7 +1607,30 @@ def cart():
             item['in_stock'] = product['stock_quantity'] > 0 if product else False
 
     total_price = sum(item['price'] * item['quantity'] for item in cart_items)
-    return render_template('cart.html', cart_items=cart_items, total_price=total_price)
+    recently_viewed = session.get('recently_viewed', [])
+    wishlist_length = get_wishlist_length()
+
+    return render_template('cart.html', cart_items=cart_items, total_price=total_price,recently_viewed=recently_viewed,wishlist_length=wishlist_length)
+
+@app.route('/remove-from-cart/<product_id>', methods=['POST'])
+def remove_from_cart(product_id):
+    user_id = session.get('user_id')
+
+    if user_id:
+        # Remove from DB cart
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM cart_items WHERE user_id = %s AND product_id = %s", (user_id, product_id))
+        conn.commit()
+        conn.close()
+    else:
+        # Remove from session cart
+        cart = session.get('cart', [])
+        session['cart'] = [item for item in cart if str(item['id']) != str(product_id)]
+
+    flash("Item removed from cart.", "info")
+    return redirect(url_for('cart'))
+
 
 
 @app.route('/terms')
@@ -1422,6 +1713,126 @@ def login():
             flash("Invalid email or password", "danger")
 
     return render_template('login.html')
+
+@app.route('/profile')
+def profile():
+    if 'user_id' not in session:
+        flash("Please log in first", "warning")
+        return redirect(url_for('login'))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Get user details
+    cursor.execute("SELECT id, name, email, mobile FROM users WHERE id = %s", (session['user_id'],))
+    user = cursor.fetchone()
+
+    # Get user addresses
+    cursor.execute("SELECT * FROM user_addresses WHERE user_id = %s ORDER BY created_at DESC", (session['user_id'],))
+    addresses = cursor.fetchall()
+
+    # Get previous orders
+    cursor.execute("""
+        SELECT id, total_amount, status, order_date 
+        FROM orders 
+        WHERE user_id = %s 
+        ORDER BY order_date DESC
+    """, (session['user_id'],))
+    orders = cursor.fetchall()
+    #wishlist
+    cursor.execute("""
+        SELECT w.product_id, w.title, w.price, w.image, 
+               COALESCE(i.stock_quantity, 0) as stock_quantity
+        FROM wishlist_items w 
+        LEFT JOIN inventory i ON w.product_id = i.product_id
+        WHERE w.user_id = %s
+    """, (session['user_id'],))
+    wishlist = cursor.fetchall()
+    
+
+    cursor.close()
+    conn.close()
+
+    return render_template("profile.html", user=user, addresses=addresses, orders=orders, wishlist=wishlist)
+
+
+@app.route('/profile/address/add', methods=['POST'])
+def add_address():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    data = request.form
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO user_addresses 
+        (user_id, name, mobile, address_line1, address_line2, city, state, pincode, country, is_default)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+    """, (session['user_id'], data['name'], data['mobile'], data['address_line1'], data.get('address_line2'),
+          data['city'], data['state'], data['pincode'], data.get('country', 'India'), data.get('is_default', 0)))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    flash("Address added successfully!", "success")
+    return redirect(url_for('profile'))
+
+
+@app.route('/profile/address/delete/<int:address_id>', methods=['POST'])
+def delete_address(address_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM user_addresses WHERE id = %s AND user_id = %s", (address_id, session['user_id']))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    flash("Address deleted successfully!", "info")
+    return redirect(url_for('profile'))
+
+
+@app.route('/profile/edit', methods=['POST'])
+def edit_profile():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    data = request.form
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE users 
+        SET name = %s, email = %s, mobile = %s 
+        WHERE id = %s
+    """, (data['name'], data['email'], data['mobile'], session['user_id']))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    flash("Profile updated successfully!", "success")
+    return redirect(url_for('profile'))
+@app.route('/make_default_address/<int:address_id>', methods=['POST'])
+def make_default_address(address_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Reset all addresses to not default
+    cursor.execute("UPDATE user_addresses SET is_default = 0 WHERE user_id = %s", (user_id,))
+    # Set chosen one as default
+    cursor.execute("UPDATE user_addresses SET is_default = 1 WHERE id = %s AND user_id = %s", (address_id, user_id))
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    flash("Default address updated successfully!", "success")
+    return redirect(request.referrer or url_for('profile'))
+
+
+
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
@@ -1546,12 +1957,12 @@ def get_seller_profile_by_user_id(user_id):
     return seller_data
 
 
-@app.route('/admin/customers')
-@role_required('admin')
-def admin_view_customers():
-    """Admin view to list all customers."""
-    customers = get_all_customers_from_db()
-    return render_template('admin_customers.html', customers=customers)
+# @app.route('/admin/customers')
+# @role_required('admin')
+# def admin_view_customers():
+#     """Admin view to list all customers."""
+#     customers = get_all_customers_from_db()
+#     return render_template('admin_customers.html', customers=customers)
 
 @app.route('/admin/customer/<int:customer_id>')
 @role_required('admin')
@@ -1671,12 +2082,12 @@ def admin_view_customer_orders(customer_id):
 
 # --- Admin Seller Management ---
 
-@app.route('/admin/sellers')
-@role_required('admin')
-def admin_view_sellers():
-    """Admin view to list all sellers."""
-    sellers = get_all_sellers_from_db()
-    return render_template('admin_sellers.html', sellers=sellers)
+# @app.route('/admin/sellers')
+# @role_required('admin')
+# def admin_view_sellers():
+#     """Admin view to list all sellers."""
+#     sellers = get_all_sellers_from_db()
+#     return render_template('admin_sellers.html', sellers=sellers)
 
 @app.route('/admin/seller/<int:seller_id>')
 @role_required('admin')
@@ -1722,6 +2133,7 @@ def register():
     if request.method == 'POST':
         session['name'] = request.form['name']
         session['email'] = request.form['email']
+        session['mobile'] = request.form['mobile']
         session['password'] = request.form['password']
 
         if get_user_by_email(session['email']):
@@ -1784,7 +2196,7 @@ def seller_register():
             ))
             
             conn.commit()
-            flash("Seller registration successful! Waiting for admin to approve.", "success")
+            flash("Seller registration successful! Please login.", "success")
             
         except Exception as e:
             conn.rollback()
@@ -1835,6 +2247,87 @@ def seller_login():
     return render_template('seller_login.html')
 
 
+@app.route('/seller/forgot-password', methods=['GET', 'POST'])
+def seller_forgot_password():
+    if request.method == 'POST':
+        email = request.form['email']
+        
+        # Check if user exists and is an approved seller
+        user = get_user_by_email(email)
+        if not user or user['role'] != 'seller':
+            flash("No seller account found with this email", "danger")
+            return redirect(url_for('seller_forgot_password'))
+        
+        # Check if seller is approved
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT approval_status FROM seller_profiles 
+            WHERE user_id = %s
+        """, (user['id'],))
+        seller_profile = cursor.fetchone()
+        conn.close()
+        
+        if not seller_profile or seller_profile['approval_status'] != 'approved':
+            flash("Your seller account is not approved yet. Please contact admin.", "warning")
+            return redirect(url_for('seller_forgot_password'))
+        
+        # Generate OTP
+        otp = str(random.randint(100000, 999999))
+        session['seller_reset_email'] = email
+        session['seller_reset_otp'] = otp
+        session['seller_reset_otp_time'] = time.time()  # Store generation time
+        
+        # Send OTP email
+        msg = Message("Seller Password Reset OTP", recipients=[email])
+        msg.body = f"Your password reset OTP is {otp}. This OTP is valid for 10 minutes."
+        mail.send(msg)
+        
+        flash("OTP sent to your email. Please check your inbox.", "success")
+        return redirect(url_for('seller_verify_reset_otp'))
+    
+    return render_template('seller_forgot_password.html')
+
+@app.route('/seller/verify-reset-otp', methods=['GET', 'POST'])
+def seller_verify_reset_otp():
+    if 'seller_reset_email' not in session:
+        flash("Password reset session expired. Please try again.", "danger")
+        return redirect(url_for('seller_forgot_password'))
+    
+    if request.method == 'POST':
+        entered_otp = request.form['otp']
+        new_password = request.form['new_password']
+        email = session.get('seller_reset_email')
+        
+        # Check if OTP is expired (10 minutes)
+        if time.time() - session.get('seller_reset_otp_time', 0) > 600:
+            session.pop('seller_reset_email', None)
+            session.pop('seller_reset_otp', None)
+            session.pop('seller_reset_otp_time', None)
+            flash("OTP has expired. Please request a new one.", "danger")
+            return redirect(url_for('seller_forgot_password'))
+        
+        if entered_otp == session.get('seller_reset_otp') and email:
+            hashed_password = generate_password_hash(new_password)
+            
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE users SET password_hash = %s WHERE email = %s", (hashed_password, email))
+            conn.commit()
+            conn.close()
+            
+            session.pop('seller_reset_email', None)
+            session.pop('seller_reset_otp', None)
+            session.pop('seller_reset_otp_time', None)
+            
+            flash("Password reset successfully. You can now login with your new password.", "success")
+            return redirect(url_for('seller_login'))
+        else:
+            flash("Invalid OTP. Please try again.", "danger")
+    
+    return render_template('seller_verify_reset_otp.html')
+
+
 @app.route('/verify-otp', methods=['GET', 'POST'])
 def verify_otp():
     if request.method == 'POST':
@@ -1845,14 +2338,15 @@ def verify_otp():
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO users (name, email, password_hash, role) VALUES (%s, %s, %s, %s)",
-                (session['name'], session['email'], hashed_password, 'customer')
+                "INSERT INTO users (name, email,mobile, password_hash, role) VALUES (%s, %s, %s, %s)",
+                (session['name'], session['email'],session['mobile'], hashed_password, 'customer')
             )
             conn.commit()
             conn.close()
 
             session.pop('name', None)
             session.pop('email', None)
+            session.pop('mobile', None)
             session.pop('password', None)
             session.pop('otp', None)
 
@@ -1913,6 +2407,45 @@ def verify_reset_otp_password():
     return render_template('verify_reset_otp_password.html')
 
 
+@app.route('/profile/change_password', methods=['POST'])
+def change_password():
+    if 'user_id' not in session:
+        flash("Please log in first", "warning")
+        return redirect(url_for('login'))
+
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Fetch stored hash + role
+    cursor.execute("SELECT password_hash, role FROM users WHERE id = %s", (session['user_id'],))
+    user = cursor.fetchone()
+
+    if not user or not check_password_hash(user['password_hash'], current_password):
+        flash("Current password is incorrect.", "danger")
+        return redirect(url_for('seller_dashboard') if user and user['role'] == 'seller' else url_for('profile'))
+
+    if new_password != confirm_password:
+        flash("New passwords do not match.", "danger")
+        return redirect(url_for('seller_dashboard') if user and user['role'] == 'seller' else url_for('profile'))
+
+    # Update password_hash
+    hashed = generate_password_hash(new_password)
+    cursor.execute("UPDATE users SET password_hash = %s, updated_at = NOW() WHERE id = %s", (hashed, session['user_id']))
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    flash("Password updated successfully!", "success")
+    return redirect(url_for('seller_dashboard') if user['role'] == 'seller' else url_for('profile'))
+
+
+
+
 @app.route('/search', methods=['GET', 'POST'])
 def search():
     query = request.args.get('query', '').lower()
@@ -1955,13 +2488,14 @@ def add_to_cart():
     product_id = request.form.get('product_id')
     product = get_product_by_id_from_db(product_id)
 
-    if not product or product.get('stock_quantity', 0) < 1:
-        flash("This product is currently out of stock", "danger")
-        return redirect(url_for('product', product_id=product_id))
+    if not product:
+        flash("Product not found", "danger")
+        return redirect(url_for('home'))
 
     title = product['title']
     price = float(product['price'])
     image = product['image']
+    stock_quantity = product.get('stock_quantity', 0)
 
     user_id = session.get('user_id')
     user_role = session.get('user_role')
@@ -1998,7 +2532,12 @@ def add_to_cart():
             cart.append({'id': product_id, 'title': title, 'price': price, 'image': image, 'quantity': 1})
         session['cart'] = cart
 
-    flash(f"{title} added to cart!", "success")
+    # Show appropriate message based on stock status
+    if stock_quantity < 1:
+        return redirect(url_for('cart', message='out_of_stock', product_title=title))
+    else:
+        flash(f"{title} added to cart!", "success")
+        
     return redirect(url_for('cart'))
 
 
@@ -3628,16 +4167,20 @@ def buy_now():
 @role_required('customer')
 def checkout():
     user_id = session['user_id']
-    
-    # Check if we're doing a "buy now" checkout
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # ✅ Fetch saved addresses
+    cursor.execute("SELECT * FROM user_addresses WHERE user_id = %s", (user_id,))
+    addresses = cursor.fetchall()
+
+    # ✅ Check if "buy now"
     buy_now_product = session.pop('buy_now_product', None)
-    
+
     if buy_now_product:
         cart_items = [buy_now_product]
         total_price = buy_now_product['price']
     else:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
         cursor.execute("""
             SELECT ci.*, COALESCE(i.stock_quantity, 0) as stock_quantity
             FROM cart_items ci
@@ -3645,17 +4188,78 @@ def checkout():
             WHERE ci.user_id = %s
         """, (user_id,))
         cart_items = cursor.fetchall()
-        conn.close()
-        
         total_price = sum(item['price'] * item['quantity'] for item in cart_items)
 
-    # Stock check
+    conn.close()
+
+    # ✅ Stock check
     out_of_stock = [item for item in cart_items if item['quantity'] > item.get('stock_quantity', 1)]
     if out_of_stock:
         flash("Some items in your cart are out of stock", "danger")
         return redirect(url_for('cart'))
 
     if request.method == 'POST':
+        address_id = request.form.get('address_id')
+
+        # ✅ Case 1: Saved Address
+        if address_id:
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM user_addresses WHERE id=%s AND user_id=%s", (address_id, user_id))
+            selected_address = cursor.fetchone()
+            cursor.close()
+            conn.close()
+
+            if not selected_address:
+                flash("Invalid address selected!", "danger")
+                return redirect(url_for('checkout'))
+
+            shipping_info = {
+                'full_name': selected_address['name'],
+                'address': f"{selected_address['address_line1']} {selected_address['address_line2']}",
+                'city': selected_address['city'],
+                'state': selected_address['state'],
+                'pincode': selected_address['pincode'],
+                'phone': selected_address['mobile']
+            }
+
+        # ✅ Case 2: New Address
+        else:
+            shipping_info = {
+                'full_name': request.form['full_name'],
+                'address': request.form['shipping_address'],
+                'city': request.form['city'],
+                'state': request.form['state'],
+                'pincode': request.form['pincode'],
+                'phone': request.form['phone']
+            }
+
+            # Save new address (optional: set default)
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            is_default = 1 if request.form.get('is_default') else 0
+            if is_default:
+                cursor.execute("UPDATE user_addresses SET is_default=0 WHERE user_id=%s", (user_id,))
+            cursor.execute("""
+                INSERT INTO user_addresses (user_id, name, mobile, address_line1, address_line2, city, state, pincode, country, is_default)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                user_id,
+                shipping_info['full_name'],
+                shipping_info['phone'],
+                request.form['shipping_address'],  # address_line1
+                "",  # address_line2 (you can split if needed)
+                shipping_info['city'],
+                shipping_info['state'],
+                shipping_info['pincode'],
+                "India",
+                is_default
+            ))
+            conn.commit()
+            cursor.close()
+            conn.close()
+
+        # ✅ Create Razorpay Order
         order_data = {
             "amount": int(total_price * 100),
             "currency": "INR",
@@ -3665,37 +4269,33 @@ def checkout():
                 "items": json.dumps([{"id": item['id'], "quantity": item['quantity']} for item in cart_items])
             }
         }
-        
+
         try:
             razorpay_order = razorpay_client.order.create(data=order_data)
             session['checkout_info'] = {
-                'shipping_info': {
-                    'full_name': request.form['full_name'],
-                    'address': request.form['shipping_address'],
-                    'city': request.form['city'],
-                    'state': request.form['state'],
-                    'pincode': request.form['pincode'],
-                    'phone': request.form['phone']
-                },
+                'shipping_info': shipping_info,
                 'razorpay_order_id': razorpay_order['id'],
                 'total_amount': total_price,
                 'cart_items': [{'id': item['id'], 'quantity': item['quantity']} for item in cart_items],
                 'is_buy_now': bool(buy_now_product)
             }
-            
-            return render_template("checkout.html", 
-                                 razorpay_order_id=razorpay_order['id'],
-                                 total_amount=total_price,
-                                 razorpay_key="your_razorpay_key_here",
-                                 cart_items=cart_items)
-            
+
+            return render_template("checkout.html",
+                                   razorpay_order_id=razorpay_order['id'],
+                                   total_amount=total_price,
+                                   razorpay_key="your_razorpay_key_here",
+                                   cart_items=cart_items,
+                                   addresses=addresses)
         except Exception as e:
             flash(f"Error creating payment order: {str(e)}", "danger")
             return redirect(url_for('cart'))
 
-    return render_template("checkout.html", 
-                         cart_items=cart_items,
-                         total_price=total_price)
+    # ✅ GET
+    return render_template("checkout.html",
+                           cart_items=cart_items,
+                           total_price=total_price,
+                           addresses=addresses)
+
 
     
     
@@ -4316,6 +4916,10 @@ def send_payment_received_notification(order_id):
 def inject_navbar():
     return {'navbar_links':get_navbar_links()}
 
+@app.context_processor
+def inject_cart_length():
+    """Make cart_length available in all templates (like base.html)."""
+    return dict(cart_length=get_cart_length())
 
 
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seller Login</title>
+    <title>Verify Seller Reset OTP</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
@@ -35,11 +35,6 @@
             margin-bottom: 30px;
         }
 
-        .input-group {
-            position: relative;
-            margin-bottom: 10px;
-        }
-
         input {
             width: 100%;
             padding: 12px;
@@ -47,6 +42,12 @@
             border-radius: 4px;
             box-sizing: border-box;
             font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 10px;
         }
 
         .password-toggle {
@@ -77,95 +78,74 @@
             margin-bottom: 10px;
             display: inline-block;
         }
+        
         .flash-message {
-        padding: 10px;
-        margin-bottom: 10px;
-        border-radius: 4px;
-        font-size: 14px;
-        text-align: left;
-    }
-    .flash-success {
-        background-color: #d4edda;
-        color: #155724;
-    }
-    .flash-danger {
-        background-color: #f8d7da;
-        color: #721c24;
-    }
-    .flash-warning {
-        background-color: #fff3cd;
-        color: #856404;
-    }
-    .flash-info {
-        background-color: #cce5ff;
-        color: #004085;
-    }
-
-        .footer {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            text-align: left;
+        }
+        
+        .flash-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .flash-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .back-to-login {
             margin-top: 20px;
             font-size: 14px;
             color: #666;
         }
-
-        .footer a {
+        
+        .back-to-login a {
             color: #000;
             text-decoration: none;
             font-weight: bold;
-        }
-        .forgot-password {
-            text-align: right;
-            margin-top: 10px;
-            font-size: 14px;
-        }
-        
-        .forgot-password a {
-            color: #666;
-            text-decoration: none;
-        }
-        
-        .forgot-password a:hover {
-            text-decoration: underline;
         }
     </style>
 </head>
 <body>
     <div class="form-container">
         <a href="/"><img src="{{ url_for('static', filename='images/logo5.png') }}" class="header-image" alt="Company Logo"></a>
-        <h2>Seller Login</h2>
-        <p>Enter your email and password</p>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="flash-message flash-{{ category }}">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+        <h2>Verify OTP</h2>
+        <p>Enter the OTP sent to your email and your new password</p>
         
-        <form method="POST" action="{{ url_for('seller_login') }}">
-           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-            <input type="email" name="email" placeholder="Email" required>
-
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form method="POST" action="{{ url_for('seller_verify_reset_otp') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="text" name="otp" placeholder="Enter OTP" required>
+            
             <div class="input-group">
-                <input type="password" name="password" id="seller_password" placeholder="Password" required>
-                <i class="fas fa-eye password-toggle" id="toggleSellerPassword"></i>
+                <input type="password" name="new_password" id="new_password" placeholder="New Password" required>
+                <i class="fas fa-eye password-toggle" id="togglePassword"></i>
             </div>
-
-            <button type="submit">Continue</button>
-            <div class="forgot-password">
-                <a href="{{ url_for('seller_forgot_password') }}">Forgot Password?</a>
-            </div>
+            
+            <button type="submit">Reset Password</button>
         </form>
-        <div class="footer">
-            Don't have an account? <a href="{{ url_for('seller_register') }}">Register here</a>
+        
+        <div class="back-to-login">
+            <a href="{{ url_for('seller_login') }}">Back to Login</a>
         </div>
     </div>
 
     <script>
-        const toggle = document.getElementById("toggleSellerPassword");
-        const passwordField = document.getElementById("seller_password");
+        const toggle = document.getElementById("togglePassword");
+        const passwordField = document.getElementById("new_password");
 
         toggle.addEventListener('click', function () {
             const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';

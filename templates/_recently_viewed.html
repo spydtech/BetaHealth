@@ -1,0 +1,40 @@
+{% if recently_viewed %}
+<div class="mt-5">
+    <h3 class="mb-3">Recently Viewed</h3>
+    <div class="position-relative">
+        <button class="scroll-btn left-btn btn btn-light shadow" onclick="scrollRecentlyViewed(-1)">
+            &#8249;
+        </button>
+
+        <div id="recentlyViewedContainer" class="recently-viewed-container d-flex overflow-auto pb-2">
+            {% for product in recently_viewed %}
+            <div class="card me-3 flex-shrink-0" style="width: 180px;">
+                <a href="{{ url_for('product', product_id=product.id) }}">
+                    <img src="{{ url_for('static', filename='images/' + product.image) }}"
+                         class="card-img-top p-2" alt="{{ product.title }}"
+                         style="height: 150px; object-fit: contain;">
+                </a>
+                <div class="card-body text-center p-2">
+    <h6 class="card-title text-truncate" title="{{ product.title }}">{{ product.title }}</h6>
+    <p class="text-success fw-bold mb-1">₹{{ "%.2f"|format(product.price) }}</p>
+
+    {% if product.in_stock %}
+        <span class="badge bg-success mb-2">In Stock</span>
+    {% else %}
+        <span class="badge bg-danger mb-2">Out of Stock</span>
+    {% endif %}
+
+    <a href="{{ url_for('product', product_id=product.id) }}" 
+       class="btn btn-sm btn-outline-primary">View</a>
+</div>
+
+            </div>
+            {% endfor %}
+        </div>
+
+        <button class="scroll-btn right-btn btn btn-light shadow" onclick="scrollRecentlyViewed(1)">
+            &#8250;
+        </button>
+    </div>
+</div>
+{% endif %}

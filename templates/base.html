@@ -843,12 +843,21 @@
     </div>
   {% endif %}
        
-        <a href="/cart" class="nav-link">
+        <!-- <a href="/cart" class="nav-link">
     <i class="fas fa-shopping-cart"></i>
     <span class="badge bg-secondary" id="cart-count">
         {{ cart_length if cart_length is not none else 0 }}
     </span>
+</a> -->
+<a href="{{ url_for('cart') }}" class="nav-link position-relative">
+    <i class="fas fa-shopping-cart"></i>
+    {% if cart_length > 0 %}
+    <span class="badge bg-danger position-absolute top-0 start-100 translate-middle">
+        {{ cart_length }}
+    </span>
+    {% endif %}
 </a>
+
     </div>
   </div>
 
@@ -894,6 +903,8 @@
             <li><a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a></li>
         {% elif session.get('user_role') == 'seller' %}
             <li><a href="{{ url_for('seller_dashboard') }}">Seller Dashboard</a></li>
+        {% elif session.get('user_role') == 'customer' %}
+        <li><a href="{{ url_for('profile') }}">Profile</a></li>
         {% endif %}
         <li><a href="{{ url_for('logout') }}">Logout</a></li>
     {% else %}

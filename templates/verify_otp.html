@@ -29,6 +29,15 @@
        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <h2>Verify Registration OTP</h2>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message flash-{{ category }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
         <input type="text" name="otp" placeholder="Enter OTP" required>
         <button type="submit">Verify</button>
     </form>
