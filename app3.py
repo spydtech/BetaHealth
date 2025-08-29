@@ -35,11 +35,21 @@ csrf = CSRFProtect(app)
 
 
 
-UPLOAD_FOLDER = 'static/images'
+UPLOAD_FOLDER = '/BetaHealth/static/images'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return "No file part", 400
+    file = request.files['file']
+    if file.filename == '':
+        return "No selected file", 400
+    save_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    file.save(save_path)   # ✅ File goes into /BetaHealth/static/images
+    return f"File uploaded to {save_path}", 200
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
