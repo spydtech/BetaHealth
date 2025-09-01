@@ -33,11 +33,33 @@ mail = Mail(app)
 app.secret_key = 'your_secret_key_here'
 csrf = CSRFProtect(app)
 
-
-
-UPLOAD_FOLDER = '/var/www/btahealth-upload-images'
+UPLOAD_FOLDER = 'static/images'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Permanent upload folder on VPS
+# UPLOAD_FOLDER = '/var/www/btahealth-upload-images'
+# ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+# app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# # Ensure static/images points to permanent upload folder
+# STATIC_IMAGE_PATH = os.path.join(app.root_path, 'static/images')
+
+# try:
+#     if not os.path.islink(STATIC_IMAGE_PATH):
+#         # Backup existing images folder if it exists
+#         if os.path.exists(STATIC_IMAGE_PATH):
+#             backup_path = STATIC_IMAGE_PATH + "_backup"
+#             if not os.path.exists(backup_path):
+#                 os.rename(STATIC_IMAGE_PATH, backup_path)
+#         # Create symlink
+#         os.symlink(UPLOAD_FOLDER, STATIC_IMAGE_PATH)
+#         print(f"✅ Symlink created: {STATIC_IMAGE_PATH} -> {UPLOAD_FOLDER}")
+#     else:
+#         print(f"✅ Symlink already exists: {STATIC_IMAGE_PATH} -> {os.readlink(STATIC_IMAGE_PATH)}")
+# except Exception as e:
+#     print(f"❌ Error creating symlink for static/images: {e}")
+
 
 
 def allowed_file(filename):
