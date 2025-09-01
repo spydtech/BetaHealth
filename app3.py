@@ -35,7 +35,7 @@ csrf = CSRFProtect(app)
 
 
 
-UPLOAD_FOLDER = 'static/images'
+UPLOAD_FOLDER = '/var/www/btahealth-upload-images'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
