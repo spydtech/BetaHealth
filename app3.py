@@ -33,7 +33,7 @@ mail = Mail(app)
 app.secret_key = 'your_secret_key_here'
 csrf = CSRFProtect(app)
 
-UPLOAD_FOLDER = 'static/images'
+UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
