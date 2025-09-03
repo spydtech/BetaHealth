@@ -18,6 +18,11 @@
             height: 100%;
             overflow-x: auto;
         }
+        .modal-body img {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+}
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -794,7 +799,7 @@
                                         {% for product in products %}
                                         {% set stock_qty = product.get('stock_quantity', 0) %}
                                         <tr class="{% if stock_qty == 0 %}table-danger{% elif stock_qty < 5 %}table-warning{% endif %}">
-                                            <td>
+                                            <!-- <td>
                                                 {% if product.image %}
                                                     <img src="{{ url_for('static', filename='images/' ~ product.image) }}" width="50" height="50" class="img-thumbnail">
                                                 {% endif %}
@@ -804,7 +809,64 @@
                                                 {% if not product.image and not product.image2 %}
                                                     <span class="text-muted">No image</span>
                                                 {% endif %}
-                                                </td>
+                                                </td> -->
+                                                <td>
+  {% if product.image %}
+    <img src="{{ url_for('static', filename='images/' ~ product.image) }}"
+         class="img-thumbnail"
+         width="60"
+         height="60"
+         style="cursor:pointer"
+         data-bs-toggle="modal"
+         data-bs-target="#imageModal{{ product.id }}">
+  {% endif %}
+
+  {% if product.image2 %}
+    <img src="{{ url_for('static', filename='images/' ~ product.image2) }}"
+         class="img-thumbnail ms-1"
+         width="60"
+         height="60"
+         style="cursor:pointer"
+         data-bs-toggle="modal"
+         data-bs-target="#imageModal{{ product.id }}">
+  {% endif %}
+</td>
+<!-- Image Preview Modal -->
+<div class="modal fade" id="imageModal{{ product.id }}" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content bg-dark">
+      <div class="modal-body p-0">
+        <div id="carousel{{ product.id }}" class="carousel slide" data-bs-ride="carousel">
+          <div class="carousel-inner text-center">
+            <div class="carousel-item active">
+              <img src="{{ url_for('static', filename='images/' ~ product.image) }}"
+                   class="img-fluid" alt="{{ product.title }}">
+            </div>
+            {% if product.image2 %}
+            <div class="carousel-item">
+              <img src="{{ url_for('static', filename='images/' ~ product.image2) }}"
+                   class="img-fluid" alt="{{ product.title }} - 2">
+            </div>
+            {% endif %}
+          </div>
+
+          {% if product.image2 %}
+          <button class="carousel-control-prev" type="button" data-bs-target="#carousel{{ product.id }}" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+          </button>
+          <button class="carousel-control-next" type="button" data-bs-target="#carousel{{ product.id }}" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      <div class="modal-footer bg-dark border-0">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
                                             <td>{{ product.title }}</td>
                                             <td>{{ product.category }}</td>
@@ -839,7 +901,9 @@
                                                     {{ product.rejection_reason if product.status=='rejected' else '-' }}
                                                 </td>
                                             <td>
+                                                {% if product.status == 'approved' %}
                                                 <a href="{{ url_for('edit_product', product_id=product.id) }}" class="btn btn-sm btn-primary">Edit</a>
+                                                {% endif %}
                                                 <form method="POST" action="{{ url_for('delete_product', product_id=product.id) }}" class="d-inline">
                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
  
