@@ -482,7 +482,19 @@ def update_db_schema():
                 ALTER TABLE products
                 ADD COLUMN discounted_price DECIMAL(10, 2) GENERATED ALWAYS AS (price * (1 - discount/100)) STORED
             """)
-            
+        # Check if 'image2' column exists
+        cursor.execute("""
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'products'
+            AND COLUMN_NAME = 'image2'
+        """)
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("ALTER TABLE products ADD COLUMN image2 VARCHAR(255) NULL AFTER image")
+         
+        
+        
+          
         cursor.execute("""
             SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
             WHERE TABLE_SCHEMA = DATABASE() 
@@ -3626,6 +3638,7 @@ def send_seller_approval_email(seller_email, approved=True, reason=None):
 
 # Call this in approve_seller() and reject_seller() routes
 
+
 @app.route('/seller/add_product', methods=['POST'])
 @role_required('seller')
 def add_product():
@@ -3640,14 +3653,21 @@ def add_product():
         compare_price = float(request.form['compare_price']) if request.form.get('compare_price') else None
         stock_quantity = int(request.form['stock_quantity'])
 
-        # Handle file upload
-        file = request.files['image']
-        if not (file and allowed_file(file.filename)):
-            flash('Invalid image file', 'danger')
+        # Handle file upload (image1 - required)
+        file1 = request.files['image']
+        if not (file1 and allowed_file(file1.filename)):
+            flash('Invalid primary image file', 'danger')
             return redirect(url_for('seller_dashboard'))
 
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        filename1 = secure_filename(file1.filename)
+        file1.save(os.path.join(app.config['UPLOAD_FOLDER'], filename1))
+
+        # Handle optional second image
+        file2 = request.files.get('image2')
+        filename2 = None
+        if file2 and allowed_file(file2.filename):
+            filename2 = secure_filename(file2.filename)
+            file2.save(os.path.join(app.config['UPLOAD_FOLDER'], filename2))
 
         # Product ID generation
         category = request.form['category']
@@ -3678,13 +3698,13 @@ def add_product():
                 VALUES (%s, 'pending')
             """, (product_id,))
 
-            # Insert into products (now with details and ingredients)
+            # Insert into products (added image2 column)
             cursor.execute("""
                 INSERT INTO products (
                     id, seller_id, title, price, discount, compare_price,
-                    image, description, tags, benefits,
+                    image, image2, description, tags, benefits,
                     category, sub_category, details, ingredients, status
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending')
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending')
             """, (
                 product_id,
                 seller_id,
@@ -3692,7 +3712,8 @@ def add_product():
                 price,
                 discount,
                 compare_price,
-                filename,
+                filename1,
+                filename2,
                 request.form['description'],
                 request.form.get('tags', ''),
                 request.form.get('benefits', ''),
@@ -3996,8 +4017,8 @@ def edit_product(product_id):
         if not product:
             flash("Product not found or unauthorized.", "danger")
             return redirect(url_for('seller_dashboard'))
-        
-
+        if 'image2' not in product:
+            product['image2'] = None
         if request.method == 'POST':
             # Read form values
             title = request.form['title']
@@ -4023,7 +4044,7 @@ def edit_product(product_id):
             if stock_quantity > 10000:
                 raise ValueError("Stock quantity too high.")
 
-            # Handle image upload
+            # Handle image1 upload
             image = product.get('image')
             if 'image' in request.files:
                 file = request.files['image']
@@ -4031,6 +4052,15 @@ def edit_product(product_id):
                     filename = secure_filename(file.filename)
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                     image = filename
+
+            # Handle image2 upload
+            image2 = product.get('image2')
+            if 'image2' in request.files:
+                file2 = request.files['image2']
+                if file2 and allowed_file(file2.filename):
+                    filename2 = secure_filename(file2.filename)
+                    file2.save(os.path.join(app.config['UPLOAD_FOLDER'], filename2))
+                    image2 = filename2
 
             # Regenerate product_id if needed
             base_name = sub_category if sub_category else category
@@ -4059,6 +4089,7 @@ def edit_product(product_id):
                     compare_price = %s,
                     discount = %s,
                     image = %s,
+                    image2 = %s,
                     tags = %s,
                     description = %s,
                     benefits = %s,
@@ -4068,7 +4099,8 @@ def edit_product(product_id):
                     ingredients = %s
                 WHERE id = %s AND seller_id = %s
             """, (
-                title, price, compare_price, discount, image,
+                title, price, compare_price, discount,
+                image, image2,
                 ','.join(tags), description, ','.join(benefits),
                 category, sub_category, details, ingredients,
                 new_product_id, seller_id
@@ -4109,12 +4141,16 @@ def edit_product(product_id):
         product['tags'] = product['tags'].split(',') if product.get('tags') else []
         product['benefits'] = product['benefits'].split(',') if product.get('benefits') else []
 
-        cursor.execute("SELECT name,LOWER(REPLACE(REPLACE(REPLACE(name, ' ', '-'), '&', 'and'), '.', '')) as slug FROM product_categories WHERE is_active = TRUE and parent_id IS NULL")
+        cursor.execute("""
+            SELECT name,
+                   LOWER(REPLACE(REPLACE(REPLACE(name, ' ', '-'), '&', 'and'), '.', '')) as slug
+            FROM product_categories
+            WHERE is_active = TRUE and parent_id IS NULL
+        """)
         categories = cursor.fetchall()
-        category_map=build_category_map()
+        category_map = build_category_map()
         
-
-        return render_template('edit_product.html', product=product, categories=categories,category_map=category_map)
+        return render_template('edit_product.html', product=product, categories=categories, category_map=category_map)
 
     except Exception as e:
         app.logger.error(f"Error loading product for editing: {e}", exc_info=True)

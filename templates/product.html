@@ -13,9 +13,96 @@
     </nav>
 
     <div class="row">
-        <div class="col-md-6 product-image-section text-center">
-            <img src="{{ url_for('static', filename='images/' + product.image) }}" class="img-fluid main-product-image" alt="{{ product.title }}">
+        <div class="col-md-6 product-image-section">
+  <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+    <div id="productCarousel{{ product.id }}" class="carousel slide" data-bs-ride="carousel">
+      <div class="carousel-inner bg-white">
+        <!-- First Image -->
+        <div class="carousel-item active">
+          <img src="{{ url_for('static', filename='images/' ~ product.image) }}"
+               class="d-block w-100 img-fluid main-img"
+               alt="{{ product.title }}"
+               data-bs-toggle="modal"
+               data-bs-target="#lightboxModal{{ product.id }}">
         </div>
+
+        <!-- Second Image -->
+        {% if product.image2 %}
+        <div class="carousel-item">
+          <img src="{{ url_for('static', filename='images/' ~ product.image2) }}"
+               class="d-block w-100 img-fluid main-img"
+               alt="{{ product.title }} - 2"
+               data-bs-toggle="modal"
+               data-bs-target="#lightboxModal{{ product.id }}">
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Controls -->
+      {% if product.image2 %}
+      <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel{{ product.id }}" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon bg-dark rounded-circle p-2 shadow"></span>
+      </button>
+      <button class="carousel-control-next" type="button" data-bs-target="#productCarousel{{ product.id }}" data-bs-slide="next">
+        <span class="carousel-control-next-icon bg-dark rounded-circle p-2 shadow"></span>
+      </button>
+      {% endif %}
+    </div>
+
+    <!-- Thumbnails -->
+    <div class="d-flex justify-content-center gap-3 p-3 bg-light border-top">
+      <img src="{{ url_for('static', filename='images/' ~ product.image) }}"
+           width="70" class="img-thumbnail border-2 thumb active-thumb"
+           data-bs-target="#productCarousel{{ product.id }}" data-bs-slide-to="0"
+           style="cursor:pointer;">
+      {% if product.image2 %}
+      <img src="{{ url_for('static', filename='images/' ~ product.image2) }}"
+           width="70" class="img-thumbnail border-2 thumb"
+           data-bs-target="#productCarousel{{ product.id }}" data-bs-slide-to="1"
+           style="cursor:pointer;">
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox Modal -->
+<div class="modal fade" id="lightboxModal{{ product.id }}" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content bg-dark">
+      <div class="modal-body p-0">
+        <div id="lightboxCarousel{{ product.id }}" class="carousel slide" data-bs-ride="carousel">
+          <div class="carousel-inner text-center">
+            <div class="carousel-item active">
+              <img src="{{ url_for('static', filename='images/' ~ product.image) }}" alt="{{ product.title }}">
+            </div>
+            {% if product.image2 %}
+            <div class="carousel-item">
+              <img src="{{ url_for('static', filename='images/' ~ product.image2) }}" alt="{{ product.title }} - 2">
+            </div>
+            {% endif %}
+          </div>
+          {% if product.image2 %}
+          <button class="carousel-control-prev" type="button" data-bs-target="#lightboxCarousel{{ product.id }}" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+          </button>
+          <button class="carousel-control-next" type="button" data-bs-target="#lightboxCarousel{{ product.id }}" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      <div class="modal-footer bg-dark border-0">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
         <div class="col-md-6 product-info-section">
             <div class="d-flex align-items-center justify-content-between">
                 <h1 class="product-page-title mb-0">{{ product.title }}</h1>
@@ -323,6 +410,27 @@
     .btn {
         width: 100%;
     } 
+    .thumb {
+    opacity: 0.7;
+    transition: all 0.3s ease-in-out;
+    border-radius: 0.5rem;
+  }
+  .thumb:hover {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  .active-thumb {
+    border: 2px solid #0d6efd !important; /* Bootstrap primary color */
+    opacity: 1;
+  }
+  .modal-body img {
+  max-width: 100%;
+  max-height: 80vh;  /* fit screen height */
+  object-fit: contain;
+  margin: 0 auto;
+  display: block;
+}
+
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -349,6 +457,18 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .catch(err => console.error("Wishlist toggle failed", err));
     });
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const carousel = document.querySelector("#productCarousel{{ product.id }}");
+  if (carousel) {
+    carousel.addEventListener("slid.bs.carousel", function (event) {
+      let thumbs = carousel.closest(".card").querySelectorAll(".thumb");
+      thumbs.forEach(t => t.classList.remove("active-thumb"));
+      thumbs[event.to].classList.add("active-thumb");
+    });
+  }
 });
 </script>
 

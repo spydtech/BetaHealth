@@ -230,13 +230,27 @@
 
                         <!-- Image -->
                         <div class="mb-3">
-                            <label class="form-label">Product Image</label>
+                            <label class="form-label">Primary Image</label>
                             <input type="file" class="form-control" name="image" accept="image/*">
                             <small class="text-muted">Allowed formats: JPG, PNG, GIF</small>
                             {% if product.image %}
-                                <img src="{{ url_for('static', filename='images/' ~ product.image) }}" alt="Product Image" width="100" class="mt-2">
+                                <img src="{{ url_for('static', filename='images/' ~ product.image) }}"
+                                    alt="Primary Image"
+                                    width="100" class="mt-2">
                             {% endif %}
                         </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Secondary Image</label>
+                            <input type="file" class="form-control" name="image2" accept="image/*">
+                            <small class="text-muted">Optional. This will show as the second image in the carousel.</small>
+                            {% if product.image2 %}
+                                <img src="{{ url_for('static', filename='images/' ~ product.image2) }}"
+                                    alt="Secondary Image"
+                                    width="100" class="mt-2">
+                            {% endif %}
+                        </div>
+
 
                         <!-- Description -->
                         <div class="mb-3">

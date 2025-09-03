@@ -724,11 +724,18 @@
                                                 </select>
                                             </div>
 
-                                                <div class="mb-3">
-                                                    <label class="form-label">Product Image*</label>
-                                                    <input type="file" class="form-control" name="image" accept="image/*" required>
-                                                    <small class="text-muted">Allowed formats: JPG, PNG, GIF</small>
-                                                </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Primary Image*</label>
+                                                <input type="file" class="form-control" name="image" accept="image/*" required>
+                                                <small class="text-muted">Allowed formats: JPG, PNG, GIF</small>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label">Secondary Image</label>
+                                                <input type="file" class="form-control" name="image2" accept="image/*">
+                                                <small class="text-muted">Optional. This will appear as the second image in the product carousel.</small>
+                                            </div>
+
                                             </div>
                                         </div>
                                         
@@ -789,11 +796,16 @@
                                         <tr class="{% if stock_qty == 0 %}table-danger{% elif stock_qty < 5 %}table-warning{% endif %}">
                                             <td>
                                                 {% if product.image %}
-                                                <img src="{{ url_for('static', filename='images/' + product.image) }}" width="50" height="50" class="img-thumbnail">
-                                                {% else %}
-                                                <span class="text-muted">No image</span>
+                                                    <img src="{{ url_for('static', filename='images/' ~ product.image) }}" width="50" height="50" class="img-thumbnail">
                                                 {% endif %}
-                                            </td>
+                                                {% if product.image2 %}
+                                                    <img src="{{ url_for('static', filename='images/' ~ product.image2) }}" width="50" height="50" class="img-thumbnail ms-1">
+                                                {% endif %}
+                                                {% if not product.image and not product.image2 %}
+                                                    <span class="text-muted">No image</span>
+                                                {% endif %}
+                                                </td>
+
                                             <td>{{ product.title }}</td>
                                             <td>{{ product.category }}</td>
                                             <td>{{ product.sub_category or '—' }}</td>
