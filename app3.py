@@ -9,7 +9,7 @@ from functools import wraps
 import re # Import re for slugify
 import os # Import os for file path manipulation
 from werkzeug.utils import secure_filename
-
+from datetime import datetime, timedelta
 import razorpay
 from flask_mail import Message
 import string
@@ -1083,27 +1083,81 @@ def home():
             seen_titles.add(product_item['title'])
 
     # Get newest approved products
-    newest_products = sorted(
-        [p for p in all_products_data if p.get('status') == 'approved'],
-        key=lambda x: x.get('created_at', ''), 
-        reverse=True
-    )[:8]
+    all_newest_products = sorted(
+    [p for p in all_products_data if p.get('status') == 'approved'],
+    key=lambda x: x.get('created_at', ''), 
+    reverse=True
+)
+
+    newest_products = all_newest_products[:8]  # Only first 8 for display
+
 
     # Get best selling products (sorted by sold_quantity)
-    best_sellers = sorted(
-        [p for p in all_products_data if p.get('sold_quantity', 0) > 0],
-        key=lambda x: x.get('sold_quantity', 0),
-        reverse=True
-    )[:8]  # Limit to 8 best sellers
+    all_best_sellers = sorted(
+    [p for p in all_products_data if p.get('sold_quantity', 0) > 0],
+    key=lambda x: x.get('sold_quantity', 0),
+    reverse=True
+)
+
+    best_sellers = all_best_sellers[:8]  # For homepage display
+
 
     return render_template("base.html", 
                          carousel_slides=carousel_slides,
                          category_links=category_links,
                          collection={'products': unique_products},
                          newest_products=newest_products,
+                         all_newest_products=all_newest_products,
                          best_sellers=best_sellers,
+                         all_best_sellers=all_best_sellers,
                          current_collection='all-products',
                          cart_length=cart_length)
+
+@app.route('/recently-added')
+def recently_added():
+    all_products_data = get_all_products_from_db()
+
+    thirty_days_ago = datetime.now() - timedelta(days=45)
+
+    # Filter approved products added within last 30 days
+    newest_products = [
+        p for p in all_products_data
+        if p.get('status') == 'approved' and
+           isinstance(p.get('created_at'), datetime) and
+           p['created_at'] >= thirty_days_ago
+    ]
+
+    # Sort newest first
+    newest_products = sorted(newest_products, key=lambda x: x['created_at'], reverse=True)
+
+    cart_length = get_cart_length()
+
+    return render_template(
+        "recently_added.html",
+        newest_products=newest_products,
+        cart_length=cart_length,
+        current_collection="recently-added"
+    )
+    
+@app.route('/most-sold')
+def most_sold():
+    all_products_data = get_all_products_from_db()
+
+    # Get all approved products with sold_quantity > 0
+    best_sellers = sorted(
+        [p for p in all_products_data if p.get('sold_quantity', 0) > 0],
+        key=lambda x: x['sold_quantity'],
+        reverse=True
+    )
+
+    cart_length = get_cart_length()
+
+    return render_template(
+        "most_sold.html",
+        best_sellers=best_sellers,
+        cart_length=cart_length,
+        current_collection="most-sold"
+    )
 
 
 @app.route('/collections/<collection_id>')

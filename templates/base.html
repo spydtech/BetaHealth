@@ -1082,6 +1082,18 @@
                         </div>
                     </div>
                 {% endfor %}
+                {% if all_best_sellers|length > 8 %}
+    <!-- View All card -->
+    <div class="col">
+        <div class="card h-100 product-card shadow-sm">
+            <a href="{{ url_for('most_sold') }}" 
+               class="product-image-link d-flex justify-content-center align-items-center"
+               style="height: 200px; background-color: #f8f9fa;">
+                <h5 class="m-0 text-primary fw-semibold text-center">View All</h5>
+            </a>
+        </div>
+    </div>
+    {% endif %}
             </div>
         {% else %}
             <div class="text-center py-5">
@@ -1092,50 +1104,75 @@
 </section>
 
 <section class="container" style="padding: 10px;background-color:white;">
-<div class="container mt-5">
-    <h1 class="collection-title text-left">Recently Added Items</h1>
-    
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
-        {% for product in newest_products %}
-            <div class="col">
-                <div class="card h-100 product-card shadow-sm">
-                    <a href="{{ url_for('product', product_id=product.id) }}" class="product-image-link">
-                        <img src="{{ url_for('static', filename='images/' + product.image) }}" class="card-img-top product-image" alt="{{ product.title }}">
-                    </a>
-                    <div class="card-body d-flex flex-column product-card-body">
-                        <h5 class="card-title product-title">
-                            <a href="{{ url_for('product', product_id=product.id) }}" class="text-decoration-none text-dark">
-                                {{ product.title }}
-                            </a>
-                        </h5>
-                        <div class="mt-auto product-pricing">
-                            <p class="card-text mb-0 current-price">
-                                <span class="price-symbol">₹</span>{{ "%.2f"|format(product.price) }}
-                                {% if product.compare_price and product.compare_price > product.price %}
-                                <small class="text-muted compare-price text-decoration-line-through ms-2">₹{{ "%.2f"|format(product.compare_price) }}</small>
-                                {% endif %}
-                            </p>
-                            <div class="stock-badge mb-2">
-                            {% if product.stock_quantity > 0 %}
-                                <span class="badge bg-success">In Stock ({{ product.stock_quantity }})</span>
-                            {% else %}
-                                <span class="badge bg-danger">Out of Stock</span>
-                            {% endif %}
-                            </div>
-                            <form method="POST" action="{{ url_for('add_to_cart') }}">
-                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="container mt-5">
+        <h1 class="collection-title text-left">Recently Added Items</h1>
 
-                                <input type="hidden" name="product_id" value="{{ product.id }}">
-                                <button type="submit" class="btn btn-primary btn-sm mt-2">Add to Cart</button>
-                            </form>
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
+            {% for product in newest_products %}
+                <div class="col">
+                    <div class="card h-100 product-card shadow-sm">
+                        <a href="{{ url_for('product', product_id=product.id) }}" class="product-image-link">
+                            <img src="{{ url_for('static', filename='images/' + product.image) }}"
+                                 class="card-img-top product-image"
+                                 alt="{{ product.title }}">
+                        </a>
+                        <div class="card-body d-flex flex-column product-card-body">
+                            <h5 class="card-title product-title">
+                                <a href="{{ url_for('product', product_id=product.id) }}"
+                                   class="text-decoration-none text-dark">
+                                    {{ product.title }}
+                                </a>
+                            </h5>
+                            <div class="mt-auto product-pricing">
+                                <p class="card-text mb-0 current-price">
+                                    <span class="price-symbol">₹</span>{{ "%.2f"|format(product.price) }}
+                                    {% if product.compare_price and product.compare_price > product.price %}
+                                        <small class="text-muted compare-price text-decoration-line-through ms-2">
+                                            ₹{{ "%.2f"|format(product.compare_price) }}
+                                        </small>
+                                    {% endif %}
+                                </p>
+                                <div class="stock-badge mb-2">
+                                    {% if product.stock_quantity > 0 %}
+                                        <span class="badge bg-success">In Stock ({{ product.stock_quantity }})</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Out of Stock</span>
+                                    {% endif %}
+                                </div>
+                                <form method="POST" action="{{ url_for('add_to_cart') }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                                    <button type="submit" class="btn btn-primary btn-sm mt-2">Add to Cart</button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        {% endfor %}
+            {% endfor %}
+
+           
+<!-- "View All" Card -->
+{% if all_newest_products|length > 8 %}
+<div class="col">
+    <div class="card h-100 product-card shadow-sm">
+        <a href="{{ url_for('recently_added') }}" class="product-image-link d-flex justify-content-center align-items-center"
+           style="height: 200px; background-color: #f8f9fa;">
+            <h5 class="m-0 text-primary fw-semibold text-center">View All</h5>
+        </a>
     </div>
 </div>
+{% endif %}
+
+
+
+
+
+
+
+        </div>
+    </div>
 </section>
+
 
 </div>
 
