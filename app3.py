@@ -15,6 +15,7 @@ from flask_mail import Message
 import string
 import time
 from flask_caching import Cache
+from math import ceil
 
 # Razorpay Client Initialization (replace with your real keys)
 razorpay_client = razorpay.Client(auth=("rzp_test_yourkey", "your_secret"))
@@ -1089,7 +1090,7 @@ def home():
     reverse=True
 )
 
-    newest_products = all_newest_products[:8]  # Only first 8 for display
+    newest_products = all_newest_products[:7]  # Only first 8 for display
 
 
     # Get best selling products (sorted by sold_quantity)
@@ -1099,7 +1100,7 @@ def home():
     reverse=True
 )
 
-    best_sellers = all_best_sellers[:8]  # For homepage display
+    best_sellers = all_best_sellers[:7]  # For homepage display
 
 
     return render_template("base.html", 
@@ -1113,51 +1114,66 @@ def home():
                          current_collection='all-products',
                          cart_length=cart_length)
 
+ITEMS_PER_PAGE = 12  # number of products per page
+
 @app.route('/recently-added')
 def recently_added():
     all_products_data = get_all_products_from_db()
-
     thirty_days_ago = datetime.now() - timedelta(days=45)
 
-    # Filter approved products added within last 30 days
     newest_products = [
         p for p in all_products_data
-        if p.get('status') == 'approved' and
-           isinstance(p.get('created_at'), datetime) and
-           p['created_at'] >= thirty_days_ago
+        if p.get('status') == 'approved'
+        and isinstance(p.get('created_at'), datetime)
+        and p['created_at'] >= thirty_days_ago
     ]
-
-    # Sort newest first
     newest_products = sorted(newest_products, key=lambda x: x['created_at'], reverse=True)
 
-    cart_length = get_cart_length()
+    # --- Pagination ---
+    page = request.args.get('page', 1, type=int)
+    total_pages = ceil(len(newest_products) / ITEMS_PER_PAGE)
+    start = (page - 1) * ITEMS_PER_PAGE
+    end = start + ITEMS_PER_PAGE
+    paginated_products = newest_products[start:end]
 
+    cart_length = get_cart_length()
     return render_template(
         "recently_added.html",
-        newest_products=newest_products,
+        newest_products=paginated_products,
         cart_length=cart_length,
-        current_collection="recently-added"
+        current_collection="recently-added",
+        page=page,
+        total_pages=total_pages
     )
-    
+
+
 @app.route('/most-sold')
 def most_sold():
     all_products_data = get_all_products_from_db()
-
-    # Get all approved products with sold_quantity > 0
     best_sellers = sorted(
         [p for p in all_products_data if p.get('sold_quantity', 0) > 0],
         key=lambda x: x['sold_quantity'],
         reverse=True
     )
 
-    cart_length = get_cart_length()
+    # --- Pagination ---
+    page = request.args.get('page', 1, type=int)
+    total_pages = ceil(len(best_sellers) / ITEMS_PER_PAGE)
+    start = (page - 1) * ITEMS_PER_PAGE
+    end = start + ITEMS_PER_PAGE
+    paginated_products = best_sellers[start:end]
 
+    cart_length = get_cart_length()
     return render_template(
         "most_sold.html",
-        best_sellers=best_sellers,
+        best_sellers=paginated_products,
         cart_length=cart_length,
-        current_collection="most-sold"
+        current_collection="most-sold",
+        page=page,
+        total_pages=total_pages
     )
+
+
 
 
 @app.route('/collections/<collection_id>')
@@ -3355,11 +3371,13 @@ def admin_dashboard():
 @app.route('/admin/products')
 @role_required('admin')
 def admin_products():
+    stock_filter = request.args.get('stock')   # in_stock, out_of_stock, low_stock
+    status_filter = request.args.get('status') # pending, rejected, approved, or None
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    
-    # Get products for approval
-    cursor.execute("""
+
+    query = """
         SELECT 
             p.*, 
             u.name as seller_name, 
@@ -3371,17 +3389,45 @@ def admin_products():
         LEFT JOIN users u ON p.seller_id = u.id
         LEFT JOIN product_approvals pa ON p.id = pa.product_id
         LEFT JOIN inventory inv ON p.id = inv.product_id
-        WHERE pa.status = 'pending' OR p.status = 'pending'
-        ORDER BY p.created_at DESC
-    """)
+        WHERE 1=1
+    """
+
+    # Stock filter
+    if stock_filter == "in_stock":
+        query += " AND COALESCE(inv.stock_quantity, 0) > 0"
+    elif stock_filter == "out_of_stock":
+        query += " AND COALESCE(inv.stock_quantity, 0) <= 0"
+    elif stock_filter == "low_stock":
+        query += " AND COALESCE(inv.stock_quantity, 0) > 0 AND COALESCE(inv.stock_quantity, 0) < 5"
+
+    # Status filter
+    if status_filter == "pending":
+        query += " AND (pa.status = 'pending' OR p.status = 'pending')"
+    elif status_filter == "rejected":
+        query += " AND (pa.status = 'rejected' OR p.status = 'rejected')"
+    elif status_filter == "approved":
+        query += " AND (pa.status = 'approved' OR p.status = 'approved')"
+
+    # Sort: pending → rejected → approved → newest first
+    query += """
+        ORDER BY 
+            CASE 
+                WHEN pa.status = 'pending' OR p.status = 'pending' THEN 1
+                WHEN pa.status = 'rejected' OR p.status = 'rejected' THEN 2
+                ELSE 3
+            END,
+            p.created_at DESC
+    """
+
+    cursor.execute(query)
     products = cursor.fetchall()
-    
     conn.close()
-    
+
     return render_template('admin_products.html',
-                         products=products,active_section='products'
-                        )
-    
+                           products=products,
+                           active_section='products',
+                           stock_filter=stock_filter,
+                           status_filter=status_filter)
     
 
 

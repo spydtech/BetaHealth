@@ -5,13 +5,301 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Orders</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-L.ttf') }}") format('truetype');
+    font-weight: 300;
+    font-style: normal;
+}
+
+/* Light Italic (300 italic) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-LI.ttf') }}") format('truetype');
+    font-weight: 300;
+    font-style: italic;
+}
+
+/* Regular (400) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-R.ttf') }}") format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+/* Regular Italic (400 italic) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-RI.ttf') }}") format('truetype');
+    font-weight: 400;
+    font-style: italic;
+}
+
+/* Medium (500) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-M.ttf') }}") format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+/* Medium Italic (500 italic) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-MI.ttf') }}") format('truetype');
+    font-weight: 500;
+    font-style: italic;
+}
+
+/* Bold (700) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-B.ttf') }}") format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+/* Bold Italic (700 italic) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-BI.ttf') }}") format('truetype');
+    font-weight: 700;
+    font-style: italic;
+}
+
+/* Ubuntu Mono (400) */
+@font-face {
+    font-family: 'Ubuntu Mono';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-Mono.ttf') }}") format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+/* Default body text */
+body, p, span, li {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 400; /* Regular */
+}
+
+/* Headings */
+h1, h2, h3 {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 700; /* Bold */
+}
+
+h4, h5, h6 {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 500; /* Medium */
+}
+
+/* Buttons, Navbar, Labels */
+button, .btn, .navbar a, label {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 500; /* Medium */
+}
+
+/* Small text, footer, muted */
+small, .text-muted, footer {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 300; /* Light */
+}
+
+/* Emphasis / Italics */
+em, i {
+    font-family: 'Ubuntu', sans-serif;
+    font-style: italic;
+    font-weight: 400; /* Regular Italic */
+}
+
+/* Strong emphasis */
+strong, b {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 700; /* Bold */
+}
+
+/* Code & technical */
+code, pre {
+    font-family: 'Ubuntu Mono', monospace;
+    font-weight: 400;
+}
+
+        /* Cart Navbar - matching seller dashboard style */
+        .cart-navbar {
+            background: #ffffff !important;
+            border-bottom: 1px solid #e0e0e0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 10px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .cart-navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+        }
+        
+        .cart-navbar-logo a {
+            display: flex;
+            align-items: center;
+        }
+        
+        .header-image {
+            width: 140px;
+            height: auto;
+            padding: 5px;
+        }
+        
+        .cart-navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .cart-navbar-actions span,
+        .cart-navbar-actions a {
+            color: #000000 !important;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 15px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .cart-navbar-actions a:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .role-badge {
+            background: linear-gradient(90deg, #28a745, #20c997);
+            color: #fff;
+            font-size: 0.7rem;
+            padding: 3px 10px;
+            border-radius: 15px;
+            margin-left: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .wishlist-btn {
+            position: relative;
+            color: white !important;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .wishlist-btn:hover {
+            background: linear-gradient(135deg, #c0392b, #e74c3c);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        /* Mobile-friendly orders table */
+        @media (max-width: 768px) {
+            .cart-navbar-content {
+                padding: 0 15px;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .cart-navbar-actions {
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+
+            .cart-navbar-actions span,
+            .cart-navbar-actions a {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            .role-badge {
+                font-size: 0.6rem;
+                padding: 2px 6px;
+            }
+
+            .header-image {
+                width: 100px;
+            }
+
+            table.table thead {
+                display: none; /* hide table headers */
+            }
+            table.table, 
+            table.table tbody, 
+            table.table tr, 
+            table.table td {
+                display: block;
+                width: 100%;
+            }
+            table.table tr {
+                margin-bottom: 1rem;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 10px;
+                background: #fff;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            }
+            table.table td {
+                text-align: left;
+                padding-left: 40%;
+                position: relative;
+                border: none;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 10px;
+                margin-bottom: 5px;
+            }
+            table.table td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 10px;
+                top: 5px;
+                font-weight: 600;
+                color: #444;
+                width: 35%;
+            }
+            table.table td:last-child {
+                border-bottom: none;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="container mt-5">
-    <h1 class="mb-4">My Orders</h1>
+    <!-- Orders Navbar -->
+    <nav class="navbar cart-navbar">
+        <div class="cart-navbar-content">
+            <div class="cart-navbar-logo">
+                <a href="/"><img src="{{ url_for('static', filename='images/logo5.png') }}" class="header-image" alt="Company Logo"></a>
+            </div>
+            
+            <div class="cart-navbar-actions">
+                
+                <a href="{{ url_for('cart') }}"><i class="fas fa-shopping-cart me-1"></i>Cart</a>
+                
+                <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-1"></i>Logout</a>
+            </div>
+        </div>
+    </nav>
+
+<div class="container mt-4">
+    <h1 class="mb-4"><i class="fas fa-shopping-bag me-2"></i>My Orders</h1>
     
     {% if not orders %}
-        <div class="alert alert-info">You haven't placed any orders yet.</div>
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>You haven't placed any orders yet.
+        </div>
     {% else %}
         <table class="table table-bordered">
             <thead>
@@ -29,11 +317,11 @@
             <tbody>
                 {% for order in orders %}
                 <tr>
-                    <td>#{{ order.id }}</td>
-                    <td>{{ order.order_date.strftime('%d %b %Y') }}</td>
-                    <td>{{ order.items }}</td>
-                    <td>₹{{ "%.2f"|format(order.total_amount) }}</td>
-                    <td>
+                    <td data-label="Order ID">#{{ order.id }}</td>
+                    <td data-label="Date">{{ order.order_date.strftime('%d %b %Y') }}</td>
+                    <td data-label="Items">{{ order.items }}</td>
+                    <td data-label="Total">₹{{ "%.2f"|format(order.total_amount) }}</td>
+                    <td data-label="Status">
                         <span class="badge 
                             {% if order.status == 'delivered' %}bg-success
                             {% elif order.status == 'shipped' %}bg-info
@@ -45,23 +333,24 @@
                             <div class="small text-muted">Shipped on {{ order.shipped_at.strftime('%d %b %Y') }}</div>
                         {% endif %}
                     </td>
-                    <td>
+                    <td data-label="Shipping Address">
                         {{ order.shipping_address }}<br>
                         {{ order.shipping_city }}, {{ order.shipping_state }} - {{ order.shipping_pincode }}
                     </td>
-                    <td>
+                    <td data-label="Tracking">
                         {% if order.tracking_number %}
                             {{ order.tracking_number }}
                         {% else %}
                             Not available
                         {% endif %}
                     </td>
-                    <td>
+                    <td data-label="Actions">
                         {% if order.status == 'shipped' %}
                         <form action="{{ url_for('mark_order_delivered', order_id=order.id) }}" method="POST">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                            <button type="submit" class="btn btn-sm btn-success">Mark as Delivered</button>
+                            <button type="submit" class="btn btn-sm btn-success">
+                                <i class="fas fa-check me-1"></i>Mark as Delivered
+                            </button>
                         </form>
                         {% endif %}
                     </td>
@@ -71,7 +360,16 @@
         </table>
     {% endif %}
     
-    <a href="{{ url_for('home') }}" class="btn btn-secondary">Back to Home</a>
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <a href="{{ url_for('home') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Home
+        </a>
+        <a href="{{ url_for('cart') }}" class="btn btn-primary">
+            <i class="fas fa-shopping-cart me-1"></i>Go to Cart
+        </a>
+    </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

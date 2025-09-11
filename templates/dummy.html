@@ -1,45 +1,266 @@
-<ul class="mobile-nav-list">
-      <li><a href="/">Home</a></li>
-      <li><a href="/">All Products</a></li>
-      <li class="has-dropdown">
-        <a href="#" class="dropdown-toggle">Food and Health</a>
-        <ul class="dropdown">
-          <li><a href="/collections/food-and-health">Milk Malts</a></li>
-          <li><a href="/collections/kids-special">Healthy Snacks</a></li>
-          <li><a href="/collections/food-and-health">Amla-Human Sanjeevani</a></li>
-          <li><a href="/collections/kids-special">Sprouted Flours</a></li>
-          <li><a href="/collections/food-and-health">Cooking Essentials</a></li>
-          <li><a href="/collections/kids-special">Kaaram Podi's</a></li>
-          <li><a href="/collections/food-and-health">Basic Health</a></li>
-          </ul>
-          <li><a href="/collections/skin-care">Kids Special</a></li>
-          <li class="has-dropdown">
-            <a href="#" class="dropdown-toggle">Shop by Concern</a>
-            <ul class="dropdown">
-              <li><a href="/collections/iron-deficiency">Iron Deficiency</a></li>
-              <li><a href="/collections/b-complex-deficiency">B‑Complex Deficiency</a></li>
-              <li><a href="/collections/irregular-periods">Irregular Periods</a></li>
-              <li><a href="/collections/constipation">Constipation</a></li>
-              <li><a href="/collections/bones-strength">Bones Strength</a></li>
-              <li><a href="/collections/immunity-booster">Immunity Booster</a></li>
-              <li><a href="/collections/cold-and-cough">Cold and Cough</a></li>
-            </ul>
-          </li>
-          <li class="has-dropdown">
-            <a href="#" class="dropdown-toggle">Shop by Care</a>
-            <ul class="dropdown">
-              <li><a href="/collections/pregnancy-care">Pregnancy Care</a></li>
-              <li><a href="/collections/diabetic-care">Diabetic Care</a></li>
-              <li><a href="/collections/baby-care">Baby Care</a></li>
-            </ul>
-          </li>
-          <li><a href="/collections/skin-care">Skin Care</a></li>
-          <li><a href="/collections/hair-care">Hair Care</a></li>
-          <li><a href="/collections/tea-blends">Tea Blends</a></li>
-          <li><a href="/collections/weight-management">Weight Management</a></li>
-        
-      </li>
-      <li><a href="{{url_for('contact')}}">About Us</a></li>
-      <li><a href="{{url_for('contact')}}">Contact Us</a></li>
-      <li><a href="/pages/blog">Blog</a></li>
-    </ul>
+{% extends "base.html" %}
+
+{% block title %}Cart{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .search-container {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+    .search-input {
+        flex: 1;
+        max-width: 500px;
+    }
+
+    /* Mobile-friendly cart */
+    @media (max-width: 768px) {
+        table.table thead {
+            display: none;
+        }
+        table.table,
+        table.table tbody,
+        table.table tr,
+        table.table td {
+            display: block;
+            width: 100%;
+        }
+        table.table tr {
+            margin-bottom: 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 10px;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+        table.table td {
+            text-align: left;
+            padding-left: 40%;
+            position: relative;
+            border: none;
+            border-bottom: 1px solid #eee;
+        }
+        table.table td::before {
+            content: attr(data-label);
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: 600;
+            color: #444;
+        }
+        table.table td:last-child {
+            border-bottom: none;
+        }
+        td img {
+            max-width: 100px;
+            height: auto;
+            margin-bottom: 10px;
+        }
+    }
+
+    /* Recently viewed scroll */
+    .recently-viewed-container {
+        scroll-behavior: smooth;
+        scrollbar-width: thin;
+        scrollbar-color: #bbb transparent;
+    }
+    .recently-viewed-container::-webkit-scrollbar {
+        height: 8px;
+    }
+    .recently-viewed-container::-webkit-scrollbar-thumb {
+        background: #bbb;
+        border-radius: 4px;
+    }
+    .scroll-btn {
+        position: absolute;
+        top: 40%;
+        z-index: 10;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        cursor: pointer;
+    }
+    .left-btn { left: -20px; }
+    .right-btn { right: -20px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">Your Cart</h1>
+    <div class="text-end mb-3">
+        <a href="{{ url_for('wishlist') }}" class="btn btn-light position-relative">
+            ❤️ Wishlist
+            {% if wishlist_length > 0 %}
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                {{ wishlist_length }}
+            </span>
+            {% endif %}
+        </a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show mt-3" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="search-container">
+        <input type="text" class="form-control search-input" placeholder="Search in cart...">
+    </div>
+
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Total</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+         {% if cart_items %}
+            {% for item in cart_items %}
+            <tr class="{% if not item.in_stock %}table-secondary{% endif %}">
+                <td data-label="Product">
+                    <a href="{{ url_for('product', product_id=item.id) }}">
+                        <img src="{{ url_for('static', filename='images/' + item.image) }}" alt="{{ item.title }}" style="width: 80px;">
+                    </a>
+                    <p>{{ item.title }}</p>
+                    {% if not item.in_stock %}
+                    <div class="alert alert-warning p-2 mt-2 mb-0">
+                        <i class="bi bi-exclamation-triangle-fill"></i> This item is no longer available
+                    </div>
+                    {% endif %}
+                </td>
+                <td data-label="Quantity">
+                    {% if item.in_stock %}
+                    <input type="number" min="1" value="{{ item.quantity }}" class="form-control quantity-input" data-id="{{ item.id }}">
+                    {% else %}
+                    <span class="text-muted">N/A</span>
+                    {% endif %}
+                </td>
+                <td data-label="Price">₹{{ "%.2f"|format(item.price) }}</td>
+                <td data-label="Total">₹{{ "%.2f"|format(item.price * item.quantity) }}</td>
+                <td data-label="Actions">
+                    <form action="{{ url_for('remove_from_cart', product_id=item.id) }}" method="POST" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                    </form>
+                    {% if session.user_role == 'customer' %}
+                    <form action="{{ url_for('move_to_wishlist', product_id=item.id) }}" method="POST" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">Save for Later</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+         {% else %}
+            <tr>
+                <td colspan="6" class="text-center text-danger">No products found in your cart.</td>
+            </tr>
+         {% endif %}
+         <tr id="no-match-message" style="display: none;">
+            <td colspan="6" class="text-center text-danger">No products found.</td>
+         </tr>
+        </tbody>
+    </table>
+
+    <div class="text-end mt-3">
+        <h4>Total Amount: ₹{{ "%.2f"|format(total_price) }}</h4>
+    </div>
+
+    {% include "_recently_viewed.html" %}
+
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 mt-4 mb-3">
+        <div class="d-flex flex-column flex-md-row gap-2">
+            <a href="/" class="btn btn-secondary w-100 w-md-auto">Continue Shopping</a>
+            <a href="{{ url_for('my_orders') }}" class="btn btn-primary w-100 w-md-auto">My Orders</a>
+        </div>
+        <div class="d-flex flex-column flex-md-row gap-2">
+            <form action="{{ url_for('clear_cart') }}" method="POST" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger w-100 w-md-auto">Clear Cart</button>
+            </form>
+            <a href="{{ url_for('checkout') }}" class="btn btn-success w-100 w-md-auto">Proceed to Checkout</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.querySelector('.search-input').addEventListener('input', function () {
+    const query = this.value.toLowerCase();
+    const rows = document.querySelectorAll('tbody tr');
+    let matchCount = 0;
+
+    rows.forEach(row => {
+        const isMessageRow = row.id === 'no-match-message';
+        if (isMessageRow) return;
+        const title = row.querySelector('td p')?.textContent.toLowerCase() || '';
+        const visible = title.includes(query);
+        row.style.display = visible ? '' : 'none';
+        if (visible) matchCount++;
+    });
+
+    document.getElementById('no-match-message').style.display = matchCount === 0 ? '' : 'none';
+});
+
+document.querySelectorAll('.quantity-input').forEach(input => {
+    input.addEventListener('change', function() {
+        const productId = this.dataset.id;
+        const newQuantity = this.value;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        fetch('/update-cart', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({id: productId, quantity: newQuantity})
+        }).then(response => { if (response.ok) location.reload(); });
+    });
+});
+
+function updateArrowVisibility() {
+    const container = document.getElementById("recentlyViewedContainer");
+    if (!container) return;
+    const leftBtn = document.querySelector(".left-btn");
+    const rightBtn = document.querySelector(".right-btn");
+    leftBtn.style.display = container.scrollLeft <= 0 ? "none" : "flex";
+    rightBtn.style.display = container.scrollLeft + container.clientWidth >= container.scrollWidth - 5 ? "none" : "flex";
+}
+
+function scrollRecentlyViewed(direction) {
+    const container = document.getElementById("recentlyViewedContainer");
+    if (!container) return;
+    const scrollAmount = 200;
+    container.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+    setTimeout(updateArrowVisibility, 300);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    updateArrowVisibility();
+    const container = document.getElementById("recentlyViewedContainer");
+    if (container) {
+        container.addEventListener("scroll", updateArrowVisibility);
+    }
+});
+</script>
+{% endblock %}

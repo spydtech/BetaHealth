@@ -30,6 +30,126 @@
         margin-bottom: 20px;
         text-decoration-line: underline;
       }
+      /* Light (300) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-L.ttf') }}") format('truetype');
+    font-weight: 300;
+    font-style: normal;
+}
+
+/* Light Italic (300 italic) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-LI.ttf') }}") format('truetype');
+    font-weight: 300;
+    font-style: italic;
+}
+
+/* Regular (400) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-R.ttf') }}") format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+/* Regular Italic (400 italic) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-RI.ttf') }}") format('truetype');
+    font-weight: 400;
+    font-style: italic;
+}
+
+/* Medium (500) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-M.ttf') }}") format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+/* Medium Italic (500 italic) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-MI.ttf') }}") format('truetype');
+    font-weight: 500;
+    font-style: italic;
+}
+
+/* Bold (700) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-B.ttf') }}") format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+/* Bold Italic (700 italic) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-BI.ttf') }}") format('truetype');
+    font-weight: 700;
+    font-style: italic;
+}
+
+/* Ubuntu Mono (400) */
+@font-face {
+    font-family: 'Ubuntu Mono';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-Mono.ttf') }}") format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+/* Default body text */
+body, p, span, li {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 400; /* Regular */
+}
+
+/* Headings */
+h1, h2, h3 {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 700; /* Bold */
+}
+
+h4, h5, h6 {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 500; /* Medium */
+}
+
+/* Buttons, Navbar, Labels */
+button, .btn, .navbar a, label {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 500; /* Medium */
+}
+
+/* Small text, footer, muted */
+small, .text-muted, footer {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 300; /* Light */
+}
+
+/* Emphasis / Italics */
+em, i {
+    font-family: 'Ubuntu', sans-serif;
+    font-style: italic;
+    font-weight: 400; /* Regular Italic */
+}
+
+/* Strong emphasis */
+strong, b {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 700; /* Bold */
+}
+
+/* Code & technical */
+code, pre {
+    font-family: 'Ubuntu Mono', monospace;
+    font-weight: 400;
+}
+
+
 
       /* FIXED: Navbar container with proper background control */
       .navbar-container {
@@ -238,12 +358,13 @@
         color: #007bff;
       }
 
-      .dropdown {
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.4s ease;
-        background: #f8f9fa;
-      }
+      /* Only apply custom dropdown animation for mobile nav menu */
+.mobile-nav-list .dropdown {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
+  background: #f8f9fa;
+}
 
       .has-dropdown.open .dropdown {
         max-height: 600px;
@@ -686,13 +807,14 @@
       footer { 
         background: #0d3056ff; 
         color: black; 
-        font-size: 14px; 
-        border-top: 2px solid white;
+        font-size: 20px; 
+        
       }
 
       footer a { 
         color:rgb(11, 228, 228); 
         text-decoration: none; 
+        
       }
 
       footer a:hover { 
@@ -700,7 +822,7 @@
       }
 
       .footer__copyright { 
-        border-top: 1px solid #444; 
+        
         padding: 10px 0; 
         font-size: 13px; 
         text-align: center; 
@@ -828,20 +950,15 @@
       
     <div class="navbar-actions">
   {% if session.get('user_id') %}
-    <span class="username" style="margin-right: 10px;">Hi, <span class="srp">{{session.get('user_name') }}</span> 👋</span>
-    <a href="{{ url_for('logout') }}">Logout</a>
-  {% else %}
-    <div class="dropdown settings-dropdown">
-      <button class="btn btn-sm dropdown-toggle" type="button" id="settingsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-        <i class="fas fa-cog"></i>
-      </button>
-      <ul class="dropdown-menu" aria-labelledby="settingsDropdown">
-        <li><a class="dropdown-item" href="{{ url_for('login') }}">Customer Login</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('seller_login') }}">Seller Login</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('admin_login') }}">Admin Login</a></li>
-      </ul>
-    </div>
-  {% endif %}
+  <span class="username" style="margin-right: 10px;">
+    Hi, <span class="srp">{{ session.get('user_name') }}</span> 👋
+  </span>
+  <a href="{{ url_for('logout') }}"class="d-inline d-sm-none">Logout</a>
+{% else %}
+  <!-- Login visible only on small screens -->
+  <a href="{{ url_for('login') }}" class="d-inline d-sm-none">Login</a>
+{% endif %}
+
        
         <!-- <a href="/cart" class="nav-link">
     <i class="fas fa-shopping-cart"></i>
@@ -908,7 +1025,7 @@
         {% endif %}
         <li><a href="{{ url_for('logout') }}">Logout</a></li>
     {% else %}
-        <li><a href="{{ url_for('login') }}">Customer Login</a></li>
+        <li><a href="{{ url_for('login') }}">Login</a></li>
         <li><a href="{{ url_for('seller_login') }}">Seller Login</a></li>
         <li><a href="{{ url_for('admin_login') }}">Admin Login</a></li>
     {% endif %}
@@ -1084,11 +1201,11 @@
                 {% endfor %}
                 {% if all_best_sellers|length > 8 %}
     <!-- View All card -->
-    <div class="col">
+    <div class="col mx-auto" style="max-width: 250px;">
         <div class="card h-100 product-card shadow-sm">
             <a href="{{ url_for('most_sold') }}" 
-               class="product-image-link d-flex justify-content-center align-items-center"
-               style="height: 200px; background-color: #f8f9fa;">
+               class="product-image-link d-flex justify-content-center align-items-center text-decoration-none"
+               style="min-height: 100%; padding: 40px; background-color: #f8f9fa; border-radius: 8px;">
                 <h5 class="m-0 text-primary fw-semibold text-center">View All</h5>
             </a>
         </div>
@@ -1153,15 +1270,19 @@
            
 <!-- "View All" Card -->
 {% if all_newest_products|length > 8 %}
-<div class="col">
-    <div class="card h-100 product-card shadow-sm">
-        <a href="{{ url_for('recently_added') }}" class="product-image-link d-flex justify-content-center align-items-center"
-           style="height: 200px; background-color: #f8f9fa;">
+<div class="col mx-auto" style="max-width: 250px;">
+    <div class="card h-100 product-card shadow-sm border-0 ">
+        <a href="{{ url_for('recently_added') }}" 
+           class="d-flex flex-column justify-content-center align-items-center text-decoration-none"
+           style="min-height: 100%; padding: 40px; background-color: #f8f9fa; border-radius: 8px;">
             <h5 class="m-0 text-primary fw-semibold text-center">View All</h5>
         </a>
     </div>
 </div>
 {% endif %}
+
+
+
 
 
 
@@ -1262,18 +1383,18 @@
 {% endblock %}
 
 <!-- Footer -->
- 
-<footer >
+ {% if not hide_footer %}
+<footer  >
   
-    <div class="container2 text-center" >
+    <!-- <div class="container2 text-center" >
         <h2>Subscribe to our channels</h2><hr>
         <div class="social d-flex justify-content-center gap-3">
           <a href="https://instagram.com/aarogyanutrimix" style="margin-top:20px"><img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" width="24" alt="Instagram "></a>
           <a href="https://www.youtube.com/@AarogyaNutriMix" style="margin-top:20px"><img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" width="24" alt="YouTube"></a>
         </div>
-    </div>
+    </div> -->
     
-    <div class="footer__copyright caption">
+    <div class="footer__copyright caption" style="padding-top: 40px; padding-bottom: 40px;">
         <small class="copyright__content">© 2025, <a href="/" title="">BetaHealth</a></small>
         <small class="copyright__content"><a target="_blank" rel="nofollow" href="{{url_for('home')}}"> </a></small>
         <ul class="policies list-unstyled">
@@ -1285,8 +1406,8 @@
         </ul>
     </div>
 </footer>
-  
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  {% endif %}
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     // Original navbar toggle script remains unchanged

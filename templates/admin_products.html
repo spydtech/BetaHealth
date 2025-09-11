@@ -5,16 +5,27 @@
     <h2 class="mb-4"><i class="fas fa-boxes me-2"></i>Product Management</h2>
     
     <div class="row mb-3">
-        <div class="col-md-3">
-            <label class="form-label">Filter by Stock:</label>
-            <select class="form-select" onchange="location = this.value;">
-                <option value="{{ url_for('admin_products') }}">All Products</option>
-                <option value="{{ url_for('admin_products', stock='in_stock') }}">In Stock Only</option>
-                <option value="{{ url_for('admin_products', stock='out_of_stock') }}">Out of Stock</option>
-                <option value="{{ url_for('admin_products', stock='low_stock') }}">Low Stock (&lt;5)</option>
-            </select>
-        </div>
+    <div class="col-md-3">
+        <label class="form-label">Filter by Stock:</label>
+        <select class="form-select" onchange="location = this.value;">
+            <option value="{{ url_for('admin_products', status=status_filter) }}" {{ 'selected' if not stock_filter }}>All Products</option>
+            <option value="{{ url_for('admin_products', stock='in_stock', status=status_filter) }}" {{ 'selected' if stock_filter == 'in_stock' }}>In Stock Only</option>
+            <option value="{{ url_for('admin_products', stock='out_of_stock', status=status_filter) }}" {{ 'selected' if stock_filter == 'out_of_stock' }}>Out of Stock</option>
+            <option value="{{ url_for('admin_products', stock='low_stock', status=status_filter) }}" {{ 'selected' if stock_filter == 'low_stock' }}>Low Stock (&lt;5)</option>
+        </select>
     </div>
+
+    <div class="col-md-3">
+        <label class="form-label">Filter by Status:</label>
+        <select class="form-select" onchange="location = this.value;">
+            <option value="{{ url_for('admin_products', stock=stock_filter) }}" {{ 'selected' if not status_filter }}>All Statuses</option>
+            <option value="{{ url_for('admin_products', status='pending', stock=stock_filter) }}" {{ 'selected' if status_filter == 'pending' }}>Pending</option>
+            <option value="{{ url_for('admin_products', status='rejected', stock=stock_filter) }}" {{ 'selected' if status_filter == 'rejected' }}>Rejected</option>
+            <option value="{{ url_for('admin_products', status='approved', stock=stock_filter) }}" {{ 'selected' if status_filter == 'approved' }}>Approved</option>
+        </select>
+    </div>
+</div>
+
 
     <div class="table-responsive">
         <table class="table table-striped table-hover">

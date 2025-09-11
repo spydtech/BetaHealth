@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Cart</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .search-container {
             display: flex;
@@ -17,9 +18,235 @@
             flex: 1;
             max-width: 500px;
         }
+        
+        @font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-L.ttf') }}") format('truetype');
+    font-weight: 300;
+    font-style: normal;
+}
+
+/* Light Italic (300 italic) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-LI.ttf') }}") format('truetype');
+    font-weight: 300;
+    font-style: italic;
+}
+
+/* Regular (400) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-R.ttf') }}") format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+/* Regular Italic (400 italic) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-RI.ttf') }}") format('truetype');
+    font-weight: 400;
+    font-style: italic;
+}
+
+/* Medium (500) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-M.ttf') }}") format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+/* Medium Italic (500 italic) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-MI.ttf') }}") format('truetype');
+    font-weight: 500;
+    font-style: italic;
+}
+
+/* Bold (700) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-B.ttf') }}") format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+/* Bold Italic (700 italic) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-BI.ttf') }}") format('truetype');
+    font-weight: 700;
+    font-style: italic;
+}
+
+/* Ubuntu Mono (400) */
+@font-face {
+    font-family: 'Ubuntu Mono';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-Mono.ttf') }}") format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+/* Default body text */
+body, p, span, li {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 400; /* Regular */
+}
+
+/* Headings */
+h1, h2, h3 {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 700; /* Bold */
+}
+
+h4, h5, h6 {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 500; /* Medium */
+}
+
+/* Buttons, Navbar, Labels */
+button, .btn, .navbar a, label {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 500; /* Medium */
+}
+
+/* Small text, footer, muted */
+small, .text-muted, footer {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 300; /* Light */
+}
+
+/* Emphasis / Italics */
+em, i {
+    font-family: 'Ubuntu', sans-serif;
+    font-style: italic;
+    font-weight: 400; /* Regular Italic */
+}
+
+/* Strong emphasis */
+strong, b {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 700; /* Bold */
+}
+
+/* Code & technical */
+code, pre {
+    font-family: 'Ubuntu Mono', monospace;
+    font-weight: 400;
+}
+
+        /* Cart Navbar - matching seller dashboard style */
+        .cart-navbar {
+            background: #ffffff !important;
+            border-bottom: 1px solid #e0e0e0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .cart-navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+        }
+        
+        .cart-navbar-logo a {
+            display: flex;
+            align-items: center;
+        }
+        
+        .header-image {
+            width: 180px;
+            height:60px;
+            padding: 5px;
+        }
+        
+        .cart-navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .cart-navbar-actions span,
+        .cart-navbar-actions a {
+            color: #000000 !important;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 15px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+        
+        .cart-navbar-actions a:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .role-badge {
+            background: linear-gradient(90deg, #28a745, #20c997);
+            color: #fff;
+            font-size: 0.7rem;
+            padding: 3px 10px;
+            border-radius: 15px;
+            margin-left: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .wishlist-btn {
+            position: relative;
+           
+            color: white !important;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .wishlist-btn:hover {
+            background: linear-gradient(135deg, #c0392b, #e74c3c);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+        }
 
         /* Mobile-friendly cart */
         @media (max-width: 768px) {
+            .cart-navbar-content {
+                padding: 0 15px;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .cart-navbar-actions {
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+
+            .cart-navbar-actions span,
+            .cart-navbar-actions a {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            .role-badge {
+                font-size: 0.6rem;
+                padding: 2px 6px;
+            }
+
+            .header-image {
+                width: 100px;
+            }
+
             table.table thead {
                 display: none; /* hide table headers */
             }
@@ -91,22 +318,126 @@
 .left-btn { left: -20px; }
 .right-btn { right: -20px; }
 
+        /* Clear cart button styling */
+        .clear-cart-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+        }
+        
+        .btn-clear-cart {
+            padding: 6px 12px;
+            font-size: 0.875rem;
+        }
+        /* Fix for tablet view button collision */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+@media (max-width: 991px) and (min-width: 769px) {
+    table.table td[data-label="Actions"] {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding-left: 10px !important;
+    }
+    
+    table.table td[data-label="Actions"]::before {
+        position: static;
+        transform: none;
+        margin-bottom: 5px;
+        font-weight: 700;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    table.table td[data-label="Actions"] form {
+        width: 100%;
+    }
+    
+    table.table td[data-label="Actions"] .btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* Additional mobile responsiveness */
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    table.table td[data-label="Actions"] form {
+        width: 100%;
+    }
+    
+    table.table td[data-label="Actions"] .btn {
+        width: 100%;
+    }
+}
+/* Add this to your existing CSS */
+.button-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-top: 35px;
+}
+
+@media (max-width: 400px) {
+    .button-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .button-row .btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
     </style>
 </head>
 <body>
-<div class="container mt-5">
-    <h1 class="mb-4">Your Cart</h1>
-    <div class="text-end mb-3">
-    <a href="{{ url_for('wishlist') }}" class="btn btn-light position-relative">
-            ❤️ Wishlist
-    {% if wishlist_length > 0 %}
-    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-        {{ wishlist_length }}
-    </span>
-    {% endif %}
-</a>
-
-</div>
+    <!-- Cart Navbar -->
+    <nav class="navbar cart-navbar">
+        <div class="cart-navbar-content">
+            <div class="cart-navbar-logo">
+                <a href="/"><img src="{{ url_for('static', filename='images/logo5.png') }}" class="header-image" alt="Company Logo"></a>
+            </div>
+            
+            <div class="cart-navbar-actions">
+                <!-- <span>
+                    <i class="fas fa-user me-1"></i>Hi, <strong>{{ session.get('user_name', 'Guest') }}</strong>
+                    {% if session.user_role == 'customer' %}
+                        <span class="role-badge">CUSTOMER</span>
+                    {% elif session.user_role == 'seller' %}
+                        <span class="role-badge">SELLER</span>
+                    {% endif %}
+                </span> -->
+                <!-- <a href="/"><i class="fas fa-home me-1"></i>Home</a> -->
+                <a href="{{ url_for('my_orders') }}"><i class="fas fa-shopping-bag me-1"></i>My Orders</a>
+                {% if session.user_role == 'customer' %}
+                    <a href="{{ url_for('wishlist') }}" class="wishlist-btn">
+                        ❤️ Wishlist
+                        {% if wishlist_length > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ wishlist_length }}
+                            </span>
+                        {% endif %}
+                    </a>
+                {% endif %}
+                <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-1"></i>Logout</a>
+            </div>
+        </div>
+    </nav>
+    
+<div class="container mt-4">
+    <h1 class="mb-4"><i class="fas fa-shopping-cart me-2"></i>Your Cart</h1>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
@@ -124,6 +455,16 @@
         <input type="text" class="form-control search-input" placeholder="Search in cart...">
     </div>
 
+    <!-- Clear Cart Button positioned above table on the right -->
+    <div class="clear-cart-container">
+        <form action="{{ url_for('clear_cart') }}" method="POST" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger btn-sm btn-clear-cart">
+                <i class="fas fa-trash me-1"></i>Clear Cart
+            </button>
+        </form>
+    </div>
+
     <table class="table table-bordered">
         <thead>
             <tr>
@@ -136,6 +477,7 @@
             </tr>
         </thead>
         <tbody>
+         {% if cart_items %}
         {% for item in cart_items %}
         <tr class="{% if not item.in_stock %}table-secondary{% endif %}">
             <td data-label="Product">
@@ -159,25 +501,33 @@
             <td data-label="Price">₹{{ "%.2f"|format(item.price) }}</td>
             <td data-label="Total">₹{{ "%.2f"|format(item.price * item.quantity) }}</td>
             <td data-label="Actions">
-                <form action="{{ url_for('remove_from_cart', product_id=item.id) }}" method="POST" style="display:inline;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                        Remove
-                    </button>
-                </form>
-               {% if session.user_role == 'customer' %}
-                <form action="{{ url_for('move_to_wishlist', product_id=item.id) }}" method="POST" style="display:inline;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-sm btn-outline-secondary">
-                    Save for Later
-                    </button>
-                </form>
-                {% endif %}
- 
-            </td>
+    <div class="action-buttons">
+        <form action="{{ url_for('remove_from_cart', product_id=item.id) }}" method="POST" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger">
+                Remove
+            </button>
+        </form>
+        {% if session.user_role == 'customer' %}
+        <form action="{{ url_for('move_to_wishlist', product_id=item.id) }}" method="POST" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                Save for Later
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</td>
 
         </tr>
         {% endfor %}
+        {% else %}
+        <tr>
+            <td colspan="6" style="text-align: center; color: red;">
+                No products found in your cart.
+            </td>
+        </tr>
+    {% endif %}
         <tr id="no-match-message" style="display: none;">
             <td colspan="6" style="text-align: center; color: red;">No products found.</td>
         </tr>
@@ -187,25 +537,21 @@
     <div class="text-end mt-3">
         <h4>Total Amount: ₹{{ "%.2f"|format(total_price) }}</h4>
     </div>
-    {% include "_recently_viewed.html" %}
 
-
-    <!-- ✅ Buttons fixed for desktop + mobile -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 mt-4 mb-3">
-
-        <div class="d-flex flex-column flex-md-row gap-2">
-            <a href="/" class="btn btn-secondary w-100 w-md-auto">Continue Shopping</a>
-            <a href="{{ url_for('my_orders') }}" class="btn btn-primary w-100 w-md-auto">My Orders</a>
-        </div>
-        <div class="d-flex flex-column flex-md-row gap-2">
-            <form action="{{ url_for('clear_cart') }}" method="POST" class="d-inline">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-danger w-100 w-md-auto">Clear Cart</button>
-            </form>
-            <a href="{{ url_for('checkout') }}" class="btn btn-success w-100 w-md-auto">Proceed to Checkout</a>
-        </div>
+    <div class="d-flex flex-row justify-content-between align-items-center gap-2 mt-4 mb-3">
+    <div class="d-flex flex-row gap-2">
+        <a href="/" class="btn btn-secondary">Continue Shopping</a>
+    </div>
+    <div class="d-flex flex-row gap-2">
+        <a href="{{ url_for('checkout') }}" class="btn btn-success">Proceed to Checkout</a>
     </div>
 </div>
+
+    {% include "_recently_viewed.html" %}
+
+</div>
+    <!-- Bottom buttons without Clear Cart -->
+    
 
 <script>
 document.querySelector('.search-input').addEventListener('input', function () {
