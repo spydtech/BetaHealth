@@ -70,6 +70,123 @@
             cursor: pointer;
             margin-top: 10px;
         }
+        @font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-L.ttf') }}") format('truetype');
+    font-weight: 300;
+    font-style: normal;
+}
+
+/* Light Italic (300 italic) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-LI.ttf') }}") format('truetype');
+    font-weight: 300;
+    font-style: italic;
+}
+
+/* Regular (400) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-R.ttf') }}") format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+/* Regular Italic (400 italic) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-RI.ttf') }}") format('truetype');
+    font-weight: 400;
+    font-style: italic;
+}
+
+/* Medium (500) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-M.ttf') }}") format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+/* Medium Italic (500 italic) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-MI.ttf') }}") format('truetype');
+    font-weight: 500;
+    font-style: italic;
+}
+
+/* Bold (700) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-B.ttf') }}") format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+/* Bold Italic (700 italic) */
+@font-face {
+    font-family: 'Ubuntu';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-BI.ttf') }}") format('truetype');
+    font-weight: 700;
+    font-style: italic;
+}
+
+/* Ubuntu Mono (400) */
+@font-face {
+    font-family: 'Ubuntu Mono';
+    src: url("{{ url_for('static', filename='fonts/Ubuntu-Mono.ttf') }}") format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+/* Default body text */
+body, p, span, li {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 400; /* Regular */
+}
+
+/* Headings */
+h1, h2, h3 {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 700; /* Bold */
+}
+
+h4, h5, h6 {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 500; /* Medium */
+}
+
+/* Buttons, Navbar, Labels */
+button, .btn, .navbar a, label {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 500; /* Medium */
+}
+
+/* Small text, footer, muted */
+small, .text-muted, footer {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 300; /* Light */
+}
+
+/* Emphasis / Italics */
+em, i {
+    font-family: 'Ubuntu', sans-serif;
+    font-style: italic;
+    font-weight: 400; /* Regular Italic */
+}
+
+/* Strong emphasis */
+strong, b {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 700; /* Bold */
+}
+
+/* Code & technical */
+code, pre {
+    font-family: 'Ubuntu Mono', monospace;
+    font-weight: 400;
+}
 
         .header-image {
             width: 200px;

@@ -1762,39 +1762,43 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        login_type = request.form.get('login_type', 'customer')  # Default to customer if not specified
 
         print(f"Attempting login for email: {email}")  # Debug print
         user = get_user_by_email(email)
 
         if user:
             print(f"User found: {user['email']}, Role: {user['role']}")  # Debug print
-            print(f"Stored hash: {user['password_hash']}")  # Debug print
             password_matches = check_password_hash(user['password_hash'], password)
             print(f"Password check result: {password_matches}")  # Debug print
 
             if password_matches:
-                # Check if user is trying to access the correct login type
-                if (login_type == 'admin' and user['role'] != 'admin') or \
-                   (login_type == 'seller' and user['role'] != 'seller'):
-                    flash(f"This account is not registered as a {login_type}", "danger")
-                    return redirect(url_for('login' if login_type == 'customer' else f'{login_type}_login'))
-                
+                # Allow only customers here
+                if user['role'] != 'customer':
+                    flash("This login page is only for customers", "danger")
+                    return redirect(url_for('login'))
+
                 session['user_id'] = user['id']
                 session['user_name'] = user['name']
                 session['user_role'] = user['role']
 
+                # Merge temporary cart with DB cart
                 temp_cart = session.pop('cart', [])
                 if temp_cart:
                     conn = get_db_connection()
                     cursor = conn.cursor()
                     for item in temp_cart:
                         item_price = float(item['price'])
-                        cursor.execute("SELECT quantity FROM cart_items WHERE user_id = %s AND product_id = %s", (user['id'], item['id']))
+                        cursor.execute(
+                            "SELECT quantity FROM cart_items WHERE user_id = %s AND product_id = %s",
+                            (user['id'], item['id'])
+                        )
                         existing_db_item = cursor.fetchone()
                         if existing_db_item:
                             new_quantity = existing_db_item[0] + item['quantity']
-                            cursor.execute("UPDATE cart_items SET quantity = %s WHERE user_id = %s AND product_id = %s", (new_quantity, user['id'], item['id']))
+                            cursor.execute(
+                                "UPDATE cart_items SET quantity = %s WHERE user_id = %s AND product_id = %s",
+                                (new_quantity, user['id'], item['id'])
+                            )
                         else:
                             cursor.execute(
                                 "INSERT INTO cart_items (user_id, product_id, title, price, image, quantity) VALUES (%s, %s, %s, %s, %s, %s)",
@@ -1804,12 +1808,7 @@ def login():
                     conn.close()
 
                 flash("Login successful", "success")
-                if user['role'] == 'admin':
-                    return redirect(url_for('admin_dashboard'))
-                elif user['role'] == 'seller':
-                    return redirect(url_for('seller_dashboard'))
-                else:
-                    return redirect(url_for('home'))
+                return redirect(url_for('home'))
             else:
                 flash("Invalid email or password", "danger")
         else:
@@ -1817,6 +1816,7 @@ def login():
             flash("Invalid email or password", "danger")
 
     return render_template('login.html')
+
 
 @app.route('/profile')
 def profile():
