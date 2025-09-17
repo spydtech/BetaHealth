@@ -807,8 +807,7 @@ code, pre {
       footer { 
         background: #0d3056ff; 
         color: black; 
-        font-size: 20px; 
-        
+        font-size: 20px;   
       }
 
       footer a { 
@@ -826,12 +825,14 @@ code, pre {
         padding: 10px 0; 
         font-size: 13px; 
         text-align: center; 
+        
       }
 
       .policies li { 
         display: inline-flex; 
         justify-content: center; 
         align-items: center; 
+        margin-bottom: 0;
       }
 
       .policies li::before { 
@@ -927,6 +928,56 @@ code, pre {
     .table-hover tbody tr:hover {
         background-color: rgba(0, 0, 0, 0.075);
     }
+    .image-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  text-align: center;
+}
+
+/* Make links behave like blocks filling their grid cell */
+.image-grid a {
+  display: block;
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Images */
+.image-grid img {
+  width: 100%;
+  aspect-ratio: 4 / 5;  /* taller ratio for mobile */
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+/* Tablets */
+@media (max-width: 991px) {
+  .image-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+}
+
+/* Mobiles */
+@media (max-width: 575px) {
+  .image-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    width: 100%;       /* force grid full width */
+    margin: 0;         /* remove side margins */
+  }
+
+  .image-grid a {
+    width: 100%;       /* ensure each item fills its grid cell */
+  }
+  .container1{
+    margin: 50px;
+  }
+}
+
+
+    
 </style>
 </head>
 <body>
@@ -1026,8 +1077,8 @@ code, pre {
         <li><a href="{{ url_for('logout') }}">Logout</a></li>
     {% else %}
         <li><a href="{{ url_for('login') }}">Login</a></li>
-        <li><a href="{{ url_for('seller_login') }}">Seller Login</a></li>
-        <li><a href="{{ url_for('admin_login') }}">Admin Login</a></li>
+        <!-- <li><a href="{{ url_for('seller_login') }}">Seller Login</a></li>
+        <li><a href="{{ url_for('admin_login') }}">Admin Login</a></li> -->
     {% endif %}
       
     </ul>
@@ -1158,7 +1209,7 @@ code, pre {
         <h1 class="collection-title text-left">Most Sold Items</h1>
 
         {% if best_sellers %}
-            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
+            <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
                 {% for product in best_sellers %}
                     <div class="col">
                         <div class="card h-100 product-card shadow-sm">
@@ -1224,7 +1275,7 @@ code, pre {
     <div class="container mt-5">
         <h1 class="collection-title text-left">Recently Added Items</h1>
 
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
+        <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
             {% for product in newest_products %}
                 <div class="col">
                     <div class="card h-100 product-card shadow-sm">
@@ -1394,7 +1445,7 @@ code, pre {
         </div>
     </div> -->
     
-    <div class="footer__copyright caption" style="padding-top: 40px; padding-bottom: 40px;">
+    <div class="footer__copyright caption" style="padding-top: 20px; padding-bottom: 10px;">
         <small class="copyright__content">© 2025, <a href="/" title="">BetaHealth</a></small>
         <small class="copyright__content"><a target="_blank" rel="nofollow" href="{{url_for('home')}}"> </a></small>
         <ul class="policies list-unstyled">
