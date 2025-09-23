@@ -1,0 +1,835 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.title }} - BetaHealth{% endblock %}
+
+{% block content %}
+<div class="container-fluid product-detail-container mt-3">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb bg-transparent p-0 mb-0">
+            <li class="breadcrumb-item"><a href="{{ url_for('home') }}" class="text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('collection', collection_id=product.category) }}" class="text-decoration-none">{{ collection_title }}</a></li>
+            <li class="breadcrumb-item active text-muted">{{ product.title }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <!-- Image Section -->
+        <div class="col-lg-5 col-md-6">
+            <div class="product-gallery sticky-top">
+                <!-- Main Image Display -->
+                <div class="main-image-container mb-3">
+                    <div id="productCarousel{{ product.id }}" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            <div class="carousel-item active">
+                                <img src="{{ url_for('static', filename='images/' ~ product.image) }}"
+                                     class="main-product-img"
+                                     alt="{{ product.title }}"
+                                     data-bs-toggle="modal"
+                                     data-bs-target="#lightboxModal{{ product.id }}">
+                            </div>
+                            {% if product.image2 %}
+                            <div class="carousel-item">
+                                <img src="{{ url_for('static', filename='images/' ~ product.image2) }}"
+                                     class="main-product-img"
+                                     alt="{{ product.title }} - 2"
+                                     data-bs-toggle="modal"
+                                     data-bs-target="#lightboxModal{{ product.id }}">
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if product.image2 %}
+                        <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel{{ product.id }}" data-bs-slide="prev">
+                            <i class="bi bi-chevron-left text-dark"></i>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#productCarousel{{ product.id }}" data-bs-slide="next">
+                            <i class="bi bi-chevron-right text-dark"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Thumbnail Strip -->
+                <div class="thumbnail-strip">
+                    <div class="thumbnail-item active-thumbnail" data-bs-target="#productCarousel{{ product.id }}" data-bs-slide-to="0">
+                        <img src="{{ url_for('static', filename='images/' ~ product.image) }}" alt="Thumbnail 1">
+                    </div>
+                    {% if product.image2 %}
+                    <div class="thumbnail-item" data-bs-target="#productCarousel{{ product.id }}" data-bs-slide-to="1">
+                        <img src="{{ url_for('static', filename='images/' ~ product.image2) }}" alt="Thumbnail 2">
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Action Buttons Row -->
+                <div class="action-buttons-row mt-4">
+                    <form method="POST" action="{{ url_for('add_to_cart') }}" class="flex-fill">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="product_id" value="{{ product.id }}">
+                        <input type="hidden" name="title" value="{{ product.title }}">
+                        <input type="hidden" name="price" value="{{ product.price }}">
+                        <input type="hidden" name="image" value="{{ product.image }}">
+                        <button type="submit" class="btn-cart">
+                            <i class="bi bi-cart3"></i>
+                            ADD TO CART
+                        </button>
+                    </form>
+                    
+                    <form method="POST" action="{{ url_for('buy_now') }}" class="flex-fill">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="product_id" value="{{ product.id }}">
+                        <button type="submit" class="btn-buy">
+                            <i class="bi bi-lightning-fill"></i>
+                            BUY NOW
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Info Section -->
+        <div class="col-lg-7 col-md-6">
+            <div class="product-info">
+                <!-- Title and Wishlist -->
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h1 class="product-title">{{ product.title }}</h1>
+                    {% if session.user_role == 'customer' %}
+                    <button id="wishlistBtn" 
+                            class="wishlist-btn" 
+                            data-product-id="{{ product.id }}">
+                        {% if in_wishlist %}
+                        <i class="bi bi-heart-fill text-danger"></i>
+                        {% else %}
+                        <i class="bi bi-heart"></i>
+                        {% endif %}
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Rating and Reviews -->
+                <div class="rating-section mb-3">
+                    <div class="rating-badge">
+                        4.3 <i class="bi bi-star-fill"></i>
+                    </div>
+                    <span class="rating-text">{{ reviews|length }} Ratings & Reviews</span>
+                </div>
+
+                <!-- Price Section -->
+                <div class="price-section mb-3">
+                    <div class="current-price">₹{{ "%.0f"|format(product.price) }}</div>
+                    {% if product.compare_price and product.compare_price > product.price %}
+                    <div class="price-details">
+                        <span class="original-price">₹{{ "%.0f"|format(product.compare_price) }}</span>
+                        <span class="discount">{{ "%.0f"|format(((product.compare_price - product.price) / product.compare_price) * 100) }}% off</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Availability -->
+                <div class="availability-section mb-4">
+                    {% if product.stock_quantity > 0 %}
+                        <span class="availability-badge in-stock">
+                            <i class="bi bi-check-circle-fill"></i>
+                            In Stock ({{ product.stock_quantity }} available)
+                        </span>
+                    {% else %}
+                        <span class="availability-badge out-of-stock">
+                            <i class="bi bi-x-circle-fill"></i>
+                            Currently Unavailable
+                        </span>
+                    {% endif %}
+                </div>
+
+                <!-- Key Benefits -->
+                {% if product.benefits %}
+                <div class="benefits-section mb-4">
+                    <h6 class="section-title">Key Benefits</h6>
+                    <ul class="benefits-list">
+                        {% for benefit in product.benefits %}
+                        <li>
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            {{ benefit }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <!-- Product Description -->
+                <div class="description-section mb-4">
+                    <h6 class="section-title">Product Description</h6>
+                    <p class="description-text">{{ product.description }}</p>
+                </div>
+
+                <!-- Tags -->
+                {% if product.tags %}
+                <div class="tags-section mb-4">
+                    <h6 class="section-title">Tags</h6>
+                    <div class="tags-container">
+                        {% for tag in product.tags %}
+                        <span class="tag-badge">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Product Details Accordion -->
+                <div class="details-section">
+                    <div class="accordion" id="productAccordion">
+                        <!-- Product Details -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#productDetails">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    Product Details
+                                </button>
+                            </h2>
+                            <div id="productDetails" class="accordion-collapse collapse show" data-bs-parent="#productAccordion">
+                                <div class="accordion-body">
+                                    {{ product.details or 'No details available.' }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ingredients -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#ingredients">
+                                    <i class="bi bi-list-ul me-2"></i>
+                                    Ingredients
+                                </button>
+                            </h2>
+                            <div id="ingredients" class="accordion-collapse collapse" data-bs-parent="#productAccordion">
+                                <div class="accordion-body">
+                                    <strong>Ingredients:</strong> {{ product.ingredients or 'No ingredients listed.' }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reviews -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#reviews">
+                                    <i class="bi bi-chat-dots me-2"></i>
+                                    Reviews ({{ reviews|length }})
+                                </button>
+                            </h2>
+                            <div id="reviews" class="accordion-collapse collapse" data-bs-parent="#productAccordion">
+                                <div class="accordion-body">
+                                    {% if session.user_id %}
+                                        {% if user_has_purchased %}
+                                            <div class="review-form mb-4 p-3 bg-light rounded">
+                                                <h6 class="mb-3">Write a Review</h6>
+                                                <form method="POST" action="{{ url_for('submit_review', product_id=product.id) }}">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <div class="row">
+                                                        <div class="col-md-6 mb-3">
+                                                            <label for="rating" class="form-label">Rating</label>
+                                                            <select name="rating" id="rating" class="form-select" required>
+                                                                <option value="">Select Rating</option>
+                                                                {% for i in range(1, 6) %}
+                                                                <option value="{{ i }}">{{ i }} Star{{ 's' if i > 1 }}</option>
+                                                                {% endfor %}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="review" class="form-label">Your Review</label>
+                                                        <textarea name="review" id="review" class="form-control" rows="3" placeholder="Share your experience with this product..." required></textarea>
+                                                    </div>
+                                                    <button type="submit" class="btn btn-primary">Submit Review</button>
+                                                </form>
+                                            </div>
+                                        {% else %}
+                                            <div class="alert alert-info">
+                                                <i class="bi bi-info-circle"></i>
+                                                You must purchase this product to leave a review.
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <div class="alert alert-warning">
+                                            <i class="bi bi-exclamation-triangle"></i>
+                                            <a href="{{ url_for('login') }}" class="alert-link">Login</a> to leave a review.
+                                        </div>
+                                    {% endif %}
+
+                                    {% if reviews %}
+                                        <div class="reviews-list mt-4">
+                                            {% for r in reviews %}
+                                            <div class="review-card">
+                                                <div class="review-header">
+                                                    <div class="reviewer-info">
+                                                        <div class="reviewer-avatar">{{ r.user_name[0].upper() }}</div>
+                                                        <div>
+                                                            <div class="reviewer-name">{{ r.user_name }}</div>
+                                                            <div class="review-date">{{ r.created_at.strftime('%b %d, %Y') }}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="review-rating">
+                                                        {% for i in range(1, 6) %}
+                                                            {% if i <= r.rating %}
+                                                                <i class="bi bi-star-fill"></i>
+                                                            {% else %}
+                                                                <i class="bi bi-star"></i>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                                <p class="review-text">{{ r.review }}</p>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <div class="text-center py-4 text-muted">
+                                            <i class="bi bi-chat-dots display-1"></i>
+                                            <p class="mt-2">No reviews yet. Be the first to review this product!</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lightbox Modal -->
+<div class="modal fade" id="lightboxModal{{ product.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content bg-dark">
+            <div class="modal-body p-0">
+                <div id="lightboxCarousel{{ product.id }}" class="carousel slide">
+                    <div class="carousel-inner text-center">
+                        <div class="carousel-item active">
+                            <img src="{{ url_for('static', filename='images/' ~ product.image) }}" alt="{{ product.title }}">
+                        </div>
+                        {% if product.image2 %}
+                        <div class="carousel-item">
+                            <img src="{{ url_for('static', filename='images/' ~ product.image2) }}" alt="{{ product.title }} - 2">
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if product.image2 %}
+                    <button class="carousel-control-prev" type="button" data-bs-target="#lightboxCarousel{{ product.id }}" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon"></span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#lightboxCarousel{{ product.id }}" data-bs-slide="next">
+                        <span class="carousel-control-next-icon"></span>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="modal-footer bg-dark border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Flipkart-inspired Product Page Styles */
+.product-detail-container {
+    max-width: 1400px;
+    padding: 0 15px;
+}
+
+/* Breadcrumb */
+.breadcrumb-item a {
+    color: #2874f0;
+    font-size: 14px;
+}
+
+.breadcrumb-item.active {
+    font-size: 14px;
+}
+
+/* Image Gallery */
+.product-gallery {
+    position: sticky;
+    top: 20px;
+}
+
+.main-image-container {
+    position: relative;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+.main-product-img {
+    width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+    cursor: zoom-in;
+    transition: transform 0.3s ease;
+}
+
+.main-product-img:hover {
+    transform: scale(1.05);
+}
+
+.carousel-control-prev,
+.carousel-control-next {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 1px solid #e0e0e0;
+}
+
+.carousel-control-prev {
+    left: 10px;
+}
+
+.carousel-control-next {
+    right: 10px;
+}
+
+/* Thumbnail Strip */
+.thumbnail-strip {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.thumbnail-item {
+    width: 60px;
+    height: 60px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.thumbnail-item:hover {
+    border-color: #2874f0;
+}
+
+.thumbnail-item.active-thumbnail {
+    border-color: #2874f0;
+}
+
+.thumbnail-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Action Buttons */
+.action-buttons-row {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-cart,
+.btn-buy {
+    flex: 1;
+    padding: 16px 24px;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-cart {
+    background: #ff9f00;
+    color: #fff;
+}
+
+.btn-cart:hover {
+    background: #e68900;
+    color: #fff;
+}
+
+.btn-buy {
+    background: #fb641b;
+    color: #fff;
+}
+
+.btn-buy:hover {
+    background: #e55a19;
+    color: #fff;
+}
+
+/* Product Info */
+.product-info {
+    padding-left: 20px;
+}
+
+.product-title {
+    font-size: 24px;
+    font-weight: 400;
+    color: #212121;
+    line-height: 1.3;
+    margin: 0;
+}
+
+.wishlist-btn {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    font-size: 20px;
+    color: #878787;
+    transition: color 0.2s ease;
+}
+
+.wishlist-btn:hover {
+    color: #ff6161;
+}
+
+/* Rating */
+.rating-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.rating-badge {
+    background: #388e3c;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.rating-text {
+    color: #878787;
+    font-size: 14px;
+}
+
+/* Price Section */
+.price-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.current-price {
+    font-size: 28px;
+    font-weight: 500;
+    color: #212121;
+}
+
+.price-details {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.original-price {
+    font-size: 16px;
+    color: #878787;
+    text-decoration: line-through;
+}
+
+.discount {
+    color: #388e3c;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* Availability */
+.availability-section {
+    margin: 20px 0;
+}
+
+.availability-badge {
+    font-size: 14px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.availability-badge.in-stock {
+    color: #388e3c;
+}
+
+.availability-badge.out-of-stock {
+    color: #ff6161;
+}
+
+/* Sections */
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #212121;
+    margin-bottom: 12px;
+}
+
+/* Benefits List */
+.benefits-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.benefits-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #212121;
+}
+
+/* Description */
+.description-text {
+    color: #212121;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Tags */
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag-badge {
+    background: #f0f0f0;
+    color: #212121;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Accordion */
+.accordion-item {
+    border: 1px solid #e0e0e0;
+    border-radius: 0;
+    margin-bottom: 1px;
+}
+
+.accordion-button {
+    background: #fafafa;
+    border: none;
+    color: #212121;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 16px 20px;
+}
+
+.accordion-button:not(.collapsed) {
+    background: #fff;
+    box-shadow: none;
+    color: #2874f0;
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+    border-color: transparent;
+}
+
+.accordion-body {
+    padding: 20px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* Review Components */
+.review-form {
+    border: 1px solid #e0e0e0;
+}
+
+.reviews-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.review-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.reviewer-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.reviewer-avatar {
+    width: 40px;
+    height: 40px;
+    background: #2874f0;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.reviewer-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: #212121;
+}
+
+.review-date {
+    font-size: 12px;
+    color: #878787;
+}
+
+.review-rating {
+    color: #ff9f00;
+    font-size: 14px;
+}
+
+.review-text {
+    margin: 0;
+    font-size: 14px;
+    color: #212121;
+    line-height: 1.5;
+}
+
+/* Modal Styles */
+.modal-body img {
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+    margin: 0 auto;
+    display: block;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .product-info {
+        padding-left: 0;
+        margin-top: 20px;
+    }
+    
+    .action-buttons-row {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #fff;
+        padding: 12px;
+        border-top: 1px solid #e0e0e0;
+        z-index: 1000;
+        margin: 0;
+    }
+    
+    .btn-cart,
+    .btn-buy {
+        font-size: 13px;
+        padding: 14px 20px;
+    }
+    
+    .product-title {
+        font-size: 20px;
+    }
+    
+    .current-price {
+        font-size: 24px;
+    }
+}
+
+@media (max-width: 576px) {
+    .product-detail-container {
+        padding: 0 10px;
+    }
+    
+    .thumbnail-strip {
+        gap: 6px;
+    }
+    
+    .thumbnail-item {
+        width: 50px;
+        height: 50px;
+    }
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // Wishlist functionality
+    const wishlistBtn = document.getElementById("wishlistBtn");
+    if (wishlistBtn) {
+        wishlistBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            const productId = this.dataset.productId;
+            const csrfToken = "{{ csrf_token() }}";
+
+            fetch(`/toggle-wishlist/${productId}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken
+                },
+                body: JSON.stringify({})
+            })
+            .then(res => res.json())
+            .then(data => {
+                const icon = wishlistBtn.querySelector('i');
+                if (data.in_wishlist) {
+                    icon.className = "bi bi-heart-fill text-danger";
+                } else {
+                    icon.className = "bi bi-heart";
+                }
+            })
+            .catch(err => console.error("Wishlist toggle failed", err));
+        });
+    }
+
+    // Thumbnail carousel sync
+    const carousel = document.querySelector("#productCarousel{{ product.id }}");
+    if (carousel) {
+        carousel.addEventListener("slid.bs.carousel", function (event) {
+            const thumbnails = document.querySelectorAll(".thumbnail-item");
+            thumbnails.forEach(thumb => thumb.classList.remove("active-thumbnail"));
+            if (thumbnails[event.to]) {
+                thumbnails[event.to].classList.add("active-thumbnail");
+            }
+        });
+    }
+
+    // Thumbnail click handlers
+    const thumbnails = document.querySelectorAll(".thumbnail-item");
+    thumbnails.forEach((thumb, index) => {
+        thumb.addEventListener("click", () => {
+            const carouselElement = document.querySelector("#productCarousel{{ product.id }}");
+            const bsCarousel = new bootstrap.Carousel(carouselElement);
+            bsCarousel.to(index);
+            
+            thumbnails.forEach(t => t.classList.remove("active-thumbnail"));
+            thumb.classList.add("active-thumbnail");
+        });
+    });
+});
+</script>
+
+{% endblock %}

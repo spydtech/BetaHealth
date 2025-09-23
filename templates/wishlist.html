@@ -2,9 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Wishlist</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
   <style>
     @font-face {
     font-family: 'Ubuntu';
@@ -148,9 +151,8 @@ code, pre {
     }
     
     .header-image {
-        width: 140px;
-        height: auto;
-        
+        width: 180px;
+        height: 60px;
     }
     
     .cart-navbar-actions {
@@ -167,7 +169,7 @@ code, pre {
         padding: 8px 15px;
         border-radius: 8px;
         transition: all 0.3s ease;
-        font-size: 14px;
+        font-size: 16px;
     }
     
     .cart-navbar-actions a:hover {
@@ -208,29 +210,54 @@ code, pre {
     /* Mobile-friendly navbar */
     @media (max-width: 768px) {
         .cart-navbar-content {
-            padding: 0 15px;
-            flex-wrap: wrap;
-            gap: 10px;
+            padding: 0 10px;
+            overflow-x: auto;
+            white-space: nowrap;
+            flex-wrap: nowrap;
+            justify-content: flex-start;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
         }
-
+        
+        .cart-navbar-content::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Edge */
+        }
+        
+        .cart-navbar-logo {
+            flex-shrink: 0;
+            margin-right: 15px;
+        }
+        
         .cart-navbar-actions {
+            display: inline-flex;
             gap: 10px;
-            flex-wrap: wrap;
+            flex-shrink: 0;
         }
-
+        
         .cart-navbar-actions span,
         .cart-navbar-actions a {
             padding: 6px 10px;
             font-size: 12px;
+            white-space: nowrap;
         }
-
+        
         .role-badge {
             font-size: 0.6rem;
             padding: 2px 6px;
         }
-
+        
         .header-image {
             width: 100px;
+        }
+        
+        /* Improved mobile font sizing */
+        h1 {
+            font-size: 1.8rem;
+        }
+        
+        .container {
+            padding-left: 15px;
+            padding-right: 15px;
         }
     }
 
@@ -238,7 +265,9 @@ code, pre {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 20px;
+      padding: 10px;
     }
+    
     .wishlist-card {
       border: 1px solid #ddd;
       border-radius: 8px;
@@ -247,26 +276,37 @@ code, pre {
       background: #fff;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
       transition: transform 0.2s;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
     }
+    
     .wishlist-card:hover {
       transform: translateY(-3px);
     }
+    
     .wishlist-card img {
       max-width: 100%;
       height: 180px;
       object-fit: cover;
       border-radius: 6px;
+      margin: 0 auto;
     }
+    
     .wishlist-card-title {
       font-size: 1rem;
       font-weight: 600;
       margin: 10px 0 5px;
+      line-height: 1.3;
     }
+    
     .wishlist-card-price {
       font-size: 1.1rem;
       color: #28a745;
       font-weight: 500;
+      margin-bottom: 8px;
     }
+    
     .stock-status {
       font-size: 0.85rem;
       margin: 5px 0;
@@ -274,18 +314,105 @@ code, pre {
       border-radius: 4px;
       display: inline-block;
     }
+    
     .in-stock {
       background-color: #d4edda;
       color: #155724;
     }
+    
     .out-of-stock {
       background-color: #f8d7da;
       color: #721c24;
     }
+    
+    .wishlist-actions {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    /* Mobile-specific wishlist styles */
+    @media (max-width: 768px) {
+        .wishlist-container {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .wishlist-card {
+            padding: 10px;
+        }
+        
+        .wishlist-card img {
+            height: 140px;
+        }
+        
+        .wishlist-card-title {
+            font-size: 0.9rem;
+        }
+        
+        .wishlist-card-price {
+            font-size: 1rem;
+        }
+        
+        .wishlist-actions {
+            flex-direction: column;
+        }
+        
+        .wishlist-actions .btn {
+            font-size: 0.8rem;
+            padding: 5px 8px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .wishlist-container {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .wishlist-card img {
+            height: 120px;
+        }
+        
+        .wishlist-card-title {
+            font-size: 0.85rem;
+        }
+    }
+    i[class*="fa-"] {
+  font-family: "Font Awesome 6 Free";
+  font-style: normal;
+  font-weight: 900;
+  
+}
+.shake-heart {
+  display: inline-block;
+  animation: shake 3s infinite;
+}
+
+@keyframes shake {
+  /* Shaking part (0–66%) */
+  0%, 10%, 20%, 30%, 40%, 50%, 60% {
+    transform: rotate(0);
+  }
+  5%, 25%, 45% {
+    transform: rotate(-10deg);
+  }
+  15%, 35%, 55% {
+    transform: rotate(10deg);
+  }
+
+  /* Resting part (66–100%) */
+  66%, 100% {
+    transform: rotate(0);
+  }
+}
+
+
   </style>
 </head>
 <body>
-    <!-- Wishlist Navbar -->
+    <!-- Wishlist Navbar - matching cart style -->
     <nav class="navbar cart-navbar">
         <div class="cart-navbar-content">
             <div class="cart-navbar-logo">
@@ -293,28 +420,27 @@ code, pre {
             </div>
             
             <div class="cart-navbar-actions">
-               
-                <a href="{{ url_for('my_orders') }}"><i class="fas fa-shopping-bag me-1"></i>My Orders</a>
-                <a href="{{ url_for('cart') }}" class="nav-link position-relative">
-    <i class="fas fa-shopping-cart"></i>
-    {% if cart_length > 0 %}
-    <span class="badge bg-danger position-absolute top-0 start-100 translate-middle border-rounded-pill">
-        {{ cart_length }}
-    </span>
-    {% endif %}
-</a>
+                <a href="{{ url_for('my_orders') }}">My Orders</a>
+                <a href="{{ url_for('cart') }}" class="position-relative">
+                    <i class="fas fa-shopping-cart me-1"></i>Cart
+                    {% if cart_length > 0 %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        {{ cart_length }}
+                    </span>
+                    {% endif %}
+                </a>
                 
                 {% if session.get('user_id') %}
                 <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-1"></i>Logout</a>
-                    {% else %}
-        <li><a href="{{ url_for('login') }}">Login</a></li>
-        {% endif %}
+                {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+                {% endif %}
             </div>
         </div>
     </nav>
 
-<div class="container mt-5">
-  <h1 class="mb-4">Your Wishlist</h1>
+<div class="container mt-4">
+  <h1 class="mb-4"><i class="fas fa-heart me-2"></i>Your Wishlist</h1>
   
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -332,8 +458,10 @@ code, pre {
   <div class="alert alert-info">
     <h4>Please Log In</h4>
     <p>You need to be logged in to view your wishlist.</p>
-    <a href="{{ url_for('login') }}" class="btn btn-primary">Log In</a>
-    <a href="{{ url_for('home') }}" class="btn btn-secondary">Return to Home</a>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('login') }}" class="btn btn-primary">Log In</a>
+        <a href="{{ url_for('home') }}" class="btn btn-secondary">Return to Home</a>
+    </div>
   </div>
   {% elif session.user_role != 'customer' %}
   <!-- Show warning for non-customers -->
@@ -361,25 +489,38 @@ code, pre {
         <div class="stock-status out-of-stock">Out of Stock</div>
       {% endif %}
       
-      <div class="mt-auto d-grid gap-2">
-          <form method="POST" action="{{ url_for('move_to_cart', product_id=item.id, redirect_to='wishlist') }}" method="POST" class="mt-2">
+      <div class="wishlist-actions">
+          <form method="POST" action="{{ url_for('move_to_cart', product_id=item.id, redirect_to='wishlist') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn btn-sm btn-success w-100" {% if item.stock_quantity <= 0 %}disabled{% endif %}>Move to Cart</button>
+            <button class="btn btn-sm btn-success w-100" {% if item.stock_quantity <= 0 %}disabled{% endif %}>
+                <i class="fas fa-cart-plus me-1"></i>Move to Cart
+            </button>
           </form>
           <form method="POST" action="{{ url_for('remove_from_wishlist', product_id=item.id, redirect_to='wishlist') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn btn-sm btn-outline-danger w-100">Remove</button>
+            <button class="btn btn-sm btn-outline-danger w-100">
+                <i class="fas fa-trash me-1"></i>Remove
+            </button>
           </form>
         </div>
     </div>
     {% endfor %}
   </div>
   {% else %}
-  <p class="text-muted">Your wishlist is empty.</p>
+  <div class="text-center py-5">
+    
+    <i class="fa-solid fa-heart-crack fa-3x text-muted mb-3 shake-heart"></i>
+
+
+    <p class="text-muted fs-5">Your wishlist is empty.</p>
+    <!-- <a href="{{ url_for('home') }}" class="btn btn-primary mt-2">Continue Shopping</a> -->
+  </div>
   {% endif %}
 
   <div class="mt-4">
-    <a href="{{ url_for('cart') }}" class="btn btn-primary">Back to Cart</a>
+    <a href="{{ url_for('cart') }}" class="btn btn-primary">
+        <i class="fas fa-arrow-left me-1"></i>Back to Cart
+    </a>
   </div>
   {% endif %}
 </div>

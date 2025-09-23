@@ -4,14 +4,15 @@
 
 {% block content %}
 <div class="container product-detail-container mt-5 mb-5">
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('home') }}">Home</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('collection', collection_id=product.category) }}">{{ collection_title }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ product.title }}</li>
+    <nav class="breadcrumb-nav" aria-label="breadcrumb">
+        <ol class="breadcrumb-list">
+            <li><a href="{{ url_for('home') }}">Home</a></li>
+            <li><span class="separator">›</span></li>
+            <li><a href="{{ url_for('collection', collection_id=product.category) }}">{{ collection_title }}</a></li>
+            <li><span class="separator">›</span></li>
+            <li class="current">{{ product.title }}</li>
         </ol>
     </nav>
-
     <div class="row">
         <div class="col-md-6 product-image-section">
   <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
@@ -133,10 +134,11 @@
                 
             </div>
 
-            <div class="product-price-section mb-3">
+            <!-- <div class="product-price-section mb-3">
                 <span class="current-price-lg">₹{{ "%.2f"|format(product.price) }}</span>
                 {% if product.compare_price and product.compare_price > product.price %}
                 <span class="compare-price-lg text-decoration-line-through ms-3">₹{{ "%.2f"|format(product.compare_price) }}</span>
+                <span class="discount">{{ "%.0f"|format(((product.compare_price - product.price) / product.compare_price) * 100) }}% off</span>
                 {% endif %}
             </div>
             <div class="availability mb-3">
@@ -145,20 +147,52 @@
                 {% else %}
                     <i class="bi bi-x-circle-fill text-danger"></i> Currently unavailable
                 {% endif %}
-            </div>
+            </div> -->
+            <!-- Price Section -->
+                <div class="price-section mb-3">
+                    <div class="current-price">₹{{ "%.0f"|format(product.price) }}</div>
+                    {% if product.compare_price and product.compare_price > product.price %}
+                    <div class="price-details">
+                        <span class="original-price">₹{{ "%.0f"|format(product.compare_price) }}</span>
+                        <span class="discount">{{ "%.0f"|format(((product.compare_price - product.price) / product.compare_price) * 100) }}% off</span>
+                    </div>
+                    {% endif %}
+                </div>
 
-            <p class="product-description">{{ product.description }}</p>
+                <!-- Availability Section -->
+                <div class="availability-section mb-4">
+                    {% if product.stock_quantity > 0 %}
+                        <span class="availability-badge in-stock">
+                            <i class="bi bi-check-circle-fill"></i>
+                            In Stock ({{ product.stock_quantity }} available)
+                        </span>
+                    {% else %}
+                        <span class="availability-badge out-of-stock">
+                            <i class="bi bi-x-circle-fill"></i>
+                            Currently Unavailable
+                        </span>
+                    {% endif %}
+                </div>
 
-            {% if product.benefits %}
-            <div class="product-benefits mb-4">
-                <h5 class="section-heading">Key Benefits:</h5>
-                <ul class="list-unstyled">
-                    {% for benefit in product.benefits %}
-                    <li><i class="bi bi-check-circle-fill me-2 text-success"></i>{{ benefit }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
+
+            <!-- Product Description -->
+                <div class="product-description-section mb-4">
+                    <h5 class="section-heading">Product Description:</h5>
+                    <p class="product-description">{{ product.description }}</p>
+                </div>
+
+                <!-- Key Benefits -->
+                {% if product.benefits %}
+                <div class="product-benefits mb-4">
+                    <h5 class="section-heading">Key Benefits:</h5>
+                    <ul class="list-unstyled">
+                        {% for benefit in product.benefits %}
+                        <li><i class="bi bi-check-circle-fill me-2 text-success"></i>{{ benefit }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
 
             <div class="product-actions d-grid gap-2 mb-4">
                 
@@ -296,7 +330,7 @@
     }
 
     .product-page-title {
-        font-size: 1.9rem;
+        font-size: 1.8rem;
         font-weight: 700;
         color: #333;
         margin-bottom: 15px;
@@ -308,7 +342,7 @@
     }
 
     .current-price-lg {
-        font-size: 2.2rem;
+        font-size: 2.0rem;
         font-weight: bold;
         color: #007bff;
         margin-right: 10px;
@@ -431,10 +465,106 @@
   margin: 0 auto;
   display: block;
 }
+/* Breadcrumb */
+.breadcrumb-nav {
+    margin-bottom: 16px;
+}
 
+.breadcrumb-list {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 14px;
+}
+
+.breadcrumb-list li {
+    display: flex;
+    align-items: center;
+}
+
+.breadcrumb-list a {
+    color: #007185;
+    text-decoration: none;
+}
+
+.breadcrumb-list a:hover {
+    color: #c7511f;
+    text-decoration: underline;
+}
+
+.separator {
+    margin: 0 8px;
+    color: #565959;
+}
+
+.current {
+    color: #565959;
+}
+/* Price Section */
+.price-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.current-price {
+    font-size: 28px;
+    font-weight: 500;
+    color: #212121;
+}
+
+.price-details {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.original-price {
+    font-size: 16px;
+    color: #878787;
+    text-decoration: line-through;
+}
+
+.discount {
+    color: #388e3c;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* Availability Section */
+.availability-badge {
+    font-size: 14px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.availability-badge.in-stock {
+    color: #388e3c;
+}
+.availability-badge.out-of-stock {
+    color: #ff6161;
+}
+
+.section-heading {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 15px;
+}
+
+.product-description {
+    font-size: 1.1rem;
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
 
 
 </style>
+
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     const wishlistBtn = document.getElementById("wishlistBtn");

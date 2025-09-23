@@ -1078,6 +1078,8 @@ code, pre {
                             </div>
                         </div>
                   
+               
+
                         <!-- Orders Section -->
                         <div id="orders" class="content-section mb-5">
                             <h2 class="mb-4"><i class="fas fa-shopping-cart me-2"></i>Orders Awaiting Approval</h2>
@@ -1091,6 +1093,7 @@ code, pre {
                                             <th>Total (₹)</th>
                                             <th>Payment Method</th>
                                             <th>Status</th>
+                                            <th>Payment Verified</th>
                                             <th>Tracking Number</th>
                                             <th>Action</th>
                                         </tr>
@@ -1109,38 +1112,91 @@ code, pre {
                                                 <td>{{ order.items }}</td>
                                                 <td>{{ "%.2f"|format(order.total_amount) }}</td>
                                                 <td>{{ order.payment_method|capitalize }}</td>
-                                                <td><span class="badge bg-warning">{{ order.status|capitalize }}</span></td>
                                                 <td>
-                                                    {{ order.tracking_number if order.tracking_number else '-' }}
+                                                    <span class="badge bg-{% if order.status == 'paid' %}warning{% elif order.status == 'confirmed' %}info{% elif order.status == 'shipped' %}success{% else %}secondary{% endif %}">
+                                                        {{ order.status|capitalize }}
+                                                    </span>
                                                 </td>
-
                                                 <td>
-                                                    {% if order.status == 'paid' %}
-                                                        <form method="POST" action="{{ url_for('confirm_shipment', order_id=order.id) }}">
-                                                           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    {% if order.payment_verified %}
+                                                        <span class="badge bg-success">
+                                                            <i class="fas fa-check-circle"></i> Verified
+                                                        </span>
+                                                        {% if order.verified_at %}
+                                                            <br><small class="text-muted">{{ order.verified_at.strftime('%d-%m-%Y') }}</small>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <span class="badge bg-danger">
+                                                            <i class="fas fa-clock"></i> Pending Verification
+                                                        </span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                   <!-- Shipping form (shows when not shipped) -->
+                                                    {% if order.status != 'shipped' %}
+                                                    <form method="POST" action="{{ url_for('ship_order', order_id=order.id) }}">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <div class="mb-2">
+                                                        <input type="text" name="courier_name" class="form-control" placeholder="Courier Name" required>
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <input type="text" name="tracking_number" class="form-control" placeholder="Tracking Number (leave blank to auto-generate)">
+                                                    </div>
+                                                    <button type="submit" class="btn btn-primary btn-sm">Add Courier details</button>
+                                                    </form>
+                                                    {% endif %}
 
+                                                    <!-- Display tracking info (if present) -->
+                                                    {% if order.tracking_number %}
+                                                    <div class="mt-2">
+                                                        <p class="mb-1"><strong>Courier:</strong> {{ order.courier_name or '-' }}</p>
+                                                        <p class="mb-1"><strong>Tracking Number:</strong> {{ order.tracking_number }}</p>
+                                                        <p class="mb-0"><strong>Shipped At:</strong> {{ order.shipped_at }}</p>
+                                                    </div>
+                                                    {% endif %}
+
+
+                                                </td>
+                                                <td>
+                                                    {% if order.status == 'paid' and order.payment_verified %}
+                                                        <form method="POST" action="{{ url_for('confirm_shipment', order_id=order.id) }}">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                             <button type="submit" class="btn btn-sm btn-success">Approve</button>
                                                         </form>
-                                                        {% elif order.status == 'confirmed' %}
+                                                    {% elif order.status == 'paid' and not order.payment_verified %}
+                                                        <span class="badge bg-warning">
+                                                            <i class="fas fa-exclamation-triangle"></i> 
+                                                            Awaiting Admin Verification
+                                                        </span>
+                                                    {% elif order.status == 'confirmed' %}
                                                         <form method="POST" action="{{ url_for('ship_order', order_id=order.id) }}">
-                                                           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                             <button type="submit" class="btn btn-sm btn-primary">Ship</button>
                                                         </form>
-                                                        {% elif order.status == 'shipped' %}
+                                                    {% elif order.status == 'shipped' %}
                                                         <span class="text-success">Shipped</span>
+                                                    {% elif order.status == 'payment_rejected' %}
+                                                        <span class="badge bg-danger">Payment Issue</span>
                                                     {% endif %}
                                                 </td>
                                             </tr>
                                             {% endif %}
                                         {% else %}
                                         <tr>
-                                            <td colspan="6" class="text-center">No pending orders</td>
+                                            <td colspan="9" class="text-center">No pending orders</td>
                                         </tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>
                             </div>
+                            
+                            {% if seller_orders %}
+                            <div class="alert alert-info mt-3">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Note:</strong> Orders must be verified by admin before you can approve them for shipment.
+                                Payment verification ensures all transactions are legitimate.
+                            </div>
+                            {% endif %}
                         </div>
 
                         <!-- Profile Section -->

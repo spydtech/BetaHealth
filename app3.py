@@ -38,30 +38,6 @@ UPLOAD_FOLDER = 'static/images'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Permanent upload folder on VPS
-# UPLOAD_FOLDER = '/var/www/btahealth-upload-images'
-# ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-# app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-# # Ensure static/images points to permanent upload folder
-# STATIC_IMAGE_PATH = os.path.join(app.root_path, 'static/images')
-
-# try:
-#     if not os.path.islink(STATIC_IMAGE_PATH):
-#         # Backup existing images folder if it exists
-#         if os.path.exists(STATIC_IMAGE_PATH):
-#             backup_path = STATIC_IMAGE_PATH + "_backup"
-#             if not os.path.exists(backup_path):
-#                 os.rename(STATIC_IMAGE_PATH, backup_path)
-#         # Create symlink
-#         os.symlink(UPLOAD_FOLDER, STATIC_IMAGE_PATH)
-#         print(f"✅ Symlink created: {STATIC_IMAGE_PATH} -> {UPLOAD_FOLDER}")
-#     else:
-#         print(f"✅ Symlink already exists: {STATIC_IMAGE_PATH} -> {os.readlink(STATIC_IMAGE_PATH)}")
-# except Exception as e:
-#     print(f"❌ Error creating symlink for static/images: {e}")
-
-
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -492,10 +468,8 @@ def update_db_schema():
         """)
         if cursor.fetchone()[0] == 0:
             cursor.execute("ALTER TABLE products ADD COLUMN image2 VARCHAR(255) NULL AFTER image")
-         
-        
-        
-          
+            
+            
         cursor.execute("""
             SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
             WHERE TABLE_SCHEMA = DATABASE() 
@@ -611,6 +585,78 @@ def update_db_schema():
         cursor.close()
         conn.close()
 
+def update_orders_schema_for_payment_verification():
+    """Add payment verification column to orders table"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Add payment_verified column if it doesn't exist
+        cursor.execute(f"""
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE() 
+            AND TABLE_NAME = 'orders' 
+            AND COLUMN_NAME = 'payment_verified'
+        """)
+        if cursor.fetchone()[0] == 0:
+            cursor.execute(f"""
+                ALTER TABLE orders 
+                ADD COLUMN payment_verified TINYINT(1) DEFAULT 0 AFTER status
+            """)
+            print("✅ Added payment_verified column to orders table")
+            
+        # --- Add courier_name column if missing ---
+        cursor.execute(f"""
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE() 
+            AND TABLE_NAME = 'orders' 
+            AND COLUMN_NAME = 'courier_name'
+        """)
+        if cursor.fetchone()[0] == 0:
+            cursor.execute(f"""
+                ALTER TABLE orders 
+                ADD COLUMN courier_name VARCHAR(100) AFTER tracking_number
+            """)
+            print("✅ Added courier_name column to orders table")
+
+
+        # Add verified_by column to track which admin verified
+        cursor.execute(f"""
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE() 
+            AND TABLE_NAME = 'orders' 
+            AND COLUMN_NAME = 'verified_by'
+        """)
+        if cursor.fetchone()[0] == 0:
+            cursor.execute(f"""
+                ALTER TABLE orders 
+                ADD COLUMN verified_by INT NULL AFTER payment_verified,
+                ADD FOREIGN KEY (verified_by) REFERENCES users(id)
+            """)
+            print("✅ Added verified_by column to orders table")
+
+        # Add verified_at timestamp
+        cursor.execute(f"""
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE() 
+            AND TABLE_NAME = 'orders' 
+            AND COLUMN_NAME = 'verified_at'
+        """)
+        if cursor.fetchone()[0] == 0:
+            cursor.execute(f"""
+                ALTER TABLE orders 
+                ADD COLUMN verified_at DATETIME NULL AFTER verified_by
+            """)
+            print("✅ Added verified_at column to orders table")
+
+        conn.commit()
+        print("✅ Orders table schema updated for payment verification")
+    except mysql.connector.Error as err:
+        conn.rollback()
+        print(f"❌ Error updating orders schema: {err}")
+    finally:
+        cursor.close()
+        conn.close()
 
 def slugify(text):
     return re.sub(r'[^a-z0-9]+', '-', text.lower().strip()).strip('-')
@@ -1114,12 +1160,14 @@ def home():
                          current_collection='all-products',
                          cart_length=cart_length)
 
+
+
 ITEMS_PER_PAGE = 12  # number of products per page
 
 @app.route('/recently-added')
 def recently_added():
     all_products_data = get_all_products_from_db()
-    thirty_days_ago = datetime.now() - timedelta(days=45)
+    thirty_days_ago = datetime.now() - timedelta(days=60)
 
     newest_products = [
         p for p in all_products_data
@@ -1756,7 +1804,6 @@ def privacy():
 @app.route('/contact')
 def contact():
     return render_template("contact.html")
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -1816,7 +1863,6 @@ def login():
             flash("Invalid email or password", "danger")
 
     return render_template('login.html')
-
 
 @app.route('/profile')
 def profile():
@@ -3428,7 +3474,7 @@ def admin_products():
                            active_section='products',
                            stock_filter=stock_filter,
                            status_filter=status_filter)
-    
+
 
 
 
@@ -3496,39 +3542,263 @@ def admin_customers():
                          customers=customers,active_section='customers'
                          )
 
+
 @app.route('/admin/orders')
 @role_required('admin')
 def admin_orders():
+    filter_param = request.args.get('filter')
+    
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Get all orders with customer and item information
-    cursor.execute("""
+    # Build the base query with payment verification fields
+    base_query = """
         SELECT 
             o.id, 
             o.order_date, 
             o.total_amount, 
             o.status,
             o.payment_method,
+            o.payment_verified,
+            o.verified_by,
+            o.verified_at,
             o.tracking_number,
-
             o.shipping_address,
+            o.shipping_city,
+            o.shipping_state,
+            o.shipping_pincode,
+            o.shipping_phone,
+            o.razorpay_order_id,
+            o.razorpay_payment_id,
             u.name as customer_name,
             u.email as customer_email,
+            va.name as verified_by_name,
             COUNT(oi.id) as item_count
         FROM orders o
         JOIN users u ON o.user_id = u.id
+        LEFT JOIN users va ON o.verified_by = va.id
         JOIN order_items oi ON o.id = oi.order_id
+    """
+    
+    # Add filters based on parameter
+    where_conditions = []
+    
+    if filter_param == 'pending_verification':
+        where_conditions.append("o.status = 'paid' AND o.payment_verified = 0")
+    elif filter_param == 'verified':
+        where_conditions.append("o.payment_verified = 1")
+    elif filter_param == 'rejected':
+        where_conditions.append("o.status = 'payment_rejected'")
+    
+    # Combine query with conditions
+    if where_conditions:
+        query = base_query + " WHERE " + " AND ".join(where_conditions)
+    else:
+        query = base_query
+    
+    query += """
         GROUP BY o.id
-        ORDER BY o.order_date DESC
-    """)
+        ORDER BY 
+            CASE 
+                WHEN o.status = 'paid' AND o.payment_verified = 0 THEN 1
+                WHEN o.status = 'payment_rejected' THEN 2
+                ELSE 3
+            END,
+            o.order_date DESC
+    """
+    
+    cursor.execute(query)
     orders = cursor.fetchall()
     
     conn.close()
     
     return render_template('admin_orders.html',
-                         orders=orders,active_section='orders'
-                         )
+                         orders=orders,
+                         active_section='orders',
+                         filter_param=filter_param)
+    
+# Add these routes to your app3.py file
+
+@app.route('/admin/verify_payment/<int:order_id>', methods=['POST'])
+@role_required('admin')
+def verify_payment(order_id):
+    """Admin route to verify payment for an order"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Check if order exists and is in paid status
+        cursor.execute("""
+            SELECT id, status, payment_verified, customer_name, total_amount
+            FROM orders 
+            WHERE id = %s AND status = 'paid'
+        """, (order_id,))
+        order = cursor.fetchone()
+        
+        if not order:
+            flash("Order not found or not in paid status", "danger")
+            return redirect(url_for('admin_orders'))
+        
+        if order['payment_verified']:
+            flash("Payment already verified for this order", "warning")
+            return redirect(url_for('admin_orders'))
+        
+        # Update payment verification
+        cursor.execute("""
+            UPDATE orders 
+            SET payment_verified = 1,
+                verified_by = %s,
+                verified_at = NOW()
+            WHERE id = %s
+        """, (session['user_id'], order_id))
+        
+        conn.commit()
+        
+        # Optional: Send notification to sellers
+        try:
+            send_payment_verified_notification(order_id)
+        except Exception as e:
+            app.logger.error(f"Failed to send verification notification: {str(e)}")
+        
+        flash(f"Payment verified for Order #{order_id}", "success")
+        
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error verifying payment: {str(e)}", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return redirect(url_for('admin_orders'))
+
+@app.route('/admin/reject_payment/<int:order_id>', methods=['POST'])
+@role_required('admin')
+def reject_payment(order_id):
+    """Admin route to reject/reverse payment verification"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        reason = request.form.get('rejection_reason', '').strip()
+        
+        # Check if order exists
+        cursor.execute("""
+            SELECT id, status, payment_verified 
+            FROM orders 
+            WHERE id = %s
+        """, (order_id,))
+        order = cursor.fetchone()
+        
+        if not order:
+            flash("Order not found", "danger")
+            return redirect(url_for('admin_orders'))
+        
+        # Update order status to indicate payment issue
+        cursor.execute("""
+            UPDATE orders 
+            SET payment_verified = 0,
+                status = 'payment_rejected',
+                verified_by = %s,
+                verified_at = NOW()
+            WHERE id = %s
+        """, (session['user_id'], order_id))
+        
+        conn.commit()
+        
+        # Optional: Send notification about payment rejection
+        try:
+            send_payment_rejection_notification(order_id, reason)
+        except Exception as e:
+            app.logger.error(f"Failed to send rejection notification: {str(e)}")
+        
+        flash(f"Payment rejected for Order #{order_id}", "warning")
+        
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error rejecting payment: {str(e)}", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return redirect(url_for('admin_orders'))
+
+def send_payment_verified_notification(order_id):
+    """Notify sellers when admin verifies payment"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Get sellers involved in this order
+    cursor.execute("""
+        SELECT DISTINCT u.email, u.name as seller_name
+        FROM order_items oi
+        JOIN users u ON oi.seller_id = u.id
+        WHERE oi.order_id = %s
+    """, (order_id,))
+    sellers = cursor.fetchall()
+    
+    for seller in sellers:
+        try:
+            msg = Message(
+                f"Payment Verified - Order #{order_id}",
+                recipients=[seller['email']]
+            )
+            msg.body = f"""
+Dear {seller['seller_name']},
+
+The payment for Order #{order_id} has been verified by our admin team.
+You can now proceed to confirm and ship the order items.
+
+Please log into your seller dashboard to process the order.
+
+Thank you,
+Admin Team
+"""
+            mail.send(msg)
+        except Exception as e:
+            app.logger.error(f"Error sending verification email to {seller['email']}: {str(e)}")
+    
+    cursor.close()
+    conn.close()
+
+def send_payment_rejection_notification(order_id, reason):
+    """Notify customer when admin rejects payment"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Get customer email
+    cursor.execute("""
+        SELECT u.email, u.name, o.total_amount
+        FROM orders o
+        JOIN users u ON o.user_id = u.id
+        WHERE o.id = %s
+    """, (order_id,))
+    order = cursor.fetchone()
+    
+    if order:
+        try:
+            msg = Message(
+                f"Payment Issue - Order #{order_id}",
+                recipients=[order['email']]
+            )
+            msg.body = f"""
+Dear {order['name']},
+
+We have identified an issue with the payment for your Order #{order_id}.
+
+Reason: {reason or 'Payment verification failed'}
+
+Please contact our support team for assistance with resolving this issue.
+Your order amount: ₹{order['total_amount']}
+
+Thank you,
+Support Team
+"""
+            mail.send(msg)
+        except Exception as e:
+            app.logger.error(f"Error sending rejection email: {str(e)}")
+    
+    cursor.close()
+    conn.close()
 
 
 def get_user_by_email(email):
@@ -3688,7 +3958,7 @@ def seller_dashboard():
     """, (seller_id,))
     seller_profile = cursor.fetchone()
     
-    
+    # Updated query to include payment verification information
     cursor.execute("""
         SELECT 
         o.id AS order_id,
@@ -3696,7 +3966,8 @@ def seller_dashboard():
         o.shipping_address,
         o.payment_method,
         o.tracking_number,
-
+        o.payment_verified,
+        o.verified_at,
         u.name AS customer_name,
         u.email AS customer_email,
         GROUP_CONCAT(CONCAT(p.title, ' (x', oi.quantity, ')') SEPARATOR ', ') AS items,
@@ -3707,7 +3978,7 @@ def seller_dashboard():
     JOIN users u ON o.user_id = u.id
     JOIN products p ON oi.product_id = p.id
     WHERE oi.seller_id = %s
-    GROUP BY o.id, o.order_date, o.shipping_address, u.name, u.email, o.status
+    GROUP BY o.id, o.order_date, o.shipping_address, u.name, u.email, o.status, o.payment_verified, o.verified_at
     HAVING o.status = 'paid'
     ORDER BY o.order_date DESC
     """, (seller_id,))
@@ -3720,7 +3991,6 @@ def seller_dashboard():
                          customers=customers,
                          seller_orders=orders,
                          seller_profile=seller_profile,categories=categories, subcategories=subcategories,category_map=category_map)
-    
     
 
 def send_seller_approval_email(seller_email, approved=True, reason=None):
@@ -3737,7 +4007,6 @@ def send_seller_approval_email(seller_email, approved=True, reason=None):
     mail.send(msg)
 
 # Call this in approve_seller() and reject_seller() routes
-
 
 @app.route('/seller/add_product', methods=['POST'])
 @role_required('seller')
@@ -3865,6 +4134,7 @@ def add_product():
             conn.close()
 
     return redirect(url_for('seller_dashboard'))
+
 
 
 @app.route('/seller/edit_profile', methods=['GET', 'POST'])
@@ -4265,6 +4535,7 @@ def edit_product(product_id):
 
 
 
+
 @app.route('/seller/delete_product/<string:product_id>', methods=['POST'])
 @role_required('seller')
 def delete_product(product_id):
@@ -4633,7 +4904,7 @@ def payment_success():
         
         # Send notifications (outside transaction)
         try:
-            send_order_confirmation_email(user_id, order_id)
+            # send_order_confirmation_email(user_id, order_id)
             send_payment_received_notification(order_id)
         except Exception as e:
             app.logger.error(f"Notification failed: {str(e)}")
@@ -4776,17 +5047,18 @@ def generate_unique_tracking_number(cursor):
         if not cursor.fetchone():
             return tracking_number
 
-
-
 @app.route('/seller/orders/<int:order_id>/ship', methods=['POST'])
 @role_required('seller')
 def ship_order(order_id):
     seller_id = session.get('user_id')
+    courier_name = (request.form.get('courier_name') or "").strip()
+    tracking_number = (request.form.get('tracking_number') or "").strip()
+
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
-        # ✅ Check seller is associated with this order
+        # ensure seller is linked to some item in this order
         cursor.execute("""
             SELECT o.user_id, u.email 
             FROM orders o
@@ -4802,39 +5074,38 @@ def ship_order(order_id):
             flash("You are not authorized to ship this order.", "danger")
             return redirect(url_for('seller_dashboard'))
 
-        customer_email = result[1]
+        # auto-generate if seller left it blank
+        if not tracking_number:
+            tracking_number = generate_unique_tracking_number(cursor)
 
-        # ✅ Generate random tracking number (10 characters)
-        tracking_number = generate_unique_tracking_number(cursor)
-
-
-
-        # ✅ Update order status and tracking info
+        # update orders table (per your structure)
         cursor.execute("""
             UPDATE orders 
-            SET status = 'shipped',
+            SET status = %s,
+                courier_name = %s,
                 tracking_number = %s,
                 shipped_at = NOW()
             WHERE id = %s
-        """, (tracking_number, order_id))
+        """, ('shipped', courier_name, tracking_number, order_id))
         conn.commit()
 
-        # ✅ Notify customer via email
+        # send email (wrap in try/except to avoid breaking flow)
         try:
-            send_shipping_notification(order_id, tracking_number)
+            send_shipping_notification(order_id, tracking_number, courier_name)
         except Exception as e:
-            flash(f"Order shipped, but email failed: {str(e)}", "warning")
+            flash(f"Order shipped but email failed: {str(e)}", "warning")
 
         flash(f"Order shipped with tracking number {tracking_number}.", "success")
 
     except Exception as e:
         conn.rollback()
         flash(f"Error processing shipment: {str(e)}", "danger")
-
     finally:
+        cursor.close()
         conn.close()
 
     return redirect(url_for('seller_dashboard'))
+
 
 
 
@@ -4859,6 +5130,7 @@ def my_orders():
             o.shipping_city,
             o.shipping_state,
             o.shipping_pincode,
+            o.courier_name,
             o.tracking_number,
             o.shipped_at,
             GROUP_CONCAT(p.title SEPARATOR ', ') AS items
@@ -4957,56 +5229,71 @@ def send_order_confirmation_email(user_id, order_id):
         print(f"Error sending order confirmation email: {str(e)}")
         return False
 
-def send_shipping_notification(order_id, tracking_number):
-    """Send shipping notification to customer"""
+def send_shipping_notification(order_id, tracking_number, courier_name):
+    """Send email (plain + HTML) to customer when order is shipped."""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    
-    # Get order and user details
     cursor.execute("""
-        SELECT o.id, u.email, u.name, o.tracking_number,
-               o.shipping_address, o.shipping_city, o.shipping_state,
-               o.shipping_pincode
+        SELECT o.id, o.customer_name, o.shipping_address, o.shipping_city, 
+               o.shipping_state, o.shipping_pincode, o.shipping_phone,
+               u.email
         FROM orders o
         JOIN users u ON o.user_id = u.id
         WHERE o.id = %s
     """, (order_id,))
     order = cursor.fetchone()
-    
-    if not order:
-        return False
-    
-    cursor.execute("""
-        SELECT p.title, oi.quantity
-        FROM order_items oi
-        JOIN products p ON oi.product_id = p.id
-        WHERE oi.order_id = %s
-    """, (order_id,))
-    items = cursor.fetchall()
+    cursor.close()
     conn.close()
-    
-    # Create email message
-    subject = f"Your Order #{order_id} Has Shipped!"
-    html = render_template('emails/shipping_notification.html',
-                         order=order,
-                         items=items,
-                         tracking_number=tracking_number)
-    text = render_template('emails/shipping_notification.txt',
-                         order=order,
-                         items=items,
-                         tracking_number=tracking_number)
-    
-    msg = Message(subject,
-                 recipients=[order['email']],
-                 html=html,
-                 body=text)
-    
+
+    if not order:
+        print("⚠️ Order not found for email notification")
+        return
+
+    subject = f"Your Order #{order_id} Has Been Shipped"
+    plain = f"""Hi {order['customer_name']},
+
+Good news — your order #{order_id} has been shipped.
+
+Courier: {courier_name}
+Tracking Number: {tracking_number}
+
+Shipping Address:
+{order['shipping_address']}
+{order['shipping_city']}, {order['shipping_state']} {order['shipping_pincode']}
+Phone: {order['shipping_phone']}
+
+You can track your package using the tracking number on the courier site.
+
+Thanks,
+Support Team
+"""
+
+    # Simple "track" link — fallback to google search for convenience
+    track_url = f"https://www.google.com/search?q={tracking_number}+{courier_name}"
+
+    html = f"""
+    <p>Hi {order['customer_name']},</p>
+    <p><strong>Your order #{order_id} has been shipped.</strong></p>
+    <p><strong>Courier:</strong> {courier_name}<br>
+       <strong>Tracking Number:</strong> {tracking_number}</p>
+    <p>Shipping Address:<br>
+       {order['shipping_address']}<br>
+       {order['shipping_city']}, {order['shipping_state']} {order['shipping_pincode']}<br>
+       Phone: {order['shipping_phone']}</p>
+    <p><a href="{track_url}" style="display:inline-block;padding:10px 18px;border-radius:6px;
+          text-decoration:none;border:1px solid #2d7bf6;">Track your shipment</a></p>
+    <p>Thanks,<br>Support Team</p>
+    """
+
     try:
+        msg = Message(subject, recipients=[order['email']])
+        msg.body = plain
+        msg.html = html
         mail.send(msg)
-        return True
+        print(f"✅ Shipping email sent to {order['email']}")
     except Exception as e:
-        print(f"Error sending shipping notification: {str(e)}")
-        return False
+        print(f"❌ Failed to send shipping email: {e}")
+
 
 def send_payment_received_notification(order_id):
     """Notify sellers when payment is received for their products"""
@@ -5095,6 +5382,7 @@ if __name__ == '__main__':
     add_missing_inventory_records()
     update_db_schema() 
     update_orders_schema()
+    update_orders_schema_for_payment_verification()
     # ----------------------------------------
-    # app.run(host='192.168.1.3',port=3000,debug=True)
+    # app.run(host='192.168.1.5',port=3000,debug=True)
     app.run(host='0.0.0.0',port=5001,debug=True)

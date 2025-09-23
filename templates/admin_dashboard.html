@@ -185,7 +185,8 @@ code, pre {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 30px;
+            padding: 0 20px;
+            
         }
         
         .admin-navbar-logo a {
@@ -475,6 +476,7 @@ code, pre {
                 width: 100%;
                 padding: 20px;
             }
+            
         }
 
         /* Mobile Menu Button */
@@ -559,6 +561,146 @@ code, pre {
         ::-webkit-scrollbar-thumb:hover {
             background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
         }
+        /* Responsive */
+@media (max-width: 767px) {
+    .sidebar-column {
+        display: none;
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1000;
+        height: 100vh;
+        width: 220px;
+        margin-right: 0;
+        border-radius: 0;
+        
+    }
+    
+    .sidebar-column.mobile-visible {
+        display: block;
+    }
+    
+    .content-column {
+        margin-left: 0;
+        width: 100%;
+        padding: 12px;
+    }
+    
+    /* Navbar remains same as your OK */
+    .admin-navbar {
+        padding: 6px 0;
+    }
+    
+    .admin-navbar-top {
+        padding: 0 12px;
+    }
+    
+    .header-image {
+        width: 100px;
+        padding: 2px;
+    }
+    
+    .admin-navbar-actions {
+        gap: 8px;
+    }
+    
+    .admin-navbar-actions span,
+    .admin-navbar-actions a {
+        padding: 5px 10px;
+        font-size: 0.85em;
+    }
+    
+    .role-badge {
+        font-size: 0.65rem;
+        padding: 2px 6px;
+        margin-left: 3px;
+    }
+    
+    /* Further decreased mobile menu button */
+    .mobile-menu-btn {
+        padding: 4px 10px; /* Reduced from 6px 12px */
+        font-size: 0.8em; /* Reduced from 0.85em */
+        margin-bottom: 10px; /* Reduced from 12px */
+        margin-left: 8px;
+        margin-right: 8px;
+        border-radius: 8px; /* Slightly smaller radius */
+    }
+    
+    .mobile-menu-btn i {
+        font-size: 0.8em; /* Reduced from 0.85em */
+        margin-right: 4px; /* Reduced icon-text spacing */
+    }
+    
+    /* Rest remains the same */
+    .sidebar-title {
+        font-size: 1.1rem;
+        margin-bottom: 25px;
+    }
+    
+    .sidebar-btn {
+        padding: 10px 12px;
+        font-size: 0.85em;
+        margin-bottom: 8px;
+        gap: 20px;
+        padding:20px;
+        
+    }
+   
+    
+    .sidebar-btn i {
+        width: 18px;
+        height: 18px;
+        font-size: 0.85em;
+        
+    }
+    
+    
+    h2 {
+        font-size: 1.4rem;
+        margin-bottom: 18px;
+        padding-bottom: 8px;
+    }
+    
+    h2::after {
+        width: 50px;
+        height: 3px;
+    }
+    
+    .dashboard-card .card-body {
+        padding: 12px;
+    }
+    
+    .card-text.fs-3 {
+        font-size: 1.4rem !important;
+    }
+    
+    .card-title {
+        font-size: 0.95em;
+    }
+    
+    .row .col-md-3.mb-4 {
+        margin-bottom: 12px !important;
+    }
+    
+    .alert {
+        padding: 8px 12px;
+        font-size: 0.9em;
+    }
+    
+    .modal-content {
+        margin: 10px;
+    }
+}
+.sidebar-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.5rem; /* Makes the 'X' icon larger */
+    z-index: 1010; /* Ensures it's clickable and above other elements */
+}
     </style>
 </head>
 <body>
@@ -599,12 +741,15 @@ code, pre {
             <div class="container-fluid mt-3 main-content-area">
                 <div class="row">
                     <!-- Mobile Menu Toggle -->
-                    <button class="d-md-none mobile-menu-btn mb-3 mx-3" id="sidebarToggle">
-                        <i class="fas fa-bars"></i> Menu
-                    </button>
+                    <button class="d-md-none mobile-menu-btn mb-3 ms-3 w-auto" id="sidebarToggle">
+    <i class="fas fa-bars"></i> Menu
+</button>
 
                     <!-- Modern Sidebar Column -->
                     <div class="col-md-2 sidebar-column text-white">
+                        <button class="d-md-none sidebar-close-btn" id="sidebarCloseBtn">
+        <i class="fas fa-times"></i>
+    </button>
                         <h4 class="sidebar-title">Admin Panel</h4>
                         <div class="d-flex flex-column">
                             <a href="{{ url_for('admin_dashboard') }}" class="sidebar-btn {{ 'active' if active_section == 'dashboard' }}">
@@ -758,9 +903,10 @@ code, pre {
         console.log('Admin dashboard loaded');
 
         // Mobile sidebar toggle
-        $('#sidebarToggle').click(function() {
-            $('.sidebar-column').toggleClass('mobile-visible');
-        });
+        // Mobile sidebar toggle
+$('#sidebarToggle, #sidebarCloseBtn').click(function() {
+    $('.sidebar-column').toggleClass('mobile-visible');
+});
 
         // Auto-dismiss alerts
         setTimeout(() => $('.alert').alert('close'), 5000);
@@ -911,6 +1057,7 @@ code, pre {
         });
     });
     </script>
+    
     
 </body>
 </html>

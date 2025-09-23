@@ -274,18 +274,14 @@ code, pre {
 
       .close-btn {
         position: absolute;
-        top: 15px;
+        top: 12px;
         right: 15px;
         background: #fff;
         font-size: 1.6rem; /* REDUCED from 1.8rem */
         cursor: pointer;
         color: #333;
         background: none;
-        border: none;
-        padding: 4px; /* REDUCED from 5px */
-        min-width: 40px; /* REDUCED from 44px */
-        min-height: 40px; /* REDUCED from 44px */
-        box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+       
         transition: left 0.4s ease;
         overflow-y: auto;
         line-height: 1;
@@ -394,17 +390,22 @@ code, pre {
       }
 
       .dropdown-toggle::after {
-        content: '⮟';
-        float: right;
-        font-size: 16px; /* REDUCED from 18px */
-        transition: transform 0.3s ease;
-        text-decoration: none !important;
-        border-top: none !important;
-      }
+    content: '';
+    float: right;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #333; /* Match your text color */
+    margin-left: 5px;
+    margin-top: 8px;
+    transition: transform 0.3s ease;
+    text-decoration: none !important;
+}
 
-      .has-dropdown.open .dropdown-toggle::after {
-        transform: rotate(-180deg);
-      }
+.has-dropdown.open .dropdown-toggle::after {
+    transform: rotate(-180deg);
+}
 
       .overlay {
         position: fixed;
@@ -807,7 +808,9 @@ code, pre {
       footer { 
         background: #0d3056ff; 
         color: black; 
-        font-size: 20px;   
+        font-size: 20px; 
+        
+        
       }
 
       footer a { 
@@ -972,12 +975,173 @@ code, pre {
     width: 100%;       /* ensure each item fills its grid cell */
   }
   .container1{
-    margin: 50px;
+    margin: 30px;
   }
 }
 
+/* Consistent product image sizing */
+.product-image {
+  width: 100%;
+  height: 200px; /* Fixed height for consistency */
+  object-fit: contain; /* Ensures entire image is visible */
+  background-color: #f8f9fa; /* Light background for transparency */
+  padding: 10px;
+}
 
-    
+/* Ensure product cards have consistent height */
+.product-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.product-card-body {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 15px; /* Default padding */
+}
+
+.product-pricing {
+  margin-top: auto; /* Pushes pricing to bottom of card */
+}
+
+/* Reduce gap between title and price */
+.card-body .product-title {
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.card-body .product-pricing {
+  margin-top: 5px;
+}
+
+/* If Bootstrap classes are adding margin */
+.mb-0 {
+  margin-bottom: 0 !important;
+}
+
+.mt-2 {
+  margin-top: 0.5rem !important;
+}
+
+/* Mobile-specific product card adjustments */
+@media (max-width: 767px) {
+  .product-card {
+    padding: 8px; /* Reduced from default padding */
+  }
+  
+  .product-card-body {
+    padding: 10px 5px; /* Reduced padding for card body */
+  }
+  
+  .product-image {
+    height: 150px; /* Slightly smaller on mobile */
+    padding: 5px;
+  }
+  
+  .product-title {
+    font-size: 0.9rem; /* Slightly smaller title */
+    margin-bottom: 5px !important;
+    line-height: 1.2;
+  }
+  
+  .product-pricing {
+    padding: 5px 0; /* Reduced padding */
+    margin-top: 3px !important;
+  }
+  
+  .btn-sm {
+    padding: 4px 8px; /* Smaller button padding */
+    font-size: 0.8rem;
+  }
+  
+  .stock-badge .badge {
+    font-size: 0.7rem; /* Smaller badge text */
+    padding: 3px 5px;
+  }
+  
+  .mt-2 {
+    margin-top: 0.3rem !important;
+  }
+  
+  /* Also reduce other spacing elements */
+  .product-card-body > * {
+    margin-bottom: 4px;
+  }
+  
+  .product-card-body > *:last-child {
+    margin-bottom: 0;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+  .product-card {
+    padding: 5px;
+  }
+  
+  .product-card-body {
+    padding: 8px 3px;
+  }
+  
+  .product-image {
+    height: 120px; /* Even smaller on very small screens */
+  }
+  
+  .product-title {
+    font-size: 0.85rem;
+    margin-bottom: 3px !important;
+  }
+  
+  .current-price {
+    font-size: 0.9rem;
+  }
+  
+  .compare-price {
+    font-size: 0.8rem;
+  }
+  
+  .product-pricing {
+    margin-top: 2px !important;
+  }
+  
+  .mt-2 {
+    margin-top: 0.2rem !important;
+  }
+}
+/* Rotating hourglass */
+
+
+
+
+/* Typing effect for "Coming Soon" */
+.coming-soon {
+  font-weight: bold;
+  font-family: 'Ubuntu', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  border-right: 2px solid #ff5722; /* cursor effect */
+  display: inline-block; /* Make width respected */
+  width: 0;
+  animation: typing 2s steps(12) forwards 2s, blink 0.7s step-end infinite alternate 4s;
+  text-align: center;
+}
+
+/* Typing animation */
+@keyframes typing {
+  0% { width: 0; }
+  100% { width: 12ch; }
+}
+
+/* Blinking cursor */
+@keyframes blink {
+  50% { border-color: transparent; }
+}
+
+
+
+
 </style>
 </head>
 <body>
@@ -1265,8 +1429,10 @@ code, pre {
             </div>
         {% else %}
             <div class="text-center py-5">
-                <h4 class="text-muted">Coming Soon</h4>
-            </div>
+                <!-- Rotating hourglass icon -->
+                
+                <h4 class="text-muted coming-soon">Coming Soon</h4>
+              </div>
         {% endif %}
     </div>
 </section>
@@ -1398,7 +1564,7 @@ code, pre {
   </div>
 </section> -->
 <section class="container1">
-  <div class="image-grid">
+  <div class="image-grid ">
     {% for link in category_links %}
       <a href="{{ link.url }}">
         <img src="{{ url_for('static', filename=link.image_path.replace('\\','/')) }}" alt="{{ link.alt_text }}" loading="lazy">

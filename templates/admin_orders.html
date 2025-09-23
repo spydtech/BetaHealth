@@ -1,7 +1,35 @@
 {% extends 'admin_dashboard.html' %}
 {% block content %}
-<!-- <div id="orders-section" class="content-section {% if active_section == 'orders' %}active{% endif %}"> -->
-    <h2 class="mb-4"><i class="fas fa-shopping-cart me-2"></i>Order Management</h2>
+    <h2 class="mb-4"><i class="fas fa-shopping-cart me-2"></i>Order Management & Payment Verification</h2>
+    
+    <!-- Filter Section -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-filter"></i> Filter Orders</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+    <div class="col-12 col-md-3 mb-2">
+        <a href="{{ url_for('admin_orders') }}" class="btn btn-outline-primary btn-sm w-100 py-2">All Orders</a>
+    </div>
+    <div class="col-12 col-md-3 mb-2">
+        <a href="{{ url_for('admin_orders', filter='pending_verification') }}" class="btn btn-outline-warning btn-sm w-100 py-2">Pending Verification</a>
+    </div>
+    <div class="col-12 col-md-3 mb-2">
+        <a href="{{ url_for('admin_orders', filter='verified') }}" class="btn btn-outline-success btn-sm w-100 py-2">Verified</a>
+    </div>
+    <div class="col-12 col-md-3 mb-2">
+        <a href="{{ url_for('admin_orders', filter='rejected') }}" class="btn btn-outline-danger btn-sm w-100 py-2">Payment Issues</a>
+    </div>
+</div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="table-responsive">
         <table class="table table-striped table-hover">
             <thead class="table-dark">
@@ -12,35 +40,242 @@
                     <th>Amount</th>
                     <th>Status</th>
                     <th>Payment</th>
+                    <th>Payment Verified</th>
                     <th>Tracking Number</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for order in orders %}
-                <tr>
-                    <td>{{ order.id }}</td>
-                    <td>{{ order.customer_name }}</td>
-                    <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td>₹{{ "%.2f"|format(order.total_amount) }}</td>
+                <tr class="{% if order.status == 'payment_rejected' %}table-danger{% elif not order.payment_verified and order.status == 'paid' %}table-warning{% endif %}">
                     <td>
-                        <span class="badge bg-{% if order.status == 'completed' %}success{% elif order.status == 'pending' %}warning{% elif order.status == 'cancelled' %}danger{% else %}info{% endif %}">
-                            {{ order.status|title }}
+                        <strong>{{ order.id }}</strong>
+                        <br><small>{{ order.razorpay_order_id[:15] if order.razorpay_order_id else 'N/A' }}...</small>
+                    </td>
+                    <td>
+                        <strong>{{ order.customer_name }}</strong>
+                        <br><small>{{ order.customer_email }}</small>
+                        <br><small class="text-muted">{{ order.shipping_address[:30] }}...</small>
+                    </td>
+                    <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>
+                        <strong>₹{{ "%.2f"|format(order.total_amount) }}</strong>
+                        <br><small class="text-muted">{{ order.item_count }} items</small>
+                    </td>
+                    <td>
+                        <span class="badge bg-{% if order.status == 'completed' %}success{% elif order.status == 'pending' %}warning{% elif order.status == 'cancelled' %}danger{% elif order.status == 'paid' %}info{% elif order.status == 'shipped' %}primary{% elif order.status == 'payment_rejected' %}danger{% else %}secondary{% endif %}">
+                            {% if order.status == 'payment_rejected' %}Payment Issue{% else %}{{ order.status|title }}{% endif %}
                         </span>
                     </td>
-                    <td>{{ order.payment_method|title }}</td>
-                    <td>{{ order.tracking_number if order.tracking_number else '-' }}</td>
-
                     <td>
-                        <a href="#" class="btn btn-sm btn-primary">View</a>
-                        {% if order.status == 'pending' %}
-                            <button class="btn btn-sm btn-success">Approve</button>
+                        {{ order.payment_method|title }}
+                        {% if order.razorpay_payment_id %}
+                            <br><small class="text-muted">{{ order.razorpay_payment_id[:15] }}...</small>
                         {% endif %}
                     </td>
+                    <td>
+                        {% if order.payment_verified %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle"></i> Verified
+                            </span>
+                            {% if order.verified_at %}
+                                <br><small class="text-muted">{{ order.verified_at.strftime('%d-%m-%Y %H:%M') }}</small>
+                            {% endif %}
+                            {% if order.verified_by_name %}
+                                <br><small class="text-muted">by {{ order.verified_by_name }}</small>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge bg-warning">
+                                <i class="fas fa-clock"></i> Pending
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>{% if order.tracking_number %}
+                        <div class="mt-2">
+                            <p class="mb-1"><strong>Courier:</strong> {{ order.courier_name or '-' }}</p>
+                            <p class="mb-1"><strong>Tracking Number:</strong> {{ order.tracking_number }}</p>
+                            <p class="mb-0"><strong>Shipped At:</strong> {{ order.shipped_at }}</p>
+                        </div>
+                        {% endif %}</td>
+                    <td>
+                        <div class="btn-group-vertical" role="group">
+                            <!-- Payment Verification Actions -->
+                            {% if order.status == 'paid' and not order.payment_verified %}
+                                <form method="POST" action="{{ url_for('verify_payment', order_id=order.id) }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-success mb-1" 
+                                            onclick="return confirm('Verify payment for Order #{{ order.id }}?')">
+                                        <i class="fas fa-check"></i> Verify Payment
+                                    </button>
+                                </form>
+                                
+                                <button type="button" class="btn btn-sm btn-danger mb-1" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#rejectModal{{ order.id }}">
+                                    <i class="fas fa-times"></i> Reject Payment
+                                </button>
+                            {% endif %}
+                            
+                            <!-- View Order Details -->
+                            <a href="#" class="btn btn-sm btn-primary mb-1" 
+                               data-bs-toggle="modal" 
+                               data-bs-target="#orderModal{{ order.id }}">
+                                <i class="fas fa-eye"></i> View Details
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                
+                <!-- Order Details Modal -->
+                <div class="modal fade" id="orderModal{{ order.id }}" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Order #{{ order.id }} Details</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Customer Information</h6>
+                                        <p><strong>Name:</strong> {{ order.customer_name }}</p>
+                                        <p><strong>Email:</strong> {{ order.customer_email }}</p>
+                                        <p><strong>Phone:</strong> {{ order.shipping_phone or 'N/A' }}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Shipping Address</h6>
+                                        <p>{{ order.shipping_address }}</p>
+                                        {% if order.shipping_city %}
+                                            <p>{{ order.shipping_city }}, {{ order.shipping_state }} {{ order.shipping_pincode }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Payment Information</h6>
+                                        <p><strong>Method:</strong> {{ order.payment_method|title }}</p>
+                                        <p><strong>Amount:</strong> ₹{{ "%.2f"|format(order.total_amount) }}</p>
+                                        {% if order.razorpay_payment_id %}
+                                            <p><strong>Payment ID:</strong> {{ order.razorpay_payment_id }}</p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Order Status</h6>
+                                        <p><strong>Status:</strong> {{ order.status|title }}</p>
+                                        <p><strong>Order Date:</strong> {{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</p>
+                                        {% if order.tracking_number %}
+                                            <p><strong>Tracking:</strong> {{ order.tracking_number }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payment Rejection Modal -->
+                {% if order.status == 'paid' and not order.payment_verified %}
+                <div class="modal fade" id="rejectModal{{ order.id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Reject Payment - Order #{{ order.id }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST" action="{{ url_for('reject_payment', order_id=order.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label for="rejection_reason{{ order.id }}" class="form-label">Rejection Reason *</label>
+                                        <textarea class="form-control" 
+                                                  id="rejection_reason{{ order.id }}" 
+                                                  name="rejection_reason" 
+                                                  rows="3" 
+                                                  placeholder="Please specify the reason for rejecting this payment..." 
+                                                  required></textarea>
+                                    </div>
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <strong>Warning:</strong> Rejecting payment will notify the customer and prevent order fulfillment.
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-danger">Reject Payment</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% else %}
+                <tr>
+                    <td colspan="9" class="text-center">No orders found</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    
+    <!-- Statistics Cards -->
+    <div class="container-fluid">
+  <div class="row mt-4 gx-2">
+      <div class="col-12 col-sm-6 col-md-3 mb-3">
+          <div class="card bg-warning text-white h-100">
+              <div class="card-body text-center py-3">
+                  <h5>{{ orders|selectattr('payment_verified', 'equalto', false)|selectattr('status', 'equalto', 'paid')|list|length }}</h5>
+                  <p>Pending Verification</p>
+              </div>
+          </div>
+      </div>
+      <div class="col-12 col-sm-6 col-md-3 mb-3">
+          <div class="card bg-success text-white h-100">
+              <div class="card-body text-center py-3">
+                  <h5>{{ orders|selectattr('payment_verified', 'equalto', true)|list|length }}</h5>
+                  <p>Verified Payments</p>
+              </div>
+          </div>
+      </div>
+      <div class="col-12 col-sm-6 col-md-3 mb-3">
+          <div class="card bg-danger text-white h-100">
+              <div class="card-body text-center py-3">
+                  <h5>{{ orders|selectattr('status', 'equalto', 'payment_rejected')|list|length }}</h5>
+                  <p>Payment Issues</p>
+              </div>
+          </div>
+      </div>
+      <div class="col-12 col-sm-6 col-md-3 mb-3">
+          <div class="card bg-primary text-white h-100">
+              <div class="card-body text-center py-3">
+                  <h5>{{ orders|length }}</h5>
+                  <p>Total Orders</p>
+              </div>
+          </div>
+      </div>
+  </div>
 </div>
+<style>
+    /* Prevent any horizontal overflow */
+body, html {
+  overflow-x: hidden;
+}
+
+/* Force Bootstrap rows to wrap correctly */
+.row {
+  margin-left: 0;
+  margin-right: 0;
+  flex-wrap: wrap !important;
+}
+
+/* Make sure cards don't overflow */
+.card {
+  width: 100% !important;
+}
+
+
+</style>
 {% endblock %}

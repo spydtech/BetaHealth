@@ -339,7 +339,11 @@ code, pre {
                     </td>
                     <td data-label="Tracking">
                         {% if order.tracking_number %}
-                            {{ order.tracking_number }}
+                            <div class="mt-2">
+                                <p class="mb-1"><strong>Courier:</strong> {{ order.courier_name or '-' }}</p>
+                                <p class="mb-1"><strong>Tracking Number:</strong> {{ order.tracking_number }}</p>
+                                <p class="mb-0"><strong>Shipped At:</strong> {{ order.shipped_at }}</p>
+                            </div>
                         {% else %}
                             Not available
                         {% endif %}

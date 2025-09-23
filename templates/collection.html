@@ -3,6 +3,7 @@
 {% block title %}{{ collection.title }} - BetaHealth{% endblock %}
 
 {% block content %}
+<div class="main-content"> 
 <div class="container mt-5">
 
     <!-- Title + Sort by Row -->
@@ -23,7 +24,7 @@
     </div>
 
     <!-- Products Grid -->
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
+    <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
         {% for product in collection.products %}
         <div class="col product-item" data-price="{{ product.price }}" data-title="{{ product.title }}">
             <div class="card h-100 product-card shadow-sm">
@@ -68,21 +69,24 @@
     <!-- Pagination Container -->
     <div id="pagination-container" class="pagination-container"></div>
 </div>
+</div>
 
 <style>
 /* Collection Page Specific Styles (collection.html) */
 .collection-title {
-    font-size: 1.9rem;
+    font-size: 0.8rem;
     font-weight: 700;
     color: #007bff;
+    
 }
+
 
 /* Sort by styling */
 .filter-container label {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
 }
 #sort-by {
-    min-width: 160px;   /* give more width */
+    min-width: 120px;   /* give more width */
     padding-right: 2rem; /* add space for arrow */
     background-position: right 0.75rem center; /* move arrow inward */
     background-repeat: no-repeat;
@@ -128,6 +132,7 @@
     width: 100%;
     height: 220px;
     object-fit: contain;
+    
     padding: 15px;
     transition: transform 0.3s ease;
 }
@@ -198,7 +203,9 @@
 .product-item {
     display: none;
 }
+
 </style>
+
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
