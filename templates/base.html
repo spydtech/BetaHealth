@@ -1322,6 +1322,7 @@ code, pre {
 {% block content %}
 <div class="main-content">
 <section>
+{% if carousel_slides and carousel_slides|length > 0 %}
 <!-- Carousel wrapper -->
 <div id="maltsCarousel" class="carousel slide product-carousel" data-bs-ride="carousel">
   <div class="carousel-indicators">
@@ -1362,6 +1363,7 @@ code, pre {
     <span class="visually-hidden">Next</span>
   </button>
 </div>
+{% endif %}
 </section>
 
 
