@@ -106,33 +106,97 @@
 
         <div class="col-md-6 product-info-section">
             <div class="d-flex align-items-center justify-content-between">
-                <h1 class="product-page-title mb-0">{{ product.title }}</h1>
+    <h1 class="product-page-title mb-0">{{ product.title }}</h1>
 
-                <!-- Wishlist Heart Button -->
-                <!-- Wishlist Heart Button - Only show for customers -->
-                
-                <!-- <button id="wishlistBtn" 
-                        class="wishlist-btn ms-3" 
-                        data-product-id="{{ product.id }}">
-                    {% if in_wishlist %}
-                        ❤️
-                    {% else %}
-                        🤍
-                    {% endif %}
-                </button> -->
-                {% if session.user_role == 'customer' %}
-                    <button id="wishlistBtn" 
-                            class="wishlist-btn ms-3" 
-                            data-product-id="{{ product.id }}">
-                        {% if in_wishlist %}
-                        ❤️
-                        {% else %}
-                        🤍
-                        {% endif %}
-                    </button>
-                    {% endif %}
-                
+    <!-- Buttons side by side -->
+    <div class="d-flex align-items-center ms-3">
+        {% if session.user_role == 'customer' %}
+            <button id="wishlistBtn" 
+                    class="wishlist-btn" 
+                    data-product-id="{{ product.id }}">
+                {% if in_wishlist %}
+                ❤️
+                {% else %}
+                🤍
+                {% endif %}
+            </button>
+        {% endif %}
+
+        <button id="shareBtn" class="share-btn ms-2" title="Share this product">
+            <i class="bi bi-share-fill"></i>
+        </button>
+    </div>
+</div>
+
+
+
+<!-- Share Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title" id="shareModalLabel">Share this product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <div class="modal-body pt-2">
+                <div class="share-options">
+                    <!-- WhatsApp -->
+                    <a href="#" class="share-option" id="shareWhatsApp">
+                        <div class="share-icon whatsapp">
+                            <i class="bi bi-whatsapp"></i>
+                        </div>
+                        <span>WhatsApp</span>
+                    </a>
+                    
+                    <!-- Facebook -->
+                    <a href="#" class="share-option" id="shareFacebook">
+                        <div class="share-icon facebook">
+                            <i class="bi bi-facebook"></i>
+                        </div>
+                        <span>Facebook</span>
+                    </a>
+                    
+                    <!-- Twitter -->
+                    <a href="#" class="share-option" id="shareTwitter">
+                        <div class="share-icon twitter">
+                            <i class="bi bi-twitter"></i>
+                        </div>
+                        <span>Twitter</span>
+                    </a>
+                    
+                    <!-- Telegram -->
+                    <a href="#" class="share-option" id="shareTelegram">
+                        <div class="share-icon telegram">
+                            <i class="bi bi-telegram"></i>
+                        </div>
+                        <span>Telegram</span>
+                    </a>
+                    
+                    <!-- Copy Link -->
+                    <a href="#" class="share-option" id="copyLink">
+                        <div class="share-icon copy">
+                            <i class="bi bi-link-45deg"></i>
+                        </div>
+                        <span>Copy Link</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast notification for copy link -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+   <div id="copyToast" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+        <div class="toast-body">
+            <i class="bi bi-check-circle-fill me-2"></i>Link copied to clipboard!
+        </div>
+        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+</div>
+
+</div>
 
             <!-- <div class="product-price-section mb-3">
                 <span class="current-price-lg">₹{{ "%.2f"|format(product.price) }}</span>
@@ -561,6 +625,131 @@
     line-height: 1.6;
     margin-bottom: 20px;
 }
+i{
+    color: white;
+}
+
+.share-btn {
+    background: none;
+    border: none;      /* ⬅ remove circle border */
+    width: auto;       /* let size adapt to icon */
+    height: auto;
+    font-size: 1.6rem; /* match wishlist size */
+    color: #333;       /* same as text/icons */
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.share-btn:hover {
+    transform: scale(1.2);
+    color: #000;       /* darker on hover */
+}
+.share-btn i {
+    color: rgb(62, 204, 166);
+}
+
+
+/* Share Modal */
+.share-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 8px 0;
+}
+
+.share-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: #212121;
+    transition: transform 0.2s ease;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.share-option:hover {
+    transform: translateY(-4px);
+    background-color: #f8f9fa;
+}
+
+.share-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    font-size: 24px;
+    color: white;
+}
+
+.share-icon.whatsapp {
+    background: linear-gradient(135deg, #25D366, #128C7E);
+}
+
+.share-icon.facebook {
+    background: linear-gradient(135deg, #1877F2, #0C63D4);
+}
+
+.share-icon.twitter {
+    background: linear-gradient(135deg, #1DA1F2, #0D8BD9);
+}
+
+.share-icon.telegram {
+    background: linear-gradient(135deg, #0088cc, #006699);
+}
+
+.share-icon.copy {
+    background: linear-gradient(135deg, #6c757d, #495057);
+}
+
+.share-option span {
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+}
+
+/* Mobile Responsive */
+@media (max-width: 576px) {
+    .share-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+    
+    .share-options {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+    
+    .share-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+    }
+}
+
+/* Toast Animation */
+.toast {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+#copyToast {
+    background-color: #c5f0b8 !important; /* match navbar */
+    color: #000 !important;              /* dark text for contrast */
+}
 
 
 </style>
@@ -604,5 +793,108 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 });
 </script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const shareBtn = document.getElementById("shareBtn");
+    const shareModal = new bootstrap.Modal(document.getElementById("shareModal"));
+    const copyToast = new bootstrap.Toast(document.getElementById("copyToast"));
+    
+    // Get product details for sharing
+    const productTitle = "{{ product.title }}";
+    const productUrl = window.location.href;
+    const productPrice = "₹{{ '%.0f'|format(product.price) }}";
+    const shareText = `Check out ${productTitle} for ${productPrice} on BetaHealth!`;
+    
+    // Open share modal
+    if (shareBtn) {
+        shareBtn.addEventListener("click", () => {
+            shareModal.show();
+        });
+    }
+    
+    // WhatsApp share
+    document.getElementById("shareWhatsApp")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText + " " + productUrl)}`;
+        window.open(whatsappUrl, "_blank");
+        shareModal.hide();
+    });
+    
+    // Facebook share
+    document.getElementById("shareFacebook")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}`;
+        window.open(facebookUrl, "_blank", "width=600,height=400");
+        shareModal.hide();
+    });
+    
+    // Twitter share
+    document.getElementById("shareTwitter")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(productUrl)}`;
+        window.open(twitterUrl, "_blank", "width=600,height=400");
+        shareModal.hide();
+    });
+    
+    // Telegram share
+    document.getElementById("shareTelegram")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(productUrl)}&text=${encodeURIComponent(shareText)}`;
+        window.open(telegramUrl, "_blank");
+        shareModal.hide();
+    });
+    
+   // Copy link
+document.getElementById("copyLink")?.addEventListener("click", (e) => {
+    e.preventDefault();
+
+    const productUrl = window.location.href;
+
+    // Modern API first (works only on https or localhost)
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(productUrl).then(() => {
+            copyToast.show();
+            shareModal.hide();
+        }).catch(err => {
+            console.error("Clipboard API failed:", err);
+            fallbackCopy(productUrl);
+        });
+    } else {
+        // Fallback for http or older browsers
+        fallbackCopy(productUrl);
+    }
+});
+
+// Fallback function
+function fallbackCopy(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed"; // prevent scrolling
+    textArea.style.opacity = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        document.execCommand("copy");
+        copyToast.show();
+        shareModal.hide();
+    } catch (err) {
+        console.error("Fallback copy failed", err);
+        alert("Please copy the link manually: " + text);
+    }
+
+    document.body.removeChild(textArea);
+}
+
+
+});
+</script>
+<script>const shareBtn = document.getElementById("shareBtn");
+    const shareModal = new bootstrap.Modal(document.getElementById("shareModal"));
+    const copyToast = new bootstrap.Toast(document.getElementById("copyToast"), {
+        autohide: true,
+        delay: 2000
+    });</script>
 
 {% endblock %}
