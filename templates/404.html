@@ -5,9 +5,22 @@
 {% block content %}
 <div class="d-flex justify-content-center align-items-center" style="min-height: 80vh; text-align: center;">
     <div>
-        <h1 class="display-4 fw-bold mb-3">404 - Page Not Found</h1>
-        <p class="lead mb-4">The page you're looking for doesn't exist.</p>
+        <!-- Animated search icon -->
+        <div class="mb-4" style="font-size: 4rem;" role="img" aria-label="Broken link illustration">
+    <i class="fas fa-unlink fa-beat-fade" style="--fa-animation-duration: 2s; color: #6c757d;"></i>
+</div>
+        
+        <h1 class="display-4 fw-bold mb-3" style="font-size: 2.0rem;">404 - Page Not Found</h1>
+        <p class="lead mb-4">We're sorry, the page you requested could not be found.<br>
+        Please go back to the homepage.</p>
         <a href="{{ url_for('home') }}" class="btn btn-primary">Return Home</a>
     </div>
 </div>
+<style>
+    h1{
+        text-decoration: none;
+        
+    
+    }
+</style>
 {% endblock %}
