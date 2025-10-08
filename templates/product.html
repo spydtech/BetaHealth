@@ -367,6 +367,45 @@
 
         </div>
     </div>
+    {% if recently_viewed %}
+<div class="mt-5">
+    <h3 class="mb-3">Recently Viewed</h3>
+    <div class="recently-viewed-wrapper position-relative">
+        <button class="scroll-btn left-btn btn btn-light shadow" onclick="scrollRecentlyViewed(-1)">
+            &#8249;
+        </button>
+
+        <div id="recentlyViewedContainer" class="recently-viewed-container d-flex overflow-auto pb-2">
+            {% for product in recently_viewed %}
+            <div class="card me-3 flex-shrink-0" style="width: 180px;">
+                <a href="{{ url_for('product', product_id=product.id) }}">
+                    <img src="{{ url_for('static', filename='images/' + product.image) }}"
+                         class="card-img-top p-2" alt="{{ product.title }}"
+                         style="height: 150px; object-fit: contain;">
+                </a>
+                <div class="card-body text-center p-2">
+                    <h6 class="card-title text-truncate" title="{{ product.title }}">{{ product.title }}</h6>
+                    <p class="text-success fw-bold mb-1">₹{{ "%.2f"|format(product.price) }}</p>
+
+                    {% if product.in_stock %}
+                        <span class="badge bg-success mb-2">In Stock</span>
+                    {% else %}
+                        <span class="badge bg-danger mb-2">Out of Stock</span>
+                    {% endif %}
+
+                    <a href="{{ url_for('product', product_id=product.id) }}" 
+                       class="btn btn-sm btn-outline-primary">View</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <button class="scroll-btn right-btn btn btn-light shadow" onclick="scrollRecentlyViewed(1)">
+            &#8250;
+        </button>
+    </div>
+</div>
+{% endif %}
 </div>
 
 <style>
@@ -750,7 +789,106 @@ i{
     background-color: #c5f0b8 !important; /* match navbar */
     color: #000 !important;              /* dark text for contrast */
 }
+/* Recently Viewed Section Styles */
+.recently-viewed-container {
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: #bbb transparent;
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 8px;
+}
 
+.recently-viewed-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.recently-viewed-container::-webkit-scrollbar-thumb {
+    background: #bbb;
+    border-radius: 4px;
+}
+
+.scroll-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    cursor: pointer;
+    background: white;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.left-btn { 
+    left: -20px; 
+}
+
+.right-btn { 
+    right: -20px; 
+}
+
+.scroll-btn:hover {
+    background: #f8f9fa;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Show buttons when container has scrollable content */
+.recently-viewed-container:not(:where([data-scrollable="false"])) ~ .scroll-btn {
+    display: flex;
+}
+
+/* Card styles for recently viewed items */
+.recently-viewed-container .card {
+    width: 180px;
+    flex-shrink: 0;
+    margin-right: 16px;
+    transition: transform 0.2s ease;
+    border: 1px solid #e0e0e0;
+}
+
+.recently-viewed-container .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.recently-viewed-container .card-img-top {
+    height: 150px;
+    object-fit: contain;
+    padding: 8px;
+}
+
+.recently-viewed-container .card-body {
+    padding: 12px;
+    text-align: center;
+}
+
+.recently-viewed-container .card-title {
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    display: -webkit-box;
+   
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    height: 2.4em;
+    line-height: 1.2em;
+}
+
+/* Position relative for the container */
+.recently-viewed-wrapper {
+    position: relative;
+}
+
+/* Hide scrollbar when no overflow */
+.recently-viewed-container[data-scrollable="false"] {
+    justify-content: center;
+}
 
 </style>
 
@@ -896,5 +1034,53 @@ function fallbackCopy(text) {
         autohide: true,
         delay: 2000
     });</script>
+<script>
+    // Recently Viewed Scroll Functionality
+function updateArrowVisibility() {
+    const container = document.getElementById("recentlyViewedContainer");
+    if (!container) return;
+
+    const leftBtn = document.querySelector(".left-btn");
+    const rightBtn = document.querySelector(".right-btn");
+
+    // Show/hide left button
+    if (container.scrollLeft <= 0) {
+        leftBtn.style.display = "none";
+    } else {
+        leftBtn.style.display = "flex";
+    }
+
+    // Show/hide right button
+    if (container.scrollLeft + container.clientWidth >= container.scrollWidth - 5) {
+        rightBtn.style.display = "none";
+    } else {
+        rightBtn.style.display = "flex";
+    }
+}
+
+function scrollRecentlyViewed(direction) {
+    const container = document.getElementById("recentlyViewedContainer");
+    if (!container) return;
+
+    const scrollAmount = 200;
+    container.scrollBy({ 
+        left: direction * scrollAmount, 
+        behavior: 'smooth' 
+    });
+
+    setTimeout(updateArrowVisibility, 300);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const container = document.getElementById("recentlyViewedContainer");
+    if (container) {
+        updateArrowVisibility();
+        container.addEventListener("scroll", updateArrowVisibility);
+        
+        // Update on window resize
+        window.addEventListener('resize', updateArrowVisibility);
+    }
+});
+</script>
 
 {% endblock %}

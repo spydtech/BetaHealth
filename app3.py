@@ -1548,12 +1548,13 @@ def product(product_id):
 
 
     collection_title = product_item.get('category', 'Products').replace('-', ' ').title()
+    recently_viewed = session.get('recently_viewed', [])
 
     return render_template('product.html',
                            product=product_item,
                            collection_title=collection_title,
                            reviews=reviews,
-                           user_has_purchased=user_has_purchased,in_wishlist=in_wishlist)
+                           user_has_purchased=user_has_purchased,in_wishlist=in_wishlist,recently_viewed=recently_viewed)
 
 @app.route('/wishlist')
 def wishlist():
