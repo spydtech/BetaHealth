@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}{{ seller.company_name or seller.seller_name }} - Seller Products{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4 text-center">Products by {{ seller.company_name or seller.seller_name }}</h2>
+
+  <div class="row">
+    {% for p in products %}
+    <div class="col-6 col-md-3 mb-4">
+      <div class="card h-100 border-0 shadow-sm">
+        
+        
+        <a href="{{ url_for('product', product_id=p.id) }}"
+            > <img src="{{ url_for('static', filename='images/' ~ p.image) }}"
+             class="card-img-top p-2"
+             alt="{{ p.title }}"
+             style="height: 180px; object-fit: contain;"></a>
+
+        <div class="card-body text-center">
+          <h6 class="card-title text-truncate" title="{{ p.title }}">{{ p.title }}</h6>
+
+          <!-- ✅ Price with discount -->
+          <div class="price-section mb-2">
+            <span class="text-success fw-bold me-2">
+              ₹{{ "%.0f"|format(p.price) }}
+            </span>
+            {% if p.compare_price and p.compare_price > p.price %}
+            <span class="text-muted text-decoration-line-through me-2">
+              ₹{{ "%.0f"|format(p.compare_price) }}
+            </span>
+            <span class="text-danger fw-semibold">
+              {{ "%.0f"|format(((p.compare_price - p.price) / p.compare_price) * 100) }}% off
+            </span>
+            {% endif %}
+          </div>
+
+          <a href="{{ url_for('product', product_id=p.id) }}"
+             class="btn btn-outline-primary btn-sm w-100">View</a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+.card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: 10px;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+}
+.card-title {
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  height: 2.6em;
+  overflow: hidden;
+}
+.price-section {
+  font-size: 0.9rem;
+}
+.price-section .text-muted {
+  font-size: 0.8rem;
+}
+</style>
+{% endblock %}

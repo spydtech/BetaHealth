@@ -1529,6 +1529,14 @@ def product(product_id):
         ORDER BY r.created_at DESC
     """, (product_id,))
     reviews = cursor.fetchall()
+    cursor.execute("""
+        SELECT u.id AS seller_id, u.name AS seller_name,
+               sp.company_name, sp.address, sp.gst_number
+        FROM users u
+        LEFT JOIN seller_profiles sp ON u.id = sp.user_id
+        WHERE u.id = %s
+    """, (product_item['seller_id'],))
+    seller_info = cursor.fetchone()
     cursor.close()
     conn.close()
 
@@ -1552,9 +1560,37 @@ def product(product_id):
 
     return render_template('product.html',
                            product=product_item,
+                          
                            collection_title=collection_title,
                            reviews=reviews,
+                           seller_info=seller_info,
                            user_has_purchased=user_has_purchased,in_wishlist=in_wishlist,recently_viewed=recently_viewed)
+
+@app.route('/seller/<int:seller_id>')
+def seller_products(seller_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Fetch seller info
+    cursor.execute("""
+        SELECT u.name AS seller_name, sp.company_name
+        FROM users u
+        LEFT JOIN seller_profiles sp ON u.id = sp.user_id
+        WHERE u.id = %s
+    """, (seller_id,))
+    seller = cursor.fetchone()
+
+    # Fetch all products from this seller
+    cursor.execute("SELECT * FROM products WHERE seller_id = %s", (seller_id,))
+    products = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return render_template(
+        'seller_products.html',
+        seller=seller,
+        products=products
+    )
 
 @app.route('/wishlist')
 def wishlist():

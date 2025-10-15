@@ -277,6 +277,48 @@
                 </form>
 
             </div>
+            {% if seller_info %}
+<div class="mt-3">
+  <span class="text-muted">Sold by:</span>
+  <a href="#" data-bs-toggle="modal" data-bs-target="#sellerModal"
+     class="text-decoration-none fw-semibold text-primary">
+     {{ seller_info.company_name or seller_info.seller_name }}
+  </a>
+</div>
+
+<!-- Seller Info Modal -->
+<div class="modal fade" id="sellerModal" tabindex="-1" aria-labelledby="sellerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-3">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="sellerModalLabel">
+          {{ seller_info.company_name or seller_info.seller_name }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+  {% if seller_info.address %}
+    <p><strong>Address:</strong><br>{{ seller_info.address }}</p>
+  {% endif %}
+  {% if seller_info.gst_number %}
+    <p><strong>GSTIN:</strong> {{ seller_info.gst_number }}</p>
+  {% endif %}
+  <hr>
+  <span class="badge bg-success">Verified Seller</span>
+</div>
+<div class="modal-footer d-flex justify-content-between">
+  <a href="{{ url_for('seller_products', seller_id=seller_info.seller_id) }}"
+     class="btn btn-primary">
+     View All Products from this Seller
+  </a>
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+</div>
+
+    </div>
+  </div>
+</div>
+{% endif %}
+
 
             {% if product.tags %}
             <div class="product-tags">
@@ -369,13 +411,15 @@
     </div>
     {% if recently_viewed %}
 <div class="mt-5">
-    <h3 class="mb-3">Recently Viewed</h3>
+    
     <div class="recently-viewed-wrapper position-relative">
+        
         <button class="scroll-btn left-btn btn btn-light shadow" onclick="scrollRecentlyViewed(-1)">
             &#8249;
         </button>
-
+        <h3 class="mb-3">Recently Viewed</h3>
         <div id="recentlyViewedContainer" class="recently-viewed-container d-flex overflow-auto pb-2">
+            
             {% for product in recently_viewed %}
             <div class="card me-3 flex-shrink-0" style="width: 180px;">
                 <a href="{{ url_for('product', product_id=product.id) }}">
@@ -894,6 +938,39 @@ i{
 h3{
         color: black;
     }
+
+#sellerModal .modal-content {
+  border-radius: 12px;
+}
+#sellerModal .modal-header {
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+/* Center Recently Viewed on large screens */
+@media (min-width: 992px) {
+  .recently-viewed-container {
+    justify-content: center;
+  }
+  
+}
+@media (min-width: 992px) {
+  .recently-viewed-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .recently-viewed-wrapper h3 {
+    align-self: flex-start;
+    margin-left: 10%; /* aligns roughly with first card */
+  }
+
+  .recently-viewed-container {
+    justify-content: center;
+  }
+}
+
+
 
 </style>
 
