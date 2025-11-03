@@ -1141,8 +1141,200 @@ code, pre {
   50% { border-color: transparent; }
 }
 
+/* Search History Dropdown Styles */
+.search-form-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-right: auto;
+    margin-left: 30px;
+    flex-grow: 1;
+    min-width: 180px;
+    max-width: 450px;
+}
 
+.search-history-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    max-height: 400px;
+    overflow-y: auto;
+    z-index: 1000;
+    margin-top: -1px;
+}
 
+.search-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    background: #f8f9fa;
+}
+
+.clear-all-btn {
+    background: none;
+    border: none;
+    color: #dc3545;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    font-weight: 500;
+}
+
+.clear-all-btn:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.search-history-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.search-history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+}
+
+.search-history-item:hover {
+    background-color: #f8f9fa;
+}
+
+.search-history-item:last-child {
+    border-bottom: none;
+}
+
+.search-history-query {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    color: #333;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.search-history-query:hover {
+    color: #007bff;
+}
+
+.history-icon {
+    font-size: 14px;
+}
+
+.delete-history-btn {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 8px 12px;
+    transition: all 0.2s;
+    line-height: 1;
+    margin-right: 8px;
+}
+
+.delete-history-btn:hover {
+    color: #dc3545;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+}
+
+/* Mobile Responsive for Search History */
+@media (max-width: 699px) {
+    .search-form-wrapper {
+        order: 4;
+        grid-column: 1 / -1;
+        margin-top: 4px;
+        margin-left: 0;
+        padding: 0 12px;
+        max-width: none;
+    }
+    
+    .search-history-dropdown {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 100%;
+        max-height: 250px;
+        font-size: 13px;
+    }
+    
+    .search-history-header {
+        padding: 8px 12px;
+    }
+    
+    .search-history-header span {
+        font-size: 12px !important;
+    }
+    
+    .clear-all-btn {
+        font-size: 11px;
+        padding: 3px 6px;
+    }
+    
+    .search-history-query {
+        padding: 10px 12px;
+        font-size: 13px;
+        gap: 8px;
+    }
+    
+    .history-icon {
+        font-size: 12px;
+    }
+    
+    .delete-history-btn {
+        font-size: 18px;
+        padding: 6px 10px;
+        margin-right: 6px;
+    }
+}
+
+/* Desktop - maintain original positioning */
+@media (min-width: 700px) {
+    .search-form-wrapper {
+        grid-column: 2;
+        justify-self: start;
+        margin-left: 0;
+        max-width: 500px;
+        min-width: 250px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .search-form-wrapper {
+        max-width: 600px;
+        min-width: 350px;
+        justify-self: end;
+        margin-right: 15px;
+    }
+}
+
+@media (min-width: 1600px) {
+    .search-form-wrapper {
+        max-width: 700px;
+        min-width: 450px;
+    }
+}
+
+@media (min-width: 1800px) {
+    .search-form-wrapper {
+        max-width: 700px;
+    }
+}
 
 </style>
 </head>
@@ -1158,12 +1350,50 @@ code, pre {
     </div>
     <!-- Search Form -->
      
-    <form class="search-form" action="{{ url_for('search') }}" method="get">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-        <input type="search" name="query" placeholder="Search products..." class="search-input" value="{{ request.args.get('query', '') }}">
+    <!-- Search Form with History Dropdown -->
+<div class="search-form-wrapper" style="position: relative;">
+    <form class="search-form" action="{{ url_for('search') }}" method="get" onsubmit="hideHistory()">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="search" 
+               name="query" 
+               id="searchInput"
+               placeholder="Search products..." 
+               class="search-input" 
+               value="{{ request.args.get('query', '') }}"
+               autocomplete="off"
+               onfocus="showHistory()"
+               oninput="handleSearchInput(this)">
         <button type="submit" class="search-button">Search</button>
     </form>
+    
+    <!-- Search History Dropdown -->
+    {% set search_history = get_search_history() %}
+    {% if search_history %}
+    <div id="searchHistoryDropdown" class="search-history-dropdown" style="display: none;">
+        <div class="search-history-header">
+            <span style="font-weight: 600; color: #333; font-size: 14px;">Recent Searches</span>
+            <form method="post" action="{{ url_for('clear_search_history') }}" style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="clear-all-btn" onclick="return confirm('Clear all search history?')">Clear All</button>
+            </form>
+        </div>
+        <ul class="search-history-list">
+            {% for history_query in search_history %}
+            <li class="search-history-item">
+                <a href="{{ url_for('search', query=history_query) }}" class="search-history-query">
+                    <span class="history-icon">🔍</span>
+                    {{ history_query }}
+                </a>
+                <form method="post" action="{{ url_for('delete_search_item', query=history_query) }}" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="delete-history-btn" title="Remove">×</button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
       
     <div class="navbar-actions">
   {% if session.get('user_id') %}
@@ -1652,7 +1882,39 @@ code, pre {
         }
     });
 </script>
+<script>
+// Search History Dropdown Functions
+function showHistory() {
+    var dropdown = document.getElementById('searchHistoryDropdown');
+    if (dropdown) {
+        dropdown.style.display = 'block';
+    }
+}
 
+function hideHistory() {
+    var dropdown = document.getElementById('searchHistoryDropdown');
+    if (dropdown) {
+        dropdown.style.display = 'none';
+    }
+}
+
+function handleSearchInput(input) {
+    if (input.value.length > 0) {
+        hideHistory();
+    } else {
+        showHistory();
+    }
+}
+
+// Hide dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    var wrapper = document.querySelector('.search-form-wrapper');
+    var dropdown = document.getElementById('searchHistoryDropdown');
+    if (dropdown && wrapper && !wrapper.contains(e.target)) {
+        hideHistory();
+    }
+});
+</script>
 
 
 </body>

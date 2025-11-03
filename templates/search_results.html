@@ -1,77 +1,118 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5">
-    <h1 class="collection-title text-center">Search Results for <span class="srp">"{{ query }}"</span></h1>
-    
-    {% if search_results %}
-        <p class="collection-description text-center mb-4">Found <span class="srp">{{ search_results|length }}</span>  product(s) matching your search.</p>
+<div class="search-results-wrapper">
+    <div class="container mt-5 mb-5">
+        <h1 class="collection-title text-center">Search Results for <span class="srp">"{{ query }}"</span></h1>
+        
+        {% if search_results %}
+            <p class="collection-description text-center mb-4">Found <span class="srp">{{ search_results|length }}</span> product(s) matching your search.</p>
 
-        <!-- Filter and Sort Controls -->
-        <div class="filter-container d-flex justify-content-end mb-3">
-            <div class="form-group d-flex align-items-center">
-                <label for="sort-by" class="me-2 fw-bold">Sort by:</label>
-                <select id="sort-by" class="form-select form-select-sm" style="width: auto;">
-                    <option value="featured">Relevance</option>
-                    <option value="title-asc">Alphabetically, A-Z</option>
-                    <option value="title-desc">Alphabetically, Z-A</option>
-                    <option value="price-asc">Price, low to high</option>
-                    <option value="price-desc">Price, high to low</option>
-                </select>
+            <!-- Filter and Sort Controls -->
+            <div class="filter-container d-flex justify-content-end mb-3">
+                <div class="form-group d-flex align-items-center">
+                    <label for="sort-by" class="me-2 fw-bold">Sort by:</label>
+                    <select id="sort-by" class="form-select form-select-sm" style="width: auto;">
+                        <option value="featured">Relevance</option>
+                        <option value="title-asc">Alphabetically, A-Z</option>
+                        <option value="title-desc">Alphabetically, Z-A</option>
+                        <option value="price-asc">Price, low to high</option>
+                        <option value="price-desc">Price, high to low</option>
+                    </select>
+                </div>
             </div>
-        </div>
 
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
-            {% for product in search_results %}
-            <div class="col product-item" data-price="{{ product.price }}" data-title="{{ product.title }}">
-                <div class="card h-100 product-card shadow-sm">
-                    <a href="{{ url_for('product', product_id=product.id) }}" class="product-image-link">
-                        <img src="{{ url_for('static', filename='images/' + product.image) }}" class="card-img-top product-image" alt="{{ product.title }}">
-                    </a>
-                    <div class="card-body d-flex flex-column product-card-body">
-                        <h5 class="card-title product-title">
-                            <a href="{{ url_for('product', product_id=product.id) }}" class="text-decoration-none text-dark">
-                                {{ product.title }}
-                            </a>
-                        </h5>
-                        <div class="mt-auto product-pricing">
-                            <p class="card-text mb-0 current-price">
-                                <span class="price-symbol">₹</span>{{ "%.2f"|format(product.price) }}
-                                {% if product.compare_price and product.compare_price > product.price %}
-                                <small class="text-muted compare-price text-decoration-line-through ms-2">₹{{ "%.2f"|format(product.compare_price) }}</small>
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
+                {% for product in search_results %}
+                <div class="col product-item" data-price="{{ product.price }}" data-title="{{ product.title }}">
+                    <div class="card h-100 product-card shadow-sm">
+                        <a href="{{ url_for('product', product_id=product.id) }}" class="product-image-link">
+                            <img src="{{ url_for('static', filename='images/' + product.image) }}" class="card-img-top product-image" alt="{{ product.title }}">
+                        </a>
+                        <div class="card-body d-flex flex-column product-card-body">
+                            <h5 class="card-title product-title">
+                                <a href="{{ url_for('product', product_id=product.id) }}" class="text-decoration-none text-dark">
+                                    {{ product.title }}
+                                </a>
+                            </h5>
+                            <div class="mt-auto product-pricing">
+                                <p class="card-text mb-0 current-price">
+                                    <span class="price-symbol">₹</span>{{ "%.2f"|format(product.price) }}
+                                    {% if product.compare_price and product.compare_price > product.price %}
+                                    <small class="text-muted compare-price text-decoration-line-through ms-2">₹{{ "%.2f"|format(product.compare_price) }}</small>
+                                    {% endif %}
+                                </p>
+                                <div class="stock-badge mb-2">
+                                {% if product.stock_quantity > 0 %}
+                                    <span class="badge bg-success">In Stock ({{ product.stock_quantity }})</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Out of Stock</span>
                                 {% endif %}
-                            </p>
-                            <div class="stock-badge mb-2">
-                            {% if product.stock_quantity > 0 %}
-                                <span class="badge bg-success">In Stock ({{ product.stock_quantity }})</span>
-                            {% else %}
-                                <span class="badge bg-danger">Out of Stock</span>
-                            {% endif %}
-                        </div>
-                            <form method="POST" action="{{ url_for('add_to_cart') }}">
-                               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
- 
-                                <input type="hidden" name="product_id" value="{{ product.id }}">
-                                <input type="hidden" name="title" value="{{ product.title }}">
-                                <input type="hidden" name="price" value="{{ product.price }}">
-                                <input type="hidden" name="image" value="{{ product.image }}">
-                                <button type="submit" class="btn btn-primary btn-sm mt-2">Add to Cart</button>
-                            </form>
+                            </div>
+                                <form method="POST" action="{{ url_for('add_to_cart') }}">
+                                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+     
+                                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                                    <input type="hidden" name="title" value="{{ product.title }}">
+                                    <input type="hidden" name="price" value="{{ product.price }}">
+                                    <input type="hidden" name="image" value="{{ product.image }}">
+                                    <button type="submit" class="btn btn-primary btn-sm mt-2">Add to Cart</button>
+                                </form>
 
+                            </div>
                         </div>
                     </div>
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
-        <!-- Pagination Container -->
-        <div id="pagination-container" class="pagination-container"></div>
-    {% else %}
-        <p class="text-center">No products found matching your search for "{{ query }}". Please try a different search term.</p>
-    {% endif %}
+            <!-- Pagination Container -->
+            <div id="pagination-container" class="pagination-container"></div>
+        {% else %}
+            <div class="no-results-container">
+                <div class="no-results-content">
+                    <i class="bi bi-search" style="font-size: 4rem; color: #ccc;"></i>
+                    <p class="text-center mt-4 mb-4">No products found matching your search for <strong>"{{ query }}"</strong>.</p>
+                    <p class="text-center">Please try a different search term.</p>
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('home') }}" class="btn btn-primary">Back to Home</a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
 </div>
 
 <style>
+    /* Wrapper to ensure minimum height */
+    .search-results-wrapper {
+        min-height: calc(100vh - 100px); /* Adjust based on your header/footer height */
+        background-color: #ffffff;
+        padding-bottom: 50px;
+    }
+
+    /* No results styling */
+    .no-results-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 400px;
+        padding: 40px 20px;
+    }
+
+    .no-results-content {
+        text-align: center;
+        max-width: 500px;
+    }
+
+    .no-results-content p {
+        font-size: 1.1rem;
+        color: #666;
+    }
+
+    .no-results-content strong {
+        color: #007bff;
+    }
+
     /* Styles are reused, but included here for completeness */
     .collection-title {
         font-size: 2.5rem;
@@ -94,6 +135,7 @@
 
     .product-grid {
         margin-top: 30px;
+        margin-bottom: 30px;
     }
 
     .product-card {
@@ -137,7 +179,6 @@
         min-height: 50px;
         display: flex;
         align-items: center;
-        
         justify-content: center;
         margin-bottom: 10px;
     }
@@ -169,7 +210,7 @@
     }
 
     .btn {
-        background-color: #ffb902ff ;
+        background-color: #ffb902ff;
         border-color: #ffc107;
         font-weight: 600;
         padding: 8px 20px;
@@ -187,6 +228,7 @@
         justify-content: center;
         align-items: center;
         margin-top: 40px;
+        margin-bottom: 40px;
         flex-wrap: wrap;
     }
     .page-link {
@@ -211,6 +253,21 @@
     }
     .product-item {
         display: none;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .collection-title {
+            font-size: 1.8rem;
+        }
+        
+        .search-results-wrapper {
+            min-height: calc(100vh - 150px);
+        }
+        
+        .product-image {
+            height: 180px;
+        }
     }
 </style>
 

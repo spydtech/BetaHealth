@@ -397,7 +397,32 @@ def init_db():
     cursor.close()
     conn.close()
 
+def update_search_history_schema():
+    """Create search_history table if it doesn't exist"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
     
+    try:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS search_history (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NULL,
+                session_id VARCHAR(100) NULL,
+                query VARCHAR(255) NOT NULL,
+                searched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                INDEX idx_user_session (user_id, session_id),
+                INDEX idx_searched_at (searched_at)
+            )
+        """)
+        conn.commit()
+        print("✅ Search history table created/verified")
+    except mysql.connector.Error as err:
+        conn.rollback()
+        print(f"❌ Error creating search_history table: {err}")
+    finally:
+        cursor.close()
+        conn.close()   
 def update_db_schema():
     """Updates the database schema with new tables and columns"""
     conn = get_db_connection()
@@ -2638,7 +2663,11 @@ def search():
     query = request.args.get('query', '').lower()
     search_results = []
     found_product_ids = set()
-
+    if query:
+        save_search_to_history(query)
+    
+    # Get search history for dropdown
+    search_history = get_search_history()
     if query:
         all_products_data = get_all_products_from_db()
         for product_item in all_products_data:
@@ -2667,8 +2696,147 @@ def search():
                 search_results.append(product_item)
                 found_product_ids.add(product_item['id'])
     
-    return render_template('search_results.html', query=query, search_results=search_results)
+    return render_template('search_results.html', query=query, search_results=search_results,search_history=search_history)
 
+def get_or_create_session_id():
+    """Get existing session_id or create new one"""
+    if 'session_id' not in session:
+        import uuid
+        session['session_id'] = str(uuid.uuid4())
+    return session['session_id']
+
+def save_search_to_history(query):
+    """Save search query to database"""
+    if not query or len(query.strip()) < 2:
+        return
+    
+    query = query.strip()
+    user_id = session.get('user_id')
+    session_id = get_or_create_session_id()
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Check if query exists in last hour
+        cursor.execute("""
+            SELECT id FROM search_history 
+            WHERE ((user_id IS NOT NULL AND user_id = %s) OR (session_id IS NOT NULL AND session_id = %s))
+            AND query = %s 
+            AND searched_at > NOW() - INTERVAL 1 HOUR
+        """, (user_id, session_id, query))
+        
+        existing = cursor.fetchone()
+        
+        if existing:
+            # Update timestamp
+            cursor.execute("""
+                UPDATE search_history 
+                SET searched_at = NOW() 
+                WHERE id = %s
+            """, (existing[0],))
+        else:
+            # Insert new
+            cursor.execute("""
+                INSERT INTO search_history (user_id, session_id, query)
+                VALUES (%s, %s, %s)
+            """, (user_id, session_id, query))
+        
+        conn.commit()
+        print(f"✅ Saved search: {query}")
+    except Exception as e:
+        conn.rollback()
+        print(f"❌ Error saving search: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_search_history():
+    """Get search history for current user/session"""
+    user_id = session.get('user_id')
+    session_id = session.get('session_id')
+    
+    if not user_id and not session_id:
+        return []
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        cursor.execute("""
+            SELECT DISTINCT query, MAX(searched_at) as last_searched
+            FROM search_history 
+            WHERE (user_id IS NOT NULL AND user_id = %s) 
+               OR (session_id IS NOT NULL AND session_id = %s)
+            GROUP BY query
+            ORDER BY last_searched DESC
+            LIMIT 10
+        """, (user_id, session_id))
+        
+        history = cursor.fetchall()
+        return [item['query'] for item in history]
+    except Exception as e:
+        print(f"❌ Error fetching history: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+@app.route('/clear-search-history', methods=['POST'])
+def clear_search_history():
+    """Clear all search history"""
+    user_id = session.get('user_id')
+    session_id = session.get('session_id')
+    
+    if not user_id and not session_id:
+        flash("No search history to clear", "info")
+        return redirect(request.referrer or url_for('home'))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            DELETE FROM search_history 
+            WHERE (user_id IS NOT NULL AND user_id = %s) 
+               OR (session_id IS NOT NULL AND session_id = %s)
+        """, (user_id, session_id))
+        conn.commit()
+        flash("Search history cleared", "success")
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error clearing history: {str(e)}", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return redirect(request.referrer or url_for('home'))
+
+
+@app.route('/delete-search-item/<path:query>', methods=['POST'])
+def delete_search_item(query):
+    """Delete individual search history item"""
+    user_id = session.get('user_id')
+    session_id = session.get('session_id')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            DELETE FROM search_history 
+            WHERE ((user_id IS NOT NULL AND user_id = %s) OR (session_id IS NOT NULL AND session_id = %s))
+            AND query = %s
+        """, (user_id, session_id, query))
+        conn.commit()
+        flash("Search item removed", "success")
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error deleting item: {str(e)}", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return redirect(request.referrer or url_for('home'))
 
 @app.route('/add-to-cart', methods=['POST'])
 def add_to_cart():
@@ -5402,7 +5570,10 @@ def inject_navbar():
 def inject_cart_length():
     """Make cart_length available in all templates (like base.html)."""
     return dict(cart_length=get_cart_length())
-
+@app.context_processor
+def inject_search_history():
+    """Make search history available in all templates"""
+    return dict(get_search_history=get_search_history)
 
 
 
@@ -5420,6 +5591,7 @@ if __name__ == '__main__':
     update_db_schema() 
     update_orders_schema()
     update_orders_schema_for_payment_verification()
+    update_search_history_schema() 
     # ----------------------------------------
     # app.run(host='192.168.1.5',port=3000,debug=True)
     app.run(host='0.0.0.0',port=5001,debug=True)
