@@ -1192,7 +1192,7 @@ ITEMS_PER_PAGE = 12  # number of products per page
 @app.route('/recently-added')
 def recently_added():
     all_products_data = get_all_products_from_db()
-    thirty_days_ago = datetime.now() - timedelta(days=60)
+    thirty_days_ago = datetime.now() - timedelta(days=90)
 
     newest_products = [
         p for p in all_products_data

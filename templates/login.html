@@ -264,6 +264,40 @@ code, pre {
             content: "\b7";
             padding: 0.8rem;
         }
+        @media (max-width: 768px) {
+    body {
+        padding: 15px;
+        min-height: 100vh;
+        height: auto;
+    }
+    
+    .form-container {
+        width: calc(100% - 30px); /* Full width minus body padding */
+        max-width: 350px;
+        margin: 0 auto;
+        padding: 30px 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* More visible shadow on mobile */
+    }
+    
+    .header-image {
+        width: 150px;
+        height: 75px;
+    }
+    
+    h2 {
+        font-size: 20px;
+    }
+    
+    input, button {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+}
+
+@media (max-width: 480px) {
+    .form-container {
+        padding: 25px 15px;
+    }
+}
     </style>
 </head>
 <body>

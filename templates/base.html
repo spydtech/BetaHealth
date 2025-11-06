@@ -542,7 +542,7 @@ code, pre {
         .search-form {
             grid-column: 2;
             justify-self: start;
-            margin-left: 0;
+            margin-left: 150px;
             max-width: 500px; /* REDUCED from 600px */
             min-width: 250px; /* REDUCED from 300px */
         }
@@ -680,6 +680,7 @@ code, pre {
         .header-image {
             width: 220px; /* REDUCED from 200px */
             padding: 0;
+            margin-left: 30px;
         }
         .navbar-actions {
             gap: 10px; /* REDUCED from 12px */
@@ -727,12 +728,13 @@ code, pre {
           justify-self: center;
         }
         .header-image {
-          width: 130px; /* REDUCED from 160px */
+          width: 150px; /* REDUCED from 160px */
         }
         
         .navbar-actions {
           grid-column: 3;
           justify-self: end;
+          margin-left: 30px;
         }
 
         .search-form {
@@ -766,7 +768,7 @@ code, pre {
         }
         
         .header-image {
-          width: 120px; /* REDUCED from 140px */
+          width: 140px; /* REDUCED from 140px */
         }
       }
 
@@ -1335,7 +1337,62 @@ code, pre {
         max-width: 700px;
     }
 }
+/* Only apply custom dropdown animation for mobile nav menu */
+.mobile-nav-list .dropdown {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
+  background: #f8f9fa;
+  /* ADD THESE LINES TO FIX THE ISSUE */
+  opacity: 0;
+  visibility: hidden;
+}
 
+.has-dropdown.open .dropdown {
+  max-height: 600px;
+  /* ADD THESE LINES TO FIX THE ISSUE */
+  opacity: 1;
+  visibility: visible;
+}
+
+.dropdown li { 
+  border-bottom: 1px solid #e9ecef; 
+}
+
+.dropdown li:last-child { 
+  border-bottom: none; 
+}
+
+.dropdown a {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #555;
+  display: block;
+  text-decoration: none;
+}
+
+/* Desktop dropdown - ensure it's properly hidden by default */
+@media (min-width: 700px) {
+  .dropdown {
+    position: absolute;
+    background: #fff;
+    max-height: none;
+    overflow: visible;
+    display: none; /* This ensures it's hidden */
+    opacity: 1; /* Reset opacity for desktop */
+    visibility: visible; /* Reset visibility for desktop */
+    min-width: 180px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid #eee;
+    z-index: 1000;
+    top: 100%;
+    left: 0;
+  }
+
+  .has-dropdown:hover .dropdown { 
+    display: block; 
+  }
+}
 </style>
 </head>
 <body>
