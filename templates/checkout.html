@@ -5,86 +5,79 @@
 {% block content %}
 <div class="container mt-5">
     <div class="row">
-        <div class="col-md-8">
+        <form id="checkoutForm" method="POST" action="{{ url_for('checkout') }}" class="col-md-8">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-            <!-- ✅ Saved Addresses Section -->
             {% if addresses %}
-            <div class="card mb-4">
+            <div class="card mb-4 border-success">
                 <div class="card-header bg-success text-white">
                     <h4>Choose a Saved Address</h4>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('checkout') }}">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        {% for addr in addresses %}
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="radio" name="address_id" value="{{ addr.id }}"
-                                   {% if addr.is_default %}checked{% endif %}>
-                            <label class="form-check-label">
-                                <strong>{{ addr.name }}</strong> ({{ addr.mobile }}) <br>
-                                {{ addr.address_line1 }} {{ addr.address_line2 }},<br>
-                                {{ addr.city }}, {{ addr.state }} - {{ addr.pincode }}, {{ addr.country }}
-                                {% if addr.is_default %}
-                                <span class="badge bg-success">Default</span>
-                                {% endif %}
-                            </label>
-                        </div>
-                        {% endfor %}
-                        <button type="submit" class="btn btn-primary">Deliver to This Address</button>
-                    </form>
-                </div>
+                    {% for addr in addresses %}
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="address_id" value="{{ addr.id }}"
+                               {% if addr.is_default %}checked{% endif %}>
+                        <label class="form-check-label">
+                            <strong>{{ addr.name }}</strong> ({{ addr.mobile }}) <br>
+                            {{ addr.address_line1 }} {{ addr.address_line2 or '' }},<br>
+                            {{ addr.city }}, {{ addr.state }} - {{ addr.pincode }}, {{ addr.country }}
+                            {% if addr.is_default %}
+                            <span class="badge bg-success">Default</span>
+                            {% endif %}
+                        </label>
+                    </div>
+                    {% endfor %}
+                    
+                    </div>
             </div>
+            
+            <h4 class="my-3">{% if addresses %}Or{% endif %} Enter a New Address</h4>
+            <hr>
             {% endif %}
 
-            <!-- ✅ Existing Shipping Information Form -->
             <div class="card mb-4">
                 <div class="card-header bg-primary text-white">
                     <h4>Shipping Information</h4>
                 </div>
                 <div class="card-body">
-                    <form id="checkoutForm" method="POST" action="{{ url_for('checkout') }}">
-                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                        <div class="mb-3">
-                            <label class="form-label">Full Name</label>
-                            <input type="text" class="form-control" name="full_name" required>
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" class="form-control" name="full_name">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <textarea class="form-control" name="shipping_address" rows="3"></textarea>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">City</label>
+                            <input type="text" class="form-control" name="city">
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Address</label>
-                            <textarea class="form-control" name="shipping_address" rows="3" required></textarea>
+                        <div class="col-md-6">
+                            <label class="form-label">State</label>
+                            <input type="text" class="form-control" name="state">
                         </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">City</label>
-                                <input type="text" class="form-control" name="city" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">State</label>
-                                <input type="text" class="form-control" name="state" required>
-                            </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Pincode</label>
+                            <input type="text" class="form-control" name="pincode">
                         </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Pincode</label>
-                                <input type="text" class="form-control" name="pincode" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Phone</label>
-                                <input type="tel" class="form-control" name="phone" required>
-                            </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Phone</label>
+                            <input type="tel" class="form-control" name="phone">
                         </div>
-                        <div class="form-check mb-3">
-                            <input type="checkbox" name="is_default" class="form-check-input" value="1">
-                            <label class="form-check-label">Set as default address</label>
-                        </div>
-                        <input type="hidden" name="total_amount" value="{{ total_price }}">
-                    </form>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input type="checkbox" name="is_default" class="form-check-input" value="1">
+                        <label class="form-check-label">Set as default address</label>
+                    </div>
+                    <input type="hidden" name="total_amount" value="{{ total_price }}">
                 </div>
             </div>
-        </div>
-        
-        <!-- ✅ Order Summary -->
-        <div class="col-md-4">
+            
+        </form> <div class="col-md-4">
             <div class="card">
                 <div class="card-header bg-primary text-white">
                     <h4>Order Summary</h4>
@@ -113,22 +106,23 @@
     </div>
 </div>
 
-<!-- ✅ Razorpay Script -->
 {% if razorpay_order_id %}
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
     var options = {
-        "key": "{{ razorpay_key }}",
-        "amount": "{{ total_amount * 100|int }}", 
+        "key": "{{ razorpay_key }}", // ✅ Now passed from app3.py
+        "amount": "{{ total_price * 100|int }}", // ✅ total_price used for consistency
         "currency": "INR",
-        "name": "Your Store Name",
+        "name": "BetaHealth",
         "description": "Order Payment",
+        "image": "https://btahealth.com/static/images/logo5.png",
         "order_id": "{{ razorpay_order_id }}",
         "handler": function (response){
             fetch('/payment-success', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    // Include CSRF token in fetch header if you have it
                 },
                 body: JSON.stringify({
                     razorpay_payment_id: response.razorpay_payment_id,
@@ -140,13 +134,13 @@
                   if(data.status === 'success') {
                       window.location.href = "/order-confirmation/" + data.order_id;
                   } else {
-                      alert('Payment verification failed');
+                      alert('Payment verification failed: ' + data.message);
                   }
               });
         },
         "prefill": {
             "name": "{{ request.form.get('full_name', '') }}",
-            "email": "{{ session.get('user_email', '') }}",
+            "email": "{{ user_email }}", // ✅ FIX: Use user_email passed from app3.py
             "contact": "{{ request.form.get('phone', '') }}"
         },
         "theme": {
@@ -159,7 +153,8 @@
         rzp.open();
         
         rzp.on('payment.failed', function(response){
-            alert('Payment failed. Please try again.');
+            alert('Payment failed. Please try again. Reason: ' + response.error.description);
+            // Redirect to cart or checkout? Cart is safer.
             window.location.href = "/cart";
         });
     });

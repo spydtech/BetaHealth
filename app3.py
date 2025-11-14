@@ -16,9 +16,11 @@ import string
 import time
 from flask_caching import Cache
 from math import ceil
+RAZORPAY_KEY_ID = "rzp_live_RWWvXeMcmTohhi"
+RAZORPAY_KEY_SECRET = "iT1TKCVOdkVqmW2fOrbI6Fr2"
 
 # Razorpay Client Initialization (replace with your real keys)
-razorpay_client = razorpay.Client(auth=("rzp_test_yourkey", "your_secret"))
+razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
 app = Flask(__name__)
 
@@ -4804,15 +4806,24 @@ def checkout():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
+    # ✅ Fetch user email for prefill
+    cursor.execute("SELECT email FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    user_email = user['email'] if user else ''
+
     # ✅ Fetch saved addresses
     cursor.execute("SELECT * FROM user_addresses WHERE user_id = %s", (user_id,))
     addresses = cursor.fetchall()
 
     # ✅ Check if "buy now"
-    buy_now_product = session.pop('buy_now_product', None)
+    buy_now_product = session.get('buy_now_product') # Use .get() to avoid popping it on GET request
 
     if buy_now_product:
         cart_items = [buy_now_product]
+        # Fetch stock quantity for buy now item
+        cursor.execute("SELECT COALESCE(stock_quantity, 0) as stock_quantity FROM inventory WHERE product_id = %s", (buy_now_product['id'],))
+        stock = cursor.fetchone()
+        cart_items[0]['stock_quantity'] = stock['stock_quantity'] if stock else 0
         total_price = buy_now_product['price']
     else:
         cursor.execute("""
@@ -4824,65 +4835,80 @@ def checkout():
         cart_items = cursor.fetchall()
         total_price = sum(item['price'] * item['quantity'] for item in cart_items)
 
-    conn.close()
-
     # ✅ Stock check
-    out_of_stock = [item for item in cart_items if item['quantity'] > item.get('stock_quantity', 1)]
+    if not cart_items:
+        flash("Your cart is empty.", "warning")
+        return redirect(url_for('cart'))
+        
+    out_of_stock = [item for item in cart_items if item['quantity'] > item.get('stock_quantity', 0)]
     if out_of_stock:
-        flash("Some items in your cart are out of stock", "danger")
+        flash(f"Item '{out_of_stock[0]['title']}' is out of stock or has insufficient quantity.", "danger")
         return redirect(url_for('cart'))
 
     if request.method == 'POST':
+        # This is now submitted from a single form
         address_id = request.form.get('address_id')
 
         # ✅ Case 1: Saved Address
         if address_id:
-            conn = get_db_connection()
-            cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM user_addresses WHERE id=%s AND user_id=%s", (address_id, user_id))
             selected_address = cursor.fetchone()
-            cursor.close()
-            conn.close()
 
             if not selected_address:
                 flash("Invalid address selected!", "danger")
+                conn.close()
                 return redirect(url_for('checkout'))
 
             shipping_info = {
                 'full_name': selected_address['name'],
-                'address': f"{selected_address['address_line1']} {selected_address['address_line2']}",
+                'address': f"{selected_address['address_line1']} {selected_address['address_line2'] or ''}".strip(),
                 'city': selected_address['city'],
                 'state': selected_address['state'],
                 'pincode': selected_address['pincode'],
                 'phone': selected_address['mobile']
             }
 
-        # ✅ Case 2: New Address
+        # ✅ Case 2: New Address (with validation)
         else:
+            full_name = request.form.get('full_name')
+            shipping_address = request.form.get('shipping_address')
+            city = request.form.get('city')
+            state = request.form.get('state')
+            pincode = request.form.get('pincode')
+            phone = request.form.get('phone')
+
+            # ✅ Server-side validation
+            if not all([full_name, shipping_address, city, state, pincode, phone]):
+                flash("Please fill out all new address fields or select a saved address.", "danger")
+                conn.close()
+                # Re-render the GET page, passing all original context
+                return render_template("checkout.html",
+                                       cart_items=cart_items,
+                                       total_price=total_price,
+                                       addresses=addresses,
+                                       user_email=user_email)
+
             shipping_info = {
-                'full_name': request.form['full_name'],
-                'address': request.form['shipping_address'],
-                'city': request.form['city'],
-                'state': request.form['state'],
-                'pincode': request.form['pincode'],
-                'phone': request.form['phone']
+                'full_name': full_name,
+                'address': shipping_address,
+                'city': city,
+                'state': state,
+                'pincode': pincode,
+                'phone': phone
             }
 
-            # Save new address (optional: set default)
-            conn = get_db_connection()
-            cursor = conn.cursor()
+            # Save new address
             is_default = 1 if request.form.get('is_default') else 0
             if is_default:
                 cursor.execute("UPDATE user_addresses SET is_default=0 WHERE user_id=%s", (user_id,))
             cursor.execute("""
-                INSERT INTO user_addresses (user_id, name, mobile, address_line1, address_line2, city, state, pincode, country, is_default)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                INSERT INTO user_addresses (user_id, name, mobile, address_line1, city, state, pincode, country, is_default)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, (
                 user_id,
                 shipping_info['full_name'],
                 shipping_info['phone'],
-                request.form['shipping_address'],  # address_line1
-                "",  # address_line2 (you can split if needed)
+                shipping_info['address'],
                 shipping_info['city'],
                 shipping_info['state'],
                 shipping_info['pincode'],
@@ -4890,8 +4916,6 @@ def checkout():
                 is_default
             ))
             conn.commit()
-            cursor.close()
-            conn.close()
 
         # ✅ Create Razorpay Order
         order_data = {
@@ -4906,6 +4930,11 @@ def checkout():
 
         try:
             razorpay_order = razorpay_client.order.create(data=order_data)
+            
+            # ✅ Pop 'buy_now_product' only AFTER successful POST
+            if buy_now_product:
+                session.pop('buy_now_product', None)
+                
             session['checkout_info'] = {
                 'shipping_info': shipping_info,
                 'razorpay_order_id': razorpay_order['id'],
@@ -4913,22 +4942,29 @@ def checkout():
                 'cart_items': [{'id': item['id'], 'quantity': item['quantity']} for item in cart_items],
                 'is_buy_now': bool(buy_now_product)
             }
+            
+            conn.close()
 
+            # ✅ Pass all required keys to the template
             return render_template("checkout.html",
                                    razorpay_order_id=razorpay_order['id'],
-                                   total_amount=total_price,
-                                   razorpay_key="your_razorpay_key_here",
+                                   total_price=total_price,
+                                   razorpay_key=RAZORPAY_KEY_ID, # <-- FIX
                                    cart_items=cart_items,
-                                   addresses=addresses)
+                                   addresses=addresses,
+                                   user_email=user_email) # <-- FIX
         except Exception as e:
             flash(f"Error creating payment order: {str(e)}", "danger")
+            conn.close()
             return redirect(url_for('cart'))
 
-    # ✅ GET
+    # ✅ GET Request
+    conn.close()
     return render_template("checkout.html",
                            cart_items=cart_items,
                            total_price=total_price,
-                           addresses=addresses)
+                           addresses=addresses,
+                           user_email=user_email) # <-- FIX
 
 
     
