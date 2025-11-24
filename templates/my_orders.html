@@ -349,15 +349,51 @@ code, pre {
                         {% endif %}
                     </td>
                     <td data-label="Actions">
-                        {% if order.status == 'shipped' %}
-                        <form action="{{ url_for('mark_order_delivered', order_id=order.id) }}" method="POST">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-success">
-                                <i class="fas fa-check me-1"></i>Mark as Delivered
-                            </button>
-                        </form>
-                        {% endif %}
-                    </td>
+    {% if order.status == 'shipped' %}
+    <form action="{{ url_for('mark_order_delivered', order_id=order.id) }}" method="POST" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-success mb-1">
+            <i class="fas fa-check me-1"></i>Mark as Delivered
+        </button>
+    </form>
+    
+    {% elif order.return_status %}
+    
+        {% if order.return_status == 'pending' %}
+            <span class="badge bg-warning text-dark">
+                <i class="fas fa-clock me-1"></i> Refund Pending
+            </span>
+        
+        {% elif order.return_status == 'rejected' %}
+            <span class="badge bg-danger">
+                <i class="fas fa-times-circle me-1"></i> Refund Rejected
+            </span>
+            <div class="small text-muted mt-1">
+                <strong>Reason:</strong> {{ order.return_notes or 'No reason provided.' }}
+            </div>
+            
+        {% elif order.return_status == 'refunded' %}
+            <span class="badge bg-success">
+                <i class="fas fa-check-circle me-1"></i> Refund Approved
+            </span>
+            <div class="small text-muted mt-1">
+                Your refund has been processed. The amount should reflect in your account within 48-72 hours.
+            </div>
+            
+        {% else %}
+            <span class="badge bg-info">
+                Return Status: {{ order.return_status|title }}
+            </span>
+        {% endif %}
+        
+    {% elif order.status == 'delivered' %}
+    <a href="{{ url_for('request_return', order_id=order.id) }}" class="btn btn-sm btn-warning mb-1">
+        <i class="fas fa-undo me-1"></i>Request Refund
+    </a>
+    
+    {% else %}
+        {% endif %}
+</td>
                 </tr>
                 {% endfor %}
             </tbody>

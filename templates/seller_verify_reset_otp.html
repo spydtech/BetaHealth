@@ -7,12 +7,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Ubuntu', Arial, sans-serif;
             background-color: #ffffff;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
         }
 
@@ -45,6 +45,11 @@
             margin-bottom: 10px;
         }
 
+        input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
         .input-group {
             position: relative;
             margin-bottom: 10px;
@@ -59,6 +64,21 @@
             color: #666;
         }
 
+        .password-requirements {
+            text-align: left;
+            font-size: 12px;
+            color: #666;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .password-requirements ul {
+            margin: 5px 0 0 20px;
+            padding: 0;
+        }
+
         button {
             width: 100%;
             padding: 12px;
@@ -71,123 +91,114 @@
             cursor: pointer;
             margin-top: 10px;
         }
+
+        button:hover {
+            background-color: #333;
+        }
+
         @font-face {
-    font-family: 'Ubuntu';
-    src: url("{{ url_for('static', filename='fonts/Ubuntu-L.ttf') }}") format('truetype');
-    font-weight: 300;
-    font-style: normal;
-}
+            font-family: 'Ubuntu';
+            src: url("{{ url_for('static', filename='fonts/Ubuntu-L.ttf') }}") format('truetype');
+            font-weight: 300;
+            font-style: normal;
+        }
 
-/* Light Italic (300 italic) */
-@font-face {
-    font-family: 'Ubuntu';
-    src: url("{{ url_for('static', filename='fonts/Ubuntu-LI.ttf') }}") format('truetype');
-    font-weight: 300;
-    font-style: italic;
-}
+        @font-face {
+            font-family: 'Ubuntu';
+            src: url("{{ url_for('static', filename='fonts/Ubuntu-LI.ttf') }}") format('truetype');
+            font-weight: 300;
+            font-style: italic;
+        }
 
-/* Regular (400) */
-@font-face {
-    font-family: 'Ubuntu';
-    src: url("{{ url_for('static', filename='fonts/Ubuntu-R.ttf') }}") format('truetype');
-    font-weight: 400;
-    font-style: normal;
-}
+        @font-face {
+            font-family: 'Ubuntu';
+            src: url("{{ url_for('static', filename='fonts/Ubuntu-R.ttf') }}") format('truetype');
+            font-weight: 400;
+            font-style: normal;
+        }
 
-/* Regular Italic (400 italic) */
-@font-face {
-    font-family: 'Ubuntu';
-    src: url("{{ url_for('static', filename='fonts/Ubuntu-RI.ttf') }}") format('truetype');
-    font-weight: 400;
-    font-style: italic;
-}
+        @font-face {
+            font-family: 'Ubuntu';
+            src: url("{{ url_for('static', filename='fonts/Ubuntu-RI.ttf') }}") format('truetype');
+            font-weight: 400;
+            font-style: italic;
+        }
 
-/* Medium (500) */
-@font-face {
-    font-family: 'Ubuntu';
-    src: url("{{ url_for('static', filename='fonts/Ubuntu-M.ttf') }}") format('truetype');
-    font-weight: 500;
-    font-style: normal;
-}
+        @font-face {
+            font-family: 'Ubuntu';
+            src: url("{{ url_for('static', filename='fonts/Ubuntu-M.ttf') }}") format('truetype');
+            font-weight: 500;
+            font-style: normal;
+        }
 
-/* Medium Italic (500 italic) */
-@font-face {
-    font-family: 'Ubuntu';
-    src: url("{{ url_for('static', filename='fonts/Ubuntu-MI.ttf') }}") format('truetype');
-    font-weight: 500;
-    font-style: italic;
-}
+        @font-face {
+            font-family: 'Ubuntu';
+            src: url("{{ url_for('static', filename='fonts/Ubuntu-MI.ttf') }}") format('truetype');
+            font-weight: 500;
+            font-style: italic;
+        }
 
-/* Bold (700) */
-@font-face {
-    font-family: 'Ubuntu';
-    src: url("{{ url_for('static', filename='fonts/Ubuntu-B.ttf') }}") format('truetype');
-    font-weight: 700;
-    font-style: normal;
-}
+        @font-face {
+            font-family: 'Ubuntu';
+            src: url("{{ url_for('static', filename='fonts/Ubuntu-B.ttf') }}") format('truetype');
+            font-weight: 700;
+            font-style: normal;
+        }
 
-/* Bold Italic (700 italic) */
-@font-face {
-    font-family: 'Ubuntu';
-    src: url("{{ url_for('static', filename='fonts/Ubuntu-BI.ttf') }}") format('truetype');
-    font-weight: 700;
-    font-style: italic;
-}
+        @font-face {
+            font-family: 'Ubuntu';
+            src: url("{{ url_for('static', filename='fonts/Ubuntu-BI.ttf') }}") format('truetype');
+            font-weight: 700;
+            font-style: italic;
+        }
 
-/* Ubuntu Mono (400) */
-@font-face {
-    font-family: 'Ubuntu Mono';
-    src: url("{{ url_for('static', filename='fonts/Ubuntu-Mono.ttf') }}") format('truetype');
-    font-weight: 400;
-    font-style: normal;
-}
-/* Default body text */
-body, p, span, li {
-    font-family: 'Ubuntu', sans-serif;
-    font-weight: 400; /* Regular */
-}
+        @font-face {
+            font-family: 'Ubuntu Mono';
+            src: url("{{ url_for('static', filename='fonts/Ubuntu-Mono.ttf') }}") format('truetype');
+            font-weight: 400;
+            font-style: normal;
+        }
 
-/* Headings */
-h1, h2, h3 {
-    font-family: 'Ubuntu', sans-serif;
-    font-weight: 700; /* Bold */
-}
+        body, p, span, li {
+            font-family: 'Ubuntu', sans-serif;
+            font-weight: 400;
+        }
 
-h4, h5, h6 {
-    font-family: 'Ubuntu', sans-serif;
-    font-weight: 500; /* Medium */
-}
+        h1, h2, h3 {
+            font-family: 'Ubuntu', sans-serif;
+            font-weight: 700;
+        }
 
-/* Buttons, Navbar, Labels */
-button, .btn, .navbar a, label {
-    font-family: 'Ubuntu', sans-serif;
-    font-weight: 500; /* Medium */
-}
+        h4, h5, h6 {
+            font-family: 'Ubuntu', sans-serif;
+            font-weight: 500;
+        }
 
-/* Small text, footer, muted */
-small, .text-muted, footer {
-    font-family: 'Ubuntu', sans-serif;
-    font-weight: 300; /* Light */
-}
+        button, .btn, label {
+            font-family: 'Ubuntu', sans-serif;
+            font-weight: 500;
+        }
 
-/* Emphasis / Italics */
-em, i {
-    font-family: 'Ubuntu', sans-serif;
-    font-style: italic;
-    font-weight: 400; /* Regular Italic */
-}
+        small, .text-muted {
+            font-family: 'Ubuntu', sans-serif;
+            font-weight: 300;
+        }
 
-/* Strong emphasis */
-strong, b {
-    font-family: 'Ubuntu', sans-serif;
-    font-weight: 700; /* Bold */
-}
+        em, i {
+            font-family: 'Ubuntu', sans-serif;
+            font-style: italic;
+            font-weight: 400;
+        }
 
-/* Code & technical */
-code, pre {
-    font-family: 'Ubuntu Mono', monospace;
-    font-weight: 400;
-}
+        strong, b {
+            font-family: 'Ubuntu', sans-serif;
+            font-weight: 700;
+        }
+
+        code, pre {
+            font-family: 'Ubuntu Mono', monospace;
+            font-weight: 400;
+        }
 
         .header-image {
             width: 200px;
@@ -213,6 +224,11 @@ code, pre {
             background-color: #f8d7da;
             color: #721c24;
         }
+
+        .flash-warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
         
         .back-to-login {
             margin-top: 20px;
@@ -224,6 +240,10 @@ code, pre {
             color: #000;
             text-decoration: none;
             font-weight: bold;
+        }
+
+        .back-to-login a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -245,11 +265,41 @@ code, pre {
         
         <form method="POST" action="{{ url_for('seller_verify_reset_otp') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="text" name="otp" placeholder="Enter OTP" required>
+            
+            <input type="text" 
+                   name="otp" 
+                   placeholder="Enter 6-digit OTP" 
+                   pattern="[0-9]{6}" 
+                   maxlength="6"
+                   autocomplete="off"
+                   required>
+            
+            <div class="password-requirements">
+                <strong>Password Requirements:</strong>
+                <ul>
+                    <li>At least 8 characters</li>
+                    <li>Mix of letters and numbers recommended</li>
+                </ul>
+            </div>
             
             <div class="input-group">
-                <input type="password" name="new_password" id="new_password" placeholder="New Password" required>
+                <input type="password" 
+                       name="new_password" 
+                       id="new_password" 
+                       placeholder="New Password" 
+                       minlength="8"
+                       required>
                 <i class="fas fa-eye password-toggle" id="togglePassword"></i>
+            </div>
+            
+            <div class="input-group">
+                <input type="password" 
+                       name="confirm_password" 
+                       id="confirm_password" 
+                       placeholder="Confirm New Password" 
+                       minlength="8"
+                       required>
+                <i class="fas fa-eye password-toggle" id="toggleConfirmPassword"></i>
             </div>
             
             <button type="submit">Reset Password</button>
@@ -261,6 +311,7 @@ code, pre {
     </div>
 
     <script>
+        // Toggle password visibility for first field
         const toggle = document.getElementById("togglePassword");
         const passwordField = document.getElementById("new_password");
 
@@ -269,6 +320,51 @@ code, pre {
             passwordField.setAttribute('type', type);
             this.classList.toggle('fa-eye');
             this.classList.toggle('fa-eye-slash');
+        });
+
+        // Toggle password visibility for confirm field
+        const toggleConfirm = document.getElementById("toggleConfirmPassword");
+        const confirmField = document.getElementById("confirm_password");
+
+        toggleConfirm.addEventListener('click', function () {
+            const type = confirmField.getAttribute('type') === 'password' ? 'text' : 'password';
+            confirmField.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+
+        // Auto-focus OTP field
+        window.addEventListener('load', function() {
+            document.querySelector('input[name="otp"]').focus();
+        });
+
+        // Password match validation
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            const password = passwordField.value;
+            const confirm = confirmField.value;
+            
+            if (password !== confirm) {
+                e.preventDefault();
+                alert('Passwords do not match! Please re-enter.');
+                confirmField.focus();
+            }
+        });
+
+        // Real-time password match indicator
+        confirmField.addEventListener('input', function() {
+            const password = passwordField.value;
+            const confirm = this.value;
+            
+            if (confirm.length > 0) {
+                if (password === confirm) {
+                    this.style.borderColor = '#28a745';
+                } else {
+                    this.style.borderColor = '#dc3545';
+                }
+            } else {
+                this.style.borderColor = '#ddd';
+            }
         });
     </script>
 </body>

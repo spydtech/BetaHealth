@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Return</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* You can add custom styles here if needed */
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning">
+                        <h2 class="h4 mb-0"><i class="fas fa-undo me-2"></i>Request Return for Order #{{ order.id }}</h2>
+                    </div>
+                    <div class="card-body">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">{{ message }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                        
+                        <form method="POST" action="{{ url_for('request_return', order_id=order.id) }}" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                            <div class="mb-3">
+                                <label for="product_id" class="form-label">Select Product *</label>
+                                <select class="form-select" id="product_id" name="product_id" required>
+                                    <option value="">-- Choose a product --</option>
+                                    {% for item in items %}
+                                    <option value="{{ item.product_id }}">
+                                        {{ item.title }} (Purchased: {{ item.quantity }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="quantity" class="form-label">Quantity to Return *</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" min="1" value="1" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="reason" class="form-label">Reason for Return *</label>
+                                <textarea class="form-control" id="reason" name="reason" rows="4" placeholder="e.g., Item was damaged, wrong item received..." required></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="images" class="form-label">Upload Images of Damaged Product</label>
+                                <input class="form-control" type="file" id="images" name="images" multiple accept="image/png, image/jpeg, image/jpg">
+                                <div class="form-text">You can upload multiple images.</div>
+                            </div>
+
+                            <hr>
+
+                            <div class="d-flex justify-content-between">
+                                <a href="{{ url_for('my_orders') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times me-1"></i> Cancel
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-1"></i> Submit Request
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

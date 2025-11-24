@@ -37,8 +37,10 @@ app.secret_key = 'your_secret_key_here'
 csrf = CSRFProtect(app)
 
 UPLOAD_FOLDER = 'static/images'
+REFUND_UPLOAD_FOLDER = 'static/refund'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['REFUND_UPLOAD_FOLDER'] = REFUND_UPLOAD_FOLDER
 
 
 def allowed_file(filename):
@@ -119,6 +121,38 @@ def init_db():
             quantity INT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS return_requests (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            order_id INT NOT NULL,
+            product_id VARCHAR(255) NOT NULL,
+            quantity INT NOT NULL,
+            reason TEXT NOT NULL,
+            status ENUM('pending', 'approved', 'rejected', 'refunded') DEFAULT 'pending',
+            comments TEXT,
+            admin_notes TEXT,
+            requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            reviewed_by INT,
+            reviewed_at DATETIME,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (order_id) REFERENCES orders(id),
+            FOREIGN KEY (product_id) REFERENCES products(id),
+            FOREIGN KEY (reviewed_by) REFERENCES users(id)
+        )
+    """)
+   
+
+    # --- return_request_images ---
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS return_request_images (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            return_request_id INT NOT NULL,
+            image_path VARCHAR(255) NOT NULL,
+            uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (return_request_id) REFERENCES return_requests(id) ON DELETE CASCADE
         )
     """)
 
@@ -390,14 +424,20 @@ def init_db():
                 ('About Us', 'contact', 11)
             ]
         )
-    
-    
-    
-    
+        
 
     conn.commit()
     cursor.close()
     conn.close()
+    
+def create_upload_folders():
+    """Creates the necessary upload folders if they don't exist."""
+    try:
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        os.makedirs(app.config['REFUND_UPLOAD_FOLDER'], exist_ok=True)
+        print("✅ Upload folders verified/created.")
+    except OSError as e:
+        print(f"❌ Error creating upload folders: {e}")
 
 def update_search_history_schema():
     """Create search_history table if it doesn't exist"""
@@ -2332,7 +2372,163 @@ def admin_view_seller_products(seller_id):
     return render_template('admin_seller_products.html', seller=seller, products=products)
 
 
+@app.route('/admin/returns')
+@role_required('admin')
+def admin_returns():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Get all return requests with customer, product, and image info
+    cursor.execute("""
+        SELECT 
+            rr.*, 
+            u.name as customer_name, 
+            p.title as product_title,
+            GROUP_CONCAT(rri.image_path) as image_paths
+        FROM return_requests rr
+        JOIN users u ON rr.user_id = u.id
+        JOIN products p ON rr.product_id = p.id
+        LEFT JOIN return_request_images rri ON rr.id = rri.return_request_id
+        GROUP BY rr.id
+        ORDER BY rr.status = 'pending' DESC, rr.requested_at DESC
+    """)
+    requests = cursor.fetchall()
 
+    for req in requests:
+        if req['image_paths']:
+            req['image_paths'] = req['image_paths'].split(',')
+        else:
+            req['image_paths'] = []
+            
+    conn.close()
+    return render_template('admin_returns.html', requests=requests, active_section='returns')
+
+@app.route('/admin/approve-return/<int:request_id>', methods=['POST'])
+@role_required('admin')
+def admin_approve_return(request_id):
+    conn = get_db_connection()
+    # Use dictionary=True to easily access columns by name
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # --- Step 1: Get all necessary info for the refund ---
+        # We need the order's payment ID and the item's details
+        cursor.execute("""
+            SELECT 
+                rr.order_id,
+                rr.product_id,
+                rr.quantity,
+                o.razorpay_payment_id
+            FROM return_requests rr
+            JOIN orders o ON rr.order_id = o.id
+            WHERE rr.id = %s AND rr.status = 'pending'
+        """, (request_id,))
+        
+        return_data = cursor.fetchone()
+
+        if not return_data:
+            flash("Return request not found or not pending.", "danger")
+            return redirect(url_for('admin_returns'))
+        
+        # --- Step 2: Get the price of the item *from the order_items table* ---
+        # This is the price the customer actually paid
+        cursor.execute("""
+            SELECT price
+            FROM order_items
+            WHERE order_id = %s AND product_id = %s
+        """, (return_data['order_id'], return_data['product_id']))
+        
+        order_item = cursor.fetchone()
+        
+        if not order_item:
+            flash("Could not find the original item in the order.", "danger")
+            return redirect(url_for('admin_returns'))
+
+        # --- Step 3: Calculate refund amount (in paise) ---
+        amount_to_refund = float(order_item['price']) * int(return_data['quantity'])
+        amount_in_paise = int(amount_to_refund * 100)
+        payment_id = return_data['razorpay_payment_id']
+        
+        if amount_in_paise <= 0:
+            flash("Refund amount is zero. Cannot process.", "danger")
+            return redirect(url_for('admin_returns'))
+
+        # --- Step 4: Call Razorpay API ---
+        try:
+            print(f"Attempting refund: PaymentID={payment_id}, Amount={amount_in_paise}")
+            
+            # This is the API call
+            refund_response = razorpay_client.payment.refund(payment_id, {
+                'amount': amount_in_paise,
+                'notes': {
+                    'return_request_id': request_id,
+                    'reason': 'Admin approved return'
+                }
+            })
+            
+            print(f"Razorpay response: {refund_response}")
+            
+        except Exception as e:
+            # Handle Razorpay API errors (e.g., "refund already processed")
+            flash(f"Razorpay API Error: {str(e)}", "danger")
+            conn.rollback()
+            return redirect(url_for('admin_returns'))
+
+        # --- Step 5: If API call was successful, update our DB ---
+        
+        # We need a new cursor for the update since the dictionary cursor
+        # can have issues with update/insert operations.
+        cursor_update = conn.cursor()
+        
+        admin_note = f"Refunded ₹{amount_to_refund:.2f}. Razorpay Refund ID: {refund_response['id']}"
+        
+        cursor_update.execute("""
+            UPDATE return_requests
+            SET status = 'refunded',
+                reviewed_by = %s,
+                reviewed_at = NOW(),
+                admin_notes = %s
+            WHERE id = %s
+        """, (session['user_id'], admin_note, request_id))
+        
+        conn.commit()
+        flash(f"Refund for ₹{amount_to_refund:.2f} processed successfully!", "success")
+
+    except Exception as e:
+        conn.rollback()
+        flash(f"An unexpected error occurred: {str(e)}", "danger")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+        
+    return redirect(url_for('admin_returns'))
+
+@app.route('/admin/reject-return/<int:request_id>', methods=['POST'])
+@role_required('admin')
+def admin_reject_return(request_id):
+    reason = request.form.get('rejection_reason', 'No reason provided.')
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE return_requests
+            SET status = 'rejected',
+                reviewed_by = %s,
+                reviewed_at = NOW(),
+                admin_notes = %s
+            WHERE id = %s
+        """, (session['user_id'], reason, request_id))
+        conn.commit()
+        flash("Return request rejected.", "warning")
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error rejecting return: {str(e)}", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+    return redirect(url_for('admin_returns'))
 
 @app.route('/logout')
 def logout():
@@ -2580,26 +2776,65 @@ def forgot_password():
         user = get_user_by_email(email)
 
         if user:
+            # ✅ NEW: Validate user is a customer
+            if user['role'] != 'customer':
+                flash("This password reset is only for customers. Please use the appropriate reset page for your account type.", "danger")
+                return redirect(url_for('forgot_password'))
+            
+            # ✅ NEW: Check if customer account is active
+            if not user.get('is_active', True):
+                flash("Your account has been deactivated. Please contact support.", "warning")
+                return redirect(url_for('forgot_password'))
+            
+            # Generate OTP
             otp = str(random.randint(100000, 999999))
             session['reset_email'] = email
             session['reset_otp'] = otp
+            session['reset_otp_time'] = time.time()  # ✅ NEW: Add timestamp
 
+            # Send OTP email
             msg = Message("Password Reset OTP", recipients=[email])
-            msg.body = f"Your OTP is {otp}"
+            msg.body = f"Your OTP is {otp}. This OTP is valid for 10 minutes."
             mail.send(msg)
 
+            flash("OTP sent to your email. Please check your inbox.", "success")
             return redirect(url_for('verify_reset_otp_password'))
-
+        
         flash("Email not found", "danger")
 
     return render_template('forgot_password.html')
 
+
 @app.route('/verify-reset-otp-password', methods=['GET', 'POST'])
 def verify_reset_otp_password():
+    # ✅ NEW: Check if session exists
+    if 'reset_email' not in session:
+        flash("Password reset session expired. Please try again.", "danger")
+        return redirect(url_for('forgot_password'))
+    
     if request.method == 'POST':
         entered_otp = request.form['otp']
         new_password = request.form['new_password']
+        confirm_password = request.form.get('confirm_password')  # ✅ NEW: Add confirmation
         email = session.get('reset_email')
+
+        # ✅ NEW: Check OTP expiration (10 minutes)
+        if time.time() - session.get('reset_otp_time', 0) > 600:
+            session.pop('reset_email', None)
+            session.pop('reset_otp', None)
+            session.pop('reset_otp_time', None)
+            flash("OTP has expired. Please request a new one.", "danger")
+            return redirect(url_for('forgot_password'))
+        
+        # ✅ NEW: Password confirmation check
+        if confirm_password and new_password != confirm_password:
+            flash("Passwords do not match. Please try again.", "danger")
+            return render_template('verify_reset_otp_password.html')
+        
+        # ✅ NEW: Password strength validation
+        if len(new_password) < 8:
+            flash("Password must be at least 8 characters long.", "danger")
+            return render_template('verify_reset_otp_password.html')
 
         if entered_otp == session.get('reset_otp') and email:
             hashed_password = generate_password_hash(new_password)
@@ -2610,10 +2845,12 @@ def verify_reset_otp_password():
             conn.commit()
             conn.close()
 
+            # Clear session
             session.pop('reset_email', None)
             session.pop('reset_otp', None)
+            session.pop('reset_otp_time', None)
 
-            flash("Password reset successfully.", "success")
+            flash("Password reset successfully. You can now login with your new password.", "success")
             return redirect(url_for('login'))
         else:
             flash("Invalid OTP or session expired.", "danger")
@@ -5379,14 +5616,117 @@ def my_orders():
         JOIN order_items oi ON o.id = oi.order_id
         JOIN products p ON oi.product_id = p.id
         WHERE o.user_id = %s
-        GROUP BY o.id
+        GROUP BY o.id, o.status, o.total_amount, o.order_date, o.shipping_address,
+                 o.shipping_city, o.shipping_state, o.shipping_pincode,
+                 o.courier_name, o.tracking_number, o.shipped_at
         ORDER BY o.order_date DESC
     """, (user_id,))
     orders = cursor.fetchall()
     
+    # --- NEW CHANGE: Fetch return status for each order ---
+    for order in orders:
+        cursor.execute("""
+            SELECT status, admin_notes 
+            FROM return_requests 
+            WHERE order_id = %s
+            ORDER BY requested_at DESC
+            LIMIT 1
+        """, (order['id'],))
+        
+        return_request = cursor.fetchone()
+        
+        if return_request:
+            order['return_status'] = return_request['status']
+            order['return_notes'] = return_request['admin_notes']
+        else:
+            order['return_status'] = None
+            order['return_notes'] = None
+    # --- END OF NEW CHANGE ---
+    
     conn.close()
 
     return render_template("my_orders.html", orders=orders)
+@app.route('/request-return/<int:order_id>', methods=['GET', 'POST'])
+@role_required('customer')
+def request_return(order_id):
+    user_id = session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Verify order belongs to user and is delivered
+    cursor.execute("""
+        SELECT id, status FROM orders 
+        WHERE id = %s AND user_id = %s
+    """, (order_id, user_id))
+    order = cursor.fetchone()
+
+    if not order or order['status'] != 'delivered':
+        flash("You can only request returns for delivered orders.", "warning")
+        return redirect(url_for('my_orders'))
+
+    if request.method == 'POST':
+        product_id = request.form.get('product_id')
+        quantity = request.form.get('quantity')
+        reason = request.form.get('reason')
+        images = request.files.getlist('images')
+
+        if not all([product_id, quantity, reason]):
+            flash("Please fill all fields.", "danger")
+            return redirect(url_for('request_return', order_id=order_id))
+
+        image_paths = []
+        for image in images:
+            if image and allowed_file(image.filename):
+                filename = secure_filename(f"{user_id}_{order_id}_{int(time.time())}_{image.filename}")
+                image_path = os.path.join(app.config['REFUND_UPLOAD_FOLDER'], filename)
+                image.save(image_path)
+                # Save relative path for web access
+                image_paths.append(os.path.join('refund', filename).replace('\\', '/'))
+            
+        try:
+            conn.start_transaction()
+            # Insert into return_requests
+            cursor.execute("""
+                INSERT INTO return_requests (user_id, order_id, product_id, quantity, reason, status, requested_at)
+                VALUES (%s, %s, %s, %s, %s, 'pending', NOW())
+            """, (user_id, order_id, product_id, quantity, reason))
+            return_request_id = cursor.lastrowid
+
+            # Insert image paths
+            if image_paths:
+                image_data = [(return_request_id, path) for path in image_paths]
+                cursor.executemany("""
+                    INSERT INTO return_request_images (return_request_id, image_path)
+                    VALUES (%s, %s)
+                """, image_data)
+            
+            conn.commit()
+            flash("Return request submitted successfully.", "success")
+            return redirect(url_for('my_orders'))
+        except Exception as e:
+            conn.rollback()
+            flash(f"Error submitting request: {str(e)}", "danger")
+        finally:
+            cursor.close()
+            conn.close()
+        
+        return redirect(url_for('request_return', order_id=order_id))
+
+
+    # GET Request
+    # Fetch items for this order to populate dropdown
+    cursor.execute("""
+        SELECT oi.product_id, p.title, oi.quantity
+        FROM order_items oi
+        JOIN products p ON oi.product_id = p.id
+        WHERE oi.order_id = %s
+    """, (order_id,))
+    items = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('request_return.html', order=order, items=items)
 
 @app.route('/order-delivered/<int:order_id>', methods=['POST'])
 def mark_order_delivered(order_id):
@@ -5628,6 +5968,7 @@ if __name__ == '__main__':
     update_orders_schema()
     update_orders_schema_for_payment_verification()
     update_search_history_schema() 
+    create_upload_folders()
     # ----------------------------------------
     # app.run(host='192.168.1.5',port=3000,debug=True)
     app.run(host='0.0.0.0',port=5001,debug=True)
