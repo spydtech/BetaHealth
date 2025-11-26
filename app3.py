@@ -2748,7 +2748,7 @@ def verify_otp():
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO users (name, email,mobile, password_hash, role) VALUES (%s, %s, %s, %s)",
+                "INSERT INTO users (name, email,mobile, password_hash, role) VALUES (%s, %s, %s, %s,%s)",
                 (session['name'], session['email'],session['mobile'], hashed_password, 'customer')
             )
             conn.commit()
