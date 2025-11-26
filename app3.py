@@ -5646,6 +5646,107 @@ def my_orders():
     conn.close()
 
     return render_template("my_orders.html", orders=orders)
+@app.route('/cancel-order/<int:order_id>', methods=['POST'])
+@role_required('customer')
+def cancel_order(order_id):
+    user_id = session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # --- 1. Get Order Details & Verify ---
+        cursor.execute("""
+            SELECT id, user_id, status, total_amount, razorpay_payment_id
+            FROM orders 
+            WHERE id = %s AND user_id = %s
+        """, (order_id, user_id))
+        order = cursor.fetchone()
+
+        if not order:
+            flash("Order not found.", "danger")
+            return redirect(url_for('my_orders'))
+
+        # --- 2. Check if cancellable ---
+        # Only 'paid' or 'confirmed' orders (not yet shipped) can be cancelled
+        # (The 'confirmed' status is set by the seller in 'confirm_shipment')
+        if order['status'] not in ('paid', 'confirmed'):
+            flash(f"Order cannot be cancelled. Status: {order['status']}", "warning")
+            return redirect(url_for('my_orders'))
+
+        payment_id = order['razorpay_payment_id']
+        amount_to_refund = float(order['total_amount'])
+        amount_in_paise = int(amount_to_refund * 100)
+
+        if not payment_id or amount_in_paise <= 0:
+            flash("Order payment details missing. Please contact support.", "danger")
+            return redirect(url_for('my_orders'))
+
+        # --- 3. Process Razorpay Refund ---
+        try:
+            print(f"Attempting full refund: PaymentID={payment_id}, Amount={amount_in_paise}")
+            refund_response = razorpay_client.payment.refund(payment_id, {
+                'amount': amount_in_paise,
+                'notes': {
+                    'order_id': order_id,
+                    'reason': 'Customer cancellation'
+                }
+            })
+            print(f"Razorpay response: {refund_response}")
+        
+        except Exception as e:
+            # Handle Razorpay API errors
+            flash(f"Refund processing failed: {str(e)}. Please contact support.", "danger")
+            conn.rollback() # Rollback any potential transaction
+            return redirect(url_for('my_orders'))
+
+        # --- 4. If Refund OK, Update Database (as a transaction) ---
+        conn.start_transaction()
+        cursor_update = conn.cursor() # Use a new cursor for updates
+
+        # a) Update order status
+        cursor_update.execute("""
+            UPDATE orders 
+            SET status = 'cancelled'
+            WHERE id = %s
+        """, (order_id,))
+
+        # b) Get order items
+        cursor_update.execute("""
+            SELECT product_id, quantity 
+            FROM order_items 
+            WHERE order_id = %s
+        """, (order_id,))
+        items_to_restock = cursor_update.fetchall()
+
+        # c) Restock inventory
+        for item in items_to_restock:
+            cursor_update.execute("""
+                UPDATE inventory
+                SET stock_quantity = stock_quantity + %s
+                WHERE product_id = %s
+            """, (item[1], item[0])) # Note: index 0 is product_id, 1 is quantity
+
+        # d) Update sales count (optional, but good practice)
+        for item in items_to_restock:
+            cursor_update.execute("""
+                UPDATE products
+                SET sold_quantity = sold_quantity - %s
+                WHERE id = %s AND sold_quantity >= %s
+            """, (item[1], item[0], item[1]))
+            
+        conn.commit()
+        flash(f"Order #{order_id} has been cancelled. Your refund of ₹{amount_to_refund:.2f} is being processed.", "success")
+        
+    except Exception as e:
+        conn.rollback()
+        flash(f"An error occurred: {str(e)}", "danger")
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+            
+    return redirect(url_for('my_orders'))
+
 @app.route('/request-return/<int:order_id>', methods=['GET', 'POST'])
 @role_required('customer')
 def request_return(order_id):
