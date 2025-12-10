@@ -16,6 +16,7 @@ import string
 import time
 from flask_caching import Cache
 from math import ceil
+
 RAZORPAY_KEY_ID = "rzp_live_RWWvXeMcmTohhi"
 RAZORPAY_KEY_SECRET = "iT1TKCVOdkVqmW2fOrbI6Fr2"
 
@@ -38,9 +39,11 @@ csrf = CSRFProtect(app)
 
 UPLOAD_FOLDER = 'static/images'
 REFUND_UPLOAD_FOLDER = 'static/refund'
+SUPPORT_UPLOAD_FOLDER = 'static/support'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['REFUND_UPLOAD_FOLDER'] = REFUND_UPLOAD_FOLDER
+app.config['SUPPORT_UPLOAD_FOLDER'] = SUPPORT_UPLOAD_FOLDER
 
 
 def allowed_file(filename):
@@ -123,6 +126,7 @@ def init_db():
             FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
         )
     """)
+    # --- return_requests ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS return_requests (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -211,6 +215,38 @@ def init_db():
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
 
+    """)
+    # --- return_requests ---
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS return_requests (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            order_id INT NOT NULL,
+            product_id VARCHAR(255) NOT NULL,
+            quantity INT NOT NULL,
+            reason TEXT NOT NULL,
+            status ENUM('pending', 'approved', 'rejected', 'refunded') DEFAULT 'pending',
+            comments TEXT,
+            admin_notes TEXT,
+            requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            reviewed_by INT,
+            reviewed_at DATETIME,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (order_id) REFERENCES orders(id),
+            FOREIGN KEY (product_id) REFERENCES products(id),
+            FOREIGN KEY (reviewed_by) REFERENCES users(id)
+        )
+    """)
+
+    # --- return_request_images ---
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS return_request_images (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            return_request_id INT NOT NULL,
+            image_path VARCHAR(255) NOT NULL,
+            uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (return_request_id) REFERENCES return_requests(id) ON DELETE CASCADE
+        )
     """)
 
     # --- seller_profiles ---
@@ -424,47 +460,72 @@ def init_db():
                 ('About Us', 'contact', 11)
             ]
         )
-        
+     
+    
 
     conn.commit()
     cursor.close()
     conn.close()
-    
+
 def create_upload_folders():
     """Creates the necessary upload folders if they don't exist."""
     try:
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
         os.makedirs(app.config['REFUND_UPLOAD_FOLDER'], exist_ok=True)
+        os.makedirs(app.config['SUPPORT_UPLOAD_FOLDER'], exist_ok=True)
         print("✅ Upload folders verified/created.")
     except OSError as e:
         print(f"❌ Error creating upload folders: {e}")
-
-def update_search_history_schema():
-    """Create search_history table if it doesn't exist"""
+ 
+def update_support_schema():
+    """Creates tables for the support ticket system"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
     try:
+        # 1. Support Tickets Table
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS search_history (
+            CREATE TABLE IF NOT EXISTS support_tickets (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NULL,
-                session_id VARCHAR(100) NULL,
-                query VARCHAR(255) NOT NULL,
-                searched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                INDEX idx_user_session (user_id, session_id),
-                INDEX idx_searched_at (searched_at)
+                user_id INT NOT NULL,
+                order_id INT NULL,
+                subject VARCHAR(255) NOT NULL,
+                status ENUM('open', 'closed') DEFAULT 'open',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (order_id) REFERENCES orders(id)
             )
         """)
+
+        # 2. Ticket Messages (Chat)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ticket_messages (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                ticket_id INT NOT NULL,
+                sender_id INT NOT NULL,
+                message TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (ticket_id) REFERENCES support_tickets(id),
+                FOREIGN KEY (sender_id) REFERENCES users(id)
+            )
+        """)
+
+        # 3. Ticket Images
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ticket_images (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                message_id INT NOT NULL,
+                image_path VARCHAR(255) NOT NULL,
+                FOREIGN KEY (message_id) REFERENCES ticket_messages(id) ON DELETE CASCADE
+            )
+        """)
+        
         conn.commit()
-        print("✅ Search history table created/verified")
+        print("✅ Support ticket schema updated successfully")
     except mysql.connector.Error as err:
-        conn.rollback()
-        print(f"❌ Error creating search_history table: {err}")
+        print(f"❌ Error updating support schema: {err}")
     finally:
         cursor.close()
-        conn.close()   
+        conn.close()          
 def update_db_schema():
     """Updates the database schema with new tables and columns"""
     conn = get_db_connection()
@@ -721,6 +782,32 @@ def update_orders_schema_for_payment_verification():
     except mysql.connector.Error as err:
         conn.rollback()
         print(f"❌ Error updating orders schema: {err}")
+    finally:
+        cursor.close()
+        conn.close()
+def update_search_history_schema():
+    """Create search_history table if it doesn't exist"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS search_history (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NULL,
+                session_id VARCHAR(100) NULL,
+                query VARCHAR(255) NOT NULL,
+                searched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                INDEX idx_user_session (user_id, session_id),
+                INDEX idx_searched_at (searched_at)
+            )
+        """)
+        conn.commit()
+        print("✅ Search history table created/verified")
+    except mysql.connector.Error as err:
+        conn.rollback()
+        print(f"❌ Error creating search_history table: {err}")
     finally:
         cursor.close()
         conn.close()
@@ -2372,163 +2459,7 @@ def admin_view_seller_products(seller_id):
     return render_template('admin_seller_products.html', seller=seller, products=products)
 
 
-@app.route('/admin/returns')
-@role_required('admin')
-def admin_returns():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Get all return requests with customer, product, and image info
-    cursor.execute("""
-        SELECT 
-            rr.*, 
-            u.name as customer_name, 
-            p.title as product_title,
-            GROUP_CONCAT(rri.image_path) as image_paths
-        FROM return_requests rr
-        JOIN users u ON rr.user_id = u.id
-        JOIN products p ON rr.product_id = p.id
-        LEFT JOIN return_request_images rri ON rr.id = rri.return_request_id
-        GROUP BY rr.id
-        ORDER BY rr.status = 'pending' DESC, rr.requested_at DESC
-    """)
-    requests = cursor.fetchall()
 
-    for req in requests:
-        if req['image_paths']:
-            req['image_paths'] = req['image_paths'].split(',')
-        else:
-            req['image_paths'] = []
-            
-    conn.close()
-    return render_template('admin_returns.html', requests=requests, active_section='returns')
-
-@app.route('/admin/approve-return/<int:request_id>', methods=['POST'])
-@role_required('admin')
-def admin_approve_return(request_id):
-    conn = get_db_connection()
-    # Use dictionary=True to easily access columns by name
-    cursor = conn.cursor(dictionary=True)
-    
-    try:
-        # --- Step 1: Get all necessary info for the refund ---
-        # We need the order's payment ID and the item's details
-        cursor.execute("""
-            SELECT 
-                rr.order_id,
-                rr.product_id,
-                rr.quantity,
-                o.razorpay_payment_id
-            FROM return_requests rr
-            JOIN orders o ON rr.order_id = o.id
-            WHERE rr.id = %s AND rr.status = 'pending'
-        """, (request_id,))
-        
-        return_data = cursor.fetchone()
-
-        if not return_data:
-            flash("Return request not found or not pending.", "danger")
-            return redirect(url_for('admin_returns'))
-        
-        # --- Step 2: Get the price of the item *from the order_items table* ---
-        # This is the price the customer actually paid
-        cursor.execute("""
-            SELECT price
-            FROM order_items
-            WHERE order_id = %s AND product_id = %s
-        """, (return_data['order_id'], return_data['product_id']))
-        
-        order_item = cursor.fetchone()
-        
-        if not order_item:
-            flash("Could not find the original item in the order.", "danger")
-            return redirect(url_for('admin_returns'))
-
-        # --- Step 3: Calculate refund amount (in paise) ---
-        amount_to_refund = float(order_item['price']) * int(return_data['quantity'])
-        amount_in_paise = int(amount_to_refund * 100)
-        payment_id = return_data['razorpay_payment_id']
-        
-        if amount_in_paise <= 0:
-            flash("Refund amount is zero. Cannot process.", "danger")
-            return redirect(url_for('admin_returns'))
-
-        # --- Step 4: Call Razorpay API ---
-        try:
-            print(f"Attempting refund: PaymentID={payment_id}, Amount={amount_in_paise}")
-            
-            # This is the API call
-            refund_response = razorpay_client.payment.refund(payment_id, {
-                'amount': amount_in_paise,
-                'notes': {
-                    'return_request_id': request_id,
-                    'reason': 'Admin approved return'
-                }
-            })
-            
-            print(f"Razorpay response: {refund_response}")
-            
-        except Exception as e:
-            # Handle Razorpay API errors (e.g., "refund already processed")
-            flash(f"Razorpay API Error: {str(e)}", "danger")
-            conn.rollback()
-            return redirect(url_for('admin_returns'))
-
-        # --- Step 5: If API call was successful, update our DB ---
-        
-        # We need a new cursor for the update since the dictionary cursor
-        # can have issues with update/insert operations.
-        cursor_update = conn.cursor()
-        
-        admin_note = f"Refunded ₹{amount_to_refund:.2f}. Razorpay Refund ID: {refund_response['id']}"
-        
-        cursor_update.execute("""
-            UPDATE return_requests
-            SET status = 'refunded',
-                reviewed_by = %s,
-                reviewed_at = NOW(),
-                admin_notes = %s
-            WHERE id = %s
-        """, (session['user_id'], admin_note, request_id))
-        
-        conn.commit()
-        flash(f"Refund for ₹{amount_to_refund:.2f} processed successfully!", "success")
-
-    except Exception as e:
-        conn.rollback()
-        flash(f"An unexpected error occurred: {str(e)}", "danger")
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-        
-    return redirect(url_for('admin_returns'))
-
-@app.route('/admin/reject-return/<int:request_id>', methods=['POST'])
-@role_required('admin')
-def admin_reject_return(request_id):
-    reason = request.form.get('rejection_reason', 'No reason provided.')
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("""
-            UPDATE return_requests
-            SET status = 'rejected',
-                reviewed_by = %s,
-                reviewed_at = NOW(),
-                admin_notes = %s
-            WHERE id = %s
-        """, (session['user_id'], reason, request_id))
-        conn.commit()
-        flash("Return request rejected.", "warning")
-    except Exception as e:
-        conn.rollback()
-        flash(f"Error rejecting return: {str(e)}", "danger")
-    finally:
-        cursor.close()
-        conn.close()
-    return redirect(url_for('admin_returns'))
 
 @app.route('/logout')
 def logout():
@@ -2907,6 +2838,7 @@ def search():
     
     # Get search history for dropdown
     search_history = get_search_history()
+
     if query:
         all_products_data = get_all_products_from_db()
         for product_item in all_products_data:
@@ -2936,7 +2868,6 @@ def search():
                 found_product_ids.add(product_item['id'])
     
     return render_template('search_results.html', query=query, search_results=search_results,search_history=search_history)
-
 def get_or_create_session_id():
     """Get existing session_id or create new one"""
     if 'session_id' not in session:
@@ -3076,7 +3007,6 @@ def delete_search_item(query):
         conn.close()
     
     return redirect(request.referrer or url_for('home'))
-
 @app.route('/add-to-cart', methods=['POST'])
 def add_to_cart():
     product_id = request.form.get('product_id')
@@ -5037,6 +4967,7 @@ def buy_now():
 
 # Route to render checkout page and create Razorpay order
 @app.route('/checkout', methods=['GET', 'POST'])
+
 @role_required('customer')
 def checkout():
     user_id = session['user_id']
@@ -5201,7 +5132,7 @@ def checkout():
                            cart_items=cart_items,
                            total_price=total_price,
                            addresses=addresses,
-                           user_email=user_email) # <-- FIX
+                           user_email=user_email)
 
 
     
@@ -5646,6 +5577,7 @@ def my_orders():
     conn.close()
 
     return render_template("my_orders.html", orders=orders)
+
 @app.route('/cancel-order/<int:order_id>', methods=['POST'])
 @role_required('customer')
 def cancel_order(order_id):
@@ -5828,6 +5760,164 @@ def request_return(order_id):
     conn.close()
     
     return render_template('request_return.html', order=order, items=items)
+
+@app.route('/admin/returns')
+@role_required('admin')
+def admin_returns():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Get all return requests with customer, product, and image info
+    cursor.execute("""
+        SELECT 
+            rr.*, 
+            u.name as customer_name, 
+            p.title as product_title,
+            GROUP_CONCAT(rri.image_path) as image_paths
+        FROM return_requests rr
+        JOIN users u ON rr.user_id = u.id
+        JOIN products p ON rr.product_id = p.id
+        LEFT JOIN return_request_images rri ON rr.id = rri.return_request_id
+        GROUP BY rr.id
+        ORDER BY rr.status = 'pending' DESC, rr.requested_at DESC
+    """)
+    requests = cursor.fetchall()
+
+    for req in requests:
+        if req['image_paths']:
+            req['image_paths'] = req['image_paths'].split(',')
+        else:
+            req['image_paths'] = []
+            
+    conn.close()
+    return render_template('admin_returns.html', requests=requests, active_section='returns')
+
+@app.route('/admin/approve-return/<int:request_id>', methods=['POST'])
+@role_required('admin')
+def admin_approve_return(request_id):
+    conn = get_db_connection()
+    # Use dictionary=True to easily access columns by name
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # --- Step 1: Get all necessary info for the refund ---
+        # We need the order's payment ID and the item's details
+        cursor.execute("""
+            SELECT 
+                rr.order_id,
+                rr.product_id,
+                rr.quantity,
+                o.razorpay_payment_id
+            FROM return_requests rr
+            JOIN orders o ON rr.order_id = o.id
+            WHERE rr.id = %s AND rr.status = 'pending'
+        """, (request_id,))
+        
+        return_data = cursor.fetchone()
+
+        if not return_data:
+            flash("Return request not found or not pending.", "danger")
+            return redirect(url_for('admin_returns'))
+        
+        # --- Step 2: Get the price of the item *from the order_items table* ---
+        # This is the price the customer actually paid
+        cursor.execute("""
+            SELECT price
+            FROM order_items
+            WHERE order_id = %s AND product_id = %s
+        """, (return_data['order_id'], return_data['product_id']))
+        
+        order_item = cursor.fetchone()
+        
+        if not order_item:
+            flash("Could not find the original item in the order.", "danger")
+            return redirect(url_for('admin_returns'))
+
+        # --- Step 3: Calculate refund amount (in paise) ---
+        amount_to_refund = float(order_item['price']) * int(return_data['quantity'])
+        amount_in_paise = int(amount_to_refund * 100)
+        payment_id = return_data['razorpay_payment_id']
+        
+        if amount_in_paise <= 0:
+            flash("Refund amount is zero. Cannot process.", "danger")
+            return redirect(url_for('admin_returns'))
+
+        # --- Step 4: Call Razorpay API ---
+        try:
+            print(f"Attempting refund: PaymentID={payment_id}, Amount={amount_in_paise}")
+            
+            # This is the API call
+            refund_response = razorpay_client.payment.refund(payment_id, {
+                'amount': amount_in_paise,
+                'notes': {
+                    'return_request_id': request_id,
+                    'reason': 'Admin approved return'
+                }
+            })
+            
+            print(f"Razorpay response: {refund_response}")
+            
+        except Exception as e:
+            # Handle Razorpay API errors (e.g., "refund already processed")
+            flash(f"Razorpay API Error: {str(e)}", "danger")
+            conn.rollback()
+            return redirect(url_for('admin_returns'))
+
+        # --- Step 5: If API call was successful, update our DB ---
+        
+        # We need a new cursor for the update since the dictionary cursor
+        # can have issues with update/insert operations.
+        cursor_update = conn.cursor()
+        
+        admin_note = f"Refunded ₹{amount_to_refund:.2f}. Razorpay Refund ID: {refund_response['id']}"
+        
+        cursor_update.execute("""
+            UPDATE return_requests
+            SET status = 'refunded',
+                reviewed_by = %s,
+                reviewed_at = NOW(),
+                admin_notes = %s
+            WHERE id = %s
+        """, (session['user_id'], admin_note, request_id))
+        
+        conn.commit()
+        flash(f"Refund for ₹{amount_to_refund:.2f} processed successfully!", "success")
+
+    except Exception as e:
+        conn.rollback()
+        flash(f"An unexpected error occurred: {str(e)}", "danger")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+        
+    return redirect(url_for('admin_returns'))
+
+@app.route('/admin/reject-return/<int:request_id>', methods=['POST'])
+@role_required('admin')
+def admin_reject_return(request_id):
+    reason = request.form.get('rejection_reason', 'No reason provided.')
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE return_requests
+            SET status = 'rejected',
+                reviewed_by = %s,
+                reviewed_at = NOW(),
+                admin_notes = %s
+            WHERE id = %s
+        """, (session['user_id'], reason, request_id))
+        conn.commit()
+        flash("Return request rejected.", "warning")
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error rejecting return: {str(e)}", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+    return redirect(url_for('admin_returns'))
 
 @app.route('/order-delivered/<int:order_id>', methods=['POST'])
 def mark_order_delivered(order_id):
@@ -6037,7 +6127,290 @@ def send_payment_received_notification(order_id):
     conn.close()
     return True
 
+# ==========================================
+# CUSTOMER SUPPORT ROUTES
+# ==========================================
 
+@app.route('/support')
+@role_required('customer')
+def my_tickets():
+    user_id = session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("""
+        SELECT t.*, o.total_amount 
+        FROM support_tickets t
+        LEFT JOIN orders o ON t.order_id = o.id
+        WHERE t.user_id = %s
+        ORDER BY t.created_at DESC
+    """, (user_id,))
+    tickets = cursor.fetchall()
+    conn.close()
+    return render_template('my_tickets.html', tickets=tickets)
+
+@app.route('/support/create', methods=['GET', 'POST'])
+@role_required('customer')
+def create_ticket():
+    user_id = session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    if request.method == 'POST':
+        order_id = request.form.get('order_id')
+        issue_type = request.form.get('issue_type')
+        raw_subject = request.form.get('subject')
+        message_text = request.form.get('message')
+        images = request.files.getlist('images')
+
+        subject = f"[{issue_type}] {raw_subject}"
+
+        if not raw_subject or not message_text:
+            flash("Subject and Message are required", "danger")
+            return redirect(url_for('create_ticket'))
+
+        if order_id == "": order_id = None
+
+        try:
+            # conn.start_transaction()
+            # Create Ticket
+            cursor.execute("""
+                INSERT INTO support_tickets (user_id, order_id, subject, status)
+                VALUES (%s, %s, %s, 'open')
+            """, (user_id, order_id, subject))
+            ticket_id = cursor.lastrowid
+
+            # Create Initial Message
+            cursor.execute("""
+                INSERT INTO ticket_messages (ticket_id, sender_id, message)
+                VALUES (%s, %s, %s)
+            """, (ticket_id, user_id, message_text))
+            message_id = cursor.lastrowid
+
+            # Handle Images
+            for image in images:
+                if image and allowed_file(image.filename):
+                    filename = secure_filename(f"{ticket_id}_{int(time.time())}_{image.filename}")
+                    image.save(os.path.join(app.config['SUPPORT_UPLOAD_FOLDER'], filename))
+                    db_path = os.path.join('support', filename).replace('\\', '/')
+                    cursor.execute("INSERT INTO ticket_images (message_id, image_path) VALUES (%s, %s)", 
+                                   (message_id, db_path))
+
+            conn.commit()
+            flash("Support ticket created successfully!", "success")
+            return redirect(url_for('ticket_view', ticket_id=ticket_id))
+        except Exception as e:
+            conn.rollback()
+            flash(f"Error creating ticket: {str(e)}", "danger")
+            return redirect(url_for('create_ticket'))
+        finally:
+            conn.close()
+
+    cursor.execute("SELECT id, order_date, total_amount FROM orders WHERE user_id = %s ORDER BY order_date DESC", (user_id,))
+    orders = cursor.fetchall()
+    conn.close()
+    return render_template('create_ticket.html', orders=orders)
+
+@app.route('/support/ticket/<int:ticket_id>', methods=['GET', 'POST'])
+@role_required('customer')
+def ticket_view(ticket_id):
+    user_id = session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("SELECT * FROM support_tickets WHERE id = %s AND user_id = %s", (ticket_id, user_id))
+    ticket = cursor.fetchone()
+    if not ticket:
+        conn.close()
+        flash("Ticket not found", "danger")
+        return redirect(url_for('my_tickets'))
+
+    if request.method == 'POST':
+        message_text = request.form.get('message')
+        images = request.files.getlist('images')
+        
+        if ticket['status'] == 'closed':
+             flash("This ticket is closed.", "warning")
+        else:
+            try:
+                # conn.start_transaction()
+                cursor.execute("INSERT INTO ticket_messages (ticket_id, sender_id, message) VALUES (%s, %s, %s)", 
+                               (ticket_id, user_id, message_text))
+                message_id = cursor.lastrowid
+                
+                for image in images:
+                    if image and allowed_file(image.filename):
+                        filename = secure_filename(f"{ticket_id}_{int(time.time())}_{image.filename}")
+                        image.save(os.path.join(app.config['SUPPORT_UPLOAD_FOLDER'], filename))
+                        db_path = os.path.join('support', filename).replace('\\', '/')
+                        cursor.execute("INSERT INTO ticket_images (message_id, image_path) VALUES (%s, %s)", (message_id, db_path))
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                flash(f"Error sending reply: {str(e)}", "danger")
+    
+    cursor.execute("""
+        SELECT tm.*, u.name as sender_name, u.role as sender_role,
+               GROUP_CONCAT(ti.image_path) as images
+        FROM ticket_messages tm
+        JOIN users u ON tm.sender_id = u.id
+        LEFT JOIN ticket_images ti ON tm.id = ti.message_id
+        WHERE tm.ticket_id = %s
+        GROUP BY tm.id
+        ORDER BY tm.created_at ASC
+    """, (ticket_id,))
+    messages = cursor.fetchall()
+    
+    for msg in messages:
+        msg['images'] = msg['images'].split(',') if msg['images'] else []
+
+    conn.close()
+    return render_template('ticket_view.html', ticket=ticket, messages=messages)
+
+# ==========================================
+# ADMIN SUPPORT ROUTES
+# ==========================================
+
+@app.route('/admin/support')
+@role_required('admin')
+def admin_support_list():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT t.*, u.name as customer_name, u.email as customer_email, o.total_amount
+        FROM support_tickets t
+        JOIN users u ON t.user_id = u.id
+        LEFT JOIN orders o ON t.order_id = o.id
+        ORDER BY t.status = 'open' DESC, t.created_at DESC
+    """)
+    tickets = cursor.fetchall()
+    conn.close()
+    return render_template('admin_support_list.html', tickets=tickets, active_section='support')
+
+@app.route('/admin/support/<int:ticket_id>', methods=['GET', 'POST'])
+@role_required('admin')
+def admin_ticket_view(ticket_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Updated Query to include Order Status for the Refund Logic
+    cursor.execute("""
+        SELECT t.*, u.name as customer_name, 
+               o.id as order_id, o.razorpay_payment_id, o.total_amount, o.status as order_status
+        FROM support_tickets t
+        JOIN users u ON t.user_id = u.id
+        LEFT JOIN orders o ON t.order_id = o.id
+        WHERE t.id = %s
+    """, (ticket_id,))
+    ticket = cursor.fetchone()
+    
+    if not ticket:
+        conn.close()
+        flash("Ticket not found", "danger")
+        return redirect(url_for('admin_support_list'))
+
+    if request.method == 'POST':
+        message_text = request.form.get('message')
+        images = request.files.getlist('images')
+        
+        try:
+            # conn.start_transaction()
+            cursor.execute("INSERT INTO ticket_messages (ticket_id, sender_id, message) VALUES (%s, %s, %s)", 
+                           (ticket_id, session['user_id'], message_text))
+            message_id = cursor.lastrowid
+            
+            for image in images:
+                if image and allowed_file(image.filename):
+                    filename = secure_filename(f"admin_{ticket_id}_{int(time.time())}_{image.filename}")
+                    image.save(os.path.join(app.config['SUPPORT_UPLOAD_FOLDER'], filename))
+                    db_path = os.path.join('support', filename).replace('\\', '/')
+                    cursor.execute("INSERT INTO ticket_images (message_id, image_path) VALUES (%s, %s)", (message_id, db_path))
+            conn.commit()
+            flash("Reply sent.", "success")
+        except Exception as e:
+            conn.rollback()
+            flash(f"Error sending reply: {str(e)}", "danger")
+
+    cursor.execute("""
+        SELECT tm.*, u.name as sender_name, u.role as sender_role,
+               GROUP_CONCAT(ti.image_path) as images
+        FROM ticket_messages tm
+        JOIN users u ON tm.sender_id = u.id
+        LEFT JOIN ticket_images ti ON tm.id = ti.message_id
+        WHERE tm.ticket_id = %s
+        GROUP BY tm.id
+        ORDER BY tm.created_at ASC
+    """, (ticket_id,))
+    messages = cursor.fetchall()
+
+    for msg in messages:
+        msg['images'] = msg['images'].split(',') if msg['images'] else []
+
+    conn.close()
+    return render_template('admin_ticket_view.html', ticket=ticket, messages=messages)
+
+@app.route('/admin/support/<int:ticket_id>/close', methods=['POST'])
+@role_required('admin')
+def admin_close_ticket(ticket_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE support_tickets SET status = 'closed' WHERE id = %s", (ticket_id,))
+    conn.commit()
+    conn.close()
+    flash("Ticket closed successfully.", "success")
+    return redirect(url_for('admin_ticket_view', ticket_id=ticket_id))
+
+@app.route('/admin/support/<int:ticket_id>/refund', methods=['POST'])
+@role_required('admin')
+def admin_refund_ticket(ticket_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT t.order_id, o.razorpay_payment_id, o.total_amount, o.status
+            FROM support_tickets t
+            JOIN orders o ON t.order_id = o.id
+            WHERE t.id = %s
+        """, (ticket_id,))
+        data = cursor.fetchone()
+        
+        if not data or not data['order_id'] or not data['razorpay_payment_id']:
+             flash("Cannot refund: No Order or Payment ID found.", "danger")
+             return redirect(url_for('admin_ticket_view', ticket_id=ticket_id))
+
+        amount_in_paise = int(float(data['total_amount']) * 100)
+        
+        try:
+            refund_response = razorpay_client.payment.refund(data['razorpay_payment_id'], {
+                'amount': amount_in_paise,
+                'notes': {'ticket_id': ticket_id, 'reason': 'Admin refund via chat'}
+            })
+            
+            # conn.start_transaction()
+            # 1. Update Order Status
+            cursor.execute("UPDATE orders SET status = 'refunded' WHERE id = %s", (data['order_id'],))
+            
+            # 2. Add System Message to Chat
+            msg = f"SYSTEM: Full refund of ₹{data['total_amount']} processed successfully."
+            cursor.execute("INSERT INTO ticket_messages (ticket_id, sender_id, message) VALUES (%s, %s, %s)", 
+                           (ticket_id, session['user_id'], msg))
+            
+            # 3. Close Ticket
+            cursor.execute("UPDATE support_tickets SET status = 'closed' WHERE id = %s", (ticket_id,))
+            conn.commit()
+            flash("Refund processed and ticket closed.", "success")
+            
+        except Exception as r_error:
+            conn.rollback()
+            flash(f"Razorpay Error: {str(r_error)}", "danger")
+
+    except Exception as e:
+        conn.rollback()
+        flash(f"Database Error: {str(e)}", "danger")
+    finally:
+        conn.close()
+        
+    return redirect(url_for('admin_ticket_view', ticket_id=ticket_id))
 
 @app.context_processor
 def inject_navbar():
@@ -6047,11 +6420,11 @@ def inject_navbar():
 def inject_cart_length():
     """Make cart_length available in all templates (like base.html)."""
     return dict(cart_length=get_cart_length())
+
 @app.context_processor
 def inject_search_history():
     """Make search history available in all templates"""
     return dict(get_search_history=get_search_history)
-
 
 
 
@@ -6068,8 +6441,8 @@ if __name__ == '__main__':
     update_db_schema() 
     update_orders_schema()
     update_orders_schema_for_payment_verification()
-    update_search_history_schema() 
+    update_search_history_schema()  
     create_upload_folders()
+    update_support_schema()
     # ----------------------------------------
-    # app.run(host='192.168.1.5',port=3000,debug=True)
     app.run(host='0.0.0.0',port=5001,debug=True)

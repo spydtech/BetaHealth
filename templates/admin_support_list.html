@@ -1,0 +1,83 @@
+{% extends "admin_dashboard.html" %}
+{% block content %}
+<div class="content-section active">
+    <div class="mb-4">
+        <h2><i class="fas fa-headset me-3"></i>Support Tickets</h2>
+    </div>
+    
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer</th>
+                            <th>Subject</th>
+                            <th>Order Value</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-ticket-table-body">
+                        {% for ticket in tickets %}
+                        <tr>
+                            <td>#{{ ticket.id }}</td>
+                            <td>
+                                <div>{{ ticket.customer_name }}</div>
+                                <small class="text-muted">{{ ticket.customer_email }}</small>
+                            </td>
+                            <td>{{ ticket.subject }}</td>
+                            <td>
+                                {% if ticket.order_id %}
+                                    <a href="#" class="badge bg-light text-dark text-decoration-none">Ord #{{ ticket.order_id }}</a>
+                                    <br><small>₹{{ ticket.total_amount }}</small>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill bg-{{ 'success' if ticket.status == 'open' else 'secondary' }}">
+                                    {{ ticket.status|upper }}
+                                </span>
+                            </td>
+                            <td>{{ ticket.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <a href="{{ url_for('admin_ticket_view', ticket_id=ticket.id) }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-reply"></i> View/Reply
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Refresh the list every 10 seconds
+        setInterval(function() {
+            fetch(window.location.href)
+            .then(response => response.text())
+            .then(html => {
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, 'text/html');
+                
+                // Get the new table body
+                var newBody = doc.getElementById("admin-ticket-table-body").innerHTML;
+                var currentBody = document.getElementById("admin-ticket-table-body");
+                
+                // Only update if content changed (prevents flickering)
+                if (currentBody.innerHTML.trim() !== newBody.trim()) {
+                    currentBody.innerHTML = newBody;
+                }
+            })
+            .catch(err => console.error("Error refreshing ticket list:", err));
+        }, 10000); // 10000ms = 10 seconds
+    });
+</script>
+{% endblock %}

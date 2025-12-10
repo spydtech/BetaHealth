@@ -1,0 +1,150 @@
+{% extends "admin_dashboard.html" %}
+{% block content %}
+<style>
+    .msg-admin {
+        background-color: white;
+        border: 1px solid #007bff; /* Primary Blue */
+        border-left: 5px solid #007bff !important;
+    }
+    .msg-customer {
+        background-color: white;
+        border-left: 5px solid #28a745 !important; /* Success Green */
+    }
+    /* Responsive height for admin chat */
+    .admin-chat-box {
+        height: 500px;
+        overflow-y: auto; 
+        background: #f4f6f9;
+    }
+    @media (max-width: 768px) {
+        .admin-chat-box {
+            height: 60vh;
+        }
+    }
+</style>
+
+<div class="content-section active">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+        <h2><i class="fas fa-comments me-2"></i>Ticket #{{ ticket.id }}</h2>
+        <a href="{{ url_for('admin_support_list') }}" class="btn btn-outline-secondary btn-sm-block">Back to List</a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 order-2 order-md-1">
+            <div class="card mb-3">
+                <div class="card-header bg-info text-white">Ticket Details</div>
+                <div class="card-body">
+                    <p><strong>Status:</strong> {{ ticket.status|upper }}</p>
+                    <p><strong>Customer:</strong> {{ ticket.customer_name }}</p>
+                    <p><strong>Subject:</strong> {{ ticket.subject }}</p>
+                    <hr>
+                    {% if ticket.order_id %}
+                        <h6>Related Order #{{ ticket.order_id }}</h6>
+                        <p>Total: ₹{{ ticket.total_amount }}</p>
+                        <p>Status: <span class="badge bg-secondary">{{ ticket.order_status }}</span></p>
+                        
+                        {% if ticket.status == 'open' and ticket.order_status not in ['refunded', 'cancelled'] %}
+                            <form action="{{ url_for('admin_refund_ticket', ticket_id=ticket.id) }}" method="POST" onsubmit="return confirm('Are you sure? This will refund ₹{{ ticket.total_amount }} and CLOSE the ticket.');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-danger w-100 mb-2">
+                                    <i class="fas fa-undo"></i> Refund & Close
+                                </button>
+                            </form>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted">No order linked.</p>
+                    {% endif %}
+
+                    {% if ticket.status == 'open' %}
+                        <form action="{{ url_for('admin_close_ticket', ticket_id=ticket.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn btn-secondary w-100">Close Ticket</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8 order-1 order-md-2 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-body admin-chat-box" id="admin-chat-content">
+                    {% for msg in messages %}
+                        <div class="d-flex mb-3 {{ 'justify-content-end' if msg.sender_role != 'customer' else 'justify-content-start' }}">
+                            <div class="card {{ 'msg-admin' if msg.sender_role != 'customer' else 'msg-customer' }}" style="max-width: 85%;">
+                                <div class="card-body p-2">
+                                    <small class="d-block mb-1 text-muted" style="font-size: 0.75rem;">
+                                        {{ 'Admin (You)' if msg.sender_role != 'customer' else ticket.customer_name }} • {{ msg.created_at.strftime('%b %d, %H:%M') }}
+                                    </small>
+                                    <p class="mb-1" style="word-wrap: break-word;">{{ msg.message }}</p>
+                                    
+                                    {% if msg.images %}
+                                        <div class="mt-2">
+                                            {% for img in msg.images %}
+                                                <a href="{{ url_for('static', filename=img) }}" target="_blank">
+                                                    <img src="{{ url_for('static', filename=img) }}" class="img-thumbnail" style="height: 80px;">
+                                                </a>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                {% if ticket.status == 'open' %}
+                <div class="card-footer bg-white">
+                    <form method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-2">
+                            <textarea name="message" class="form-control" rows="3" required placeholder="Reply to customer..."></textarea>
+                        </div>
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+                            <input type="file" name="images" class="form-control w-100 w-md-auto form-control-sm" multiple accept="image/*">
+                            <button type="submit" class="btn btn-primary w-100 w-md-auto"><i class="fas fa-paper-plane"></i> Send Reply</button>
+                        </div>
+                    </form>
+                </div>
+                {% else %}
+                <div class="card-footer bg-light text-center">
+                    <strong class="text-danger">Ticket is closed.</strong>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var chatBox = document.getElementById("admin-chat-content");
+
+        function scrollToBottom() {
+            if(chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+        }
+        
+        scrollToBottom();
+
+        setInterval(function() {
+            fetch(window.location.href)
+            .then(response => response.text())
+            .then(html => {
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, 'text/html');
+                var newContent = doc.getElementById("admin-chat-content").innerHTML;
+                
+                if (chatBox.innerHTML.trim() !== newContent.trim()) {
+                    var isAtBottom = chatBox.scrollHeight - chatBox.scrollTop <= chatBox.clientHeight + 100;
+                    
+                    chatBox.innerHTML = newContent;
+
+                    if (isAtBottom) {
+                        scrollToBottom();
+                    }
+                }
+            })
+            .catch(err => console.error("Auto-refresh error:", err));
+        }, 5000);
+    });
+</script>
+{% endblock %}

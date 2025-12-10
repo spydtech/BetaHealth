@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Open Support Ticket</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="mb-3">
+                            <label class="form-label">Issue Type *</label>
+                            <select name="issue_type" class="form-select" required>
+                                <option value="General">General Inquiry</option>
+                                <option value="Refund">Refund Request</option>
+                                <option value="Shipping">Shipping / Delivery Issue</option>
+                                <option value="Damaged">Damaged / Defective Product</option>
+                                <option value="Payment">Payment Issue</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Select Related Order (Optional)</label>
+                            <select name="order_id" class="form-select">
+                                <option value="">-- No Specific Order --</option>
+                                {% for order in orders %}
+                                    <option value="{{ order.id }}">
+                                        Order #{{ order.id }} ({{ order.order_date.strftime('%Y-%m-%d') }}) - ₹{{ order.total_amount }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Select an order if this is regarding a specific purchase.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Subject *</label>
+                            <input type="text" name="subject" class="form-control" required placeholder="Brief summary of your issue">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Message *</label>
+                            <textarea name="message" class="form-control" rows="5" required placeholder="Describe your issue in detail..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Upload Images (Max 3)</label>
+                            <input type="file" name="images" class="form-control" multiple accept="image/*">
+                        </div>
+
+                        <div class="d-flex flex-column-reverse flex-md-row justify-content-between gap-2">
+                            <a href="{{ url_for('my_tickets') }}" class="btn btn-secondary w-100 w-md-auto">Cancel</a>
+                            <button type="submit" class="btn btn-primary w-100 w-md-auto">Submit Ticket</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
