@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
     <link rel="shortcut icon" href="static/favicon_io/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
             margin: 0;
@@ -701,27 +702,184 @@ code, pre {
     font-size: 1.5rem; /* Makes the 'X' icon larger */
     z-index: 1010; /* Ensures it's clickable and above other elements */
 }
+/* --- Navbar Styling --- */
+.admin-navbar {
+    background: #ffffff !important;
+    border-bottom: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 10px 0; /* Consistent padding */
+    flex-shrink: 0;
+}
+
+.admin-navbar-top {
+    display: flex;
+    justify-content: space-between; /* Pushes Logo left, Menu right */
+    align-items: center;            /* Vertically centers them */
+    flex-wrap: nowrap !important;   /* CRITICAL: Prevents breaking to 2 lines */
+    padding: 0 20px;
+    width: 100%;
+}
+
+.admin-navbar-logo {
+    flex-shrink: 0; /* Prevents logo from getting squashed too much */
+    margin-right: 15px;
+}
+
+.header-image {
+    width: 160px;
+    height: auto;
+    display: block; /* Removes extra spacing below image */
+}
+
+/* Desktop Menu Links */
+.desktop-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.desktop-actions span,
+.desktop-actions a {
+    color: #2c3e50 !important;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    white-space: nowrap; /* Prevents text inside links from wrapping */
+}
+
+.desktop-actions a:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* Mobile Dropdown Button */
+.nav-mobile-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.4rem; /* Slightly larger icon */
+    color: #2c3e50;
+    padding: 5px;
+    cursor: pointer;
+}
+
+/* Dropdown Menu Styling */
+.custom-dropdown-menu {
+    border: none;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    border-radius: 12px;
+    padding: 10px;
+    min-width: 200px;
+    margin-top: 10px; /* Slight gap from navbar */
+}
+
+.custom-dropdown-menu .dropdown-item {
+    border-radius: 8px;
+    padding: 10px 15px;
+    font-weight: 500;
+    color: #2c3e50;
+    margin-bottom: 4px;
+}
+
+.custom-dropdown-menu .dropdown-item:hover,
+.custom-dropdown-menu .dropdown-item:active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.role-badge {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    color: #fff;
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    vertical-align: middle;
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 767px) {
+    .admin-navbar-top {
+        padding: 0 15px; /* Less padding on mobile edges */
+    }
+    
+    .header-image {
+        width: 120px; /* Smaller logo on mobile to save space */
+    }
+
+    .desktop-actions {
+        display: none !important; /* Strictly hide desktop menu */
+    }
+}
     </style>
 </head>
 <body>
     <div class="main-wrapper">
         <!-- White Admin Navbar -->
         <nav class="navbar admin-navbar">
-            <div class="admin-navbar-top">
-                <div class="admin-navbar-logo">
-                    <a href="/"><img src="{{ url_for('static', filename='images/logo5.png') }}" class="header-image" alt="Company Logo"></a>
-                </div>
-                
-                <div class="admin-navbar-actions">
-                    <span>
-                        Hi, <strong>{{ session.get('user_name', 'Admin') }}</strong>
-                        <span class="role-badge">ADMIN</span>
-                    </span>
-                    <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
-                    <a href="{{ url_for('logout') }}">Logout</a>
-                </div>
+    <div class="container-fluid admin-navbar-top">
+        <div class="admin-navbar-logo">
+            <a href="/">
+                <img src="{{ url_for('static', filename='images/logo5.png') }}" class="header-image" alt="Company Logo">
+            </a>
+        </div>
+        
+        <div class="admin-navbar-actions desktop-actions d-none d-md-flex">
+            <span>
+                Hi, <strong>{{ session.get('user_name', 'Admin') }}</strong>
+                <span class="role-badge">ADMIN</span>
+            </span>
+            <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('admin_subscribers') }}" class="{{ 'active' if active_section == 'subscribers' }}">
+                <i class="fas fa-envelope me-1"></i> Subscribers
+            </a>
+            <a href="{{ url_for('admin_doctors') }}" class="{{ 'active' if active_section == 'doctors' }}">
+                <i class="fas fa-user-md me-1"></i> Doctors
+            </a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+
+        <div class="mobile-actions d-md-none">
+            <div class="dropdown">
+                <button class="nav-mobile-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-user-circle fa-lg"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end custom-dropdown-menu">
+                    <li class="px-3 py-2 text-muted border-bottom mb-2">
+                        <small>Signed in as</small><br>
+                        <strong>{{ session.get('user_name', 'Admin') }}</strong>
+                        <span class="role-badge ms-2" style="font-size: 0.6rem;">ADMIN</span>
+                    </li>
+                    
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('admin_dashboard') }}">
+                            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('admin_subscribers') }}">
+                            <i class="fas fa-envelope me-2"></i> Subscribers
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('admin_doctors') }}">
+                            <i class="fas fa-user-md me-2"></i> Doctors Management
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
+                            <i class="fas fa-sign-out-alt me-2"></i> Logout
+                        </a>
+                    </li>
+                </ul>
             </div>
-        </nav>
+        </div>
+    </div>
+</nav>
 
         <!-- Alert Container -->
         <div class="alert-container">
@@ -786,7 +944,7 @@ code, pre {
                                 class="sidebar-btn {{ 'active' if active_section == 'navbar' }}">
                                     <i class="fas fa-bars"></i> Navbar Links
                                 </a>
-
+                            
                             
                         </div>
                     </div>
@@ -835,6 +993,28 @@ code, pre {
                                     </div>
                                 </div>
                             </div>
+                            <div class="row">
+        <!-- <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0 text-dark">Platform Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="platformChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0 text-dark">Monthly Orders (Trend)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div> -->
                         </div>
                         {% endblock %}
                     </div>
@@ -922,7 +1102,7 @@ $('#sidebarToggle, #sidebarCloseBtn').click(function() {
             $('.sidebar-btn').removeClass('active');
             $(this).addClass('active');
         });
-
+        
         // Stock filter functionality
         $('#stockFilter').change(function() {
             const filter = $(this).val();

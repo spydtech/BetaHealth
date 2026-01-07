@@ -160,6 +160,9 @@ code, pre {
         background: #c5f0b8; /* Only the navbar has green background */
         border-radius: 0 0 8px 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        position: sticky;      /* 1. Tells it to stick */
+  top: 0;                /* 2. Sticks exactly at the top (0px) */
+  z-index: 1020;
       }
 
       .navbar {
@@ -862,7 +865,7 @@ code, pre {
       }
       .bgc{
         padding-top: 5px;
-        padding-bottom: 5px;
+        padding-bottom: 0px;
         background-color: #0d3056ff;
       }
 
@@ -974,6 +977,7 @@ code, pre {
     gap: 10px;
     width: 100%;       /* force grid full width */
     margin: 0;         /* remove side margins */
+    
   }
 
   .image-grid a {
@@ -1394,11 +1398,177 @@ code, pre {
     display: block; 
   }
 }
+/* Newsletter Styles */
+.newsletter-wrapper {
+    text-align: center;
+    padding: 40px 20px;
+    background-color: #fff;
+    margin-top: 20px;
+}
 
+.newsletter-wrapper h2 {
+    font-size: 1.5rem;
+    font-weight: 400; /* Regular weight like screenshot */
+    margin-bottom: 25px;
+    color: #333;
+    font-family: 'Ubuntu', sans-serif;
+}
 
+.newsletter-form-container {
+    position: relative;
+    max-width: 400px;
+    margin: 0 auto 30px auto;
+    border: 1px solid #888;
+}
+
+.newsletter-input {
+    width: 100%;
+    padding: 12px 50px 12px 15px; /* Right padding for arrow */
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    color: #333;
+    background: transparent;
+}
+
+.newsletter-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: #333;
+    padding: 0;
+    transition: transform 0.2s;
+}
+
+.newsletter-btn:hover {
+    transform: translateY(-50%) translateX(3px); /* Subtle hover effect */
+}
+
+.newsletter-socials {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.newsletter-socials a {
+    color: #000;
+    font-size: 24px; /* Size for FontAwesome icons */
+    text-decoration: none;
+    transition: opacity 0.3s;
+}
+
+.newsletter-socials a:hover {
+    opacity: 0.7;
+}
+.announcement-bar {
+        background-color: white; /* Dark Blue from your palette */
+        color: #fff;
+        
+        /* Flexbox for responsive layout */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap; /* Allows text to wrap on small screens */
+        gap: 5px; /* Space between items when wrapped */
+        
+        text-align: center;
+        padding: 8px 15px; /* Added side padding for mobile */
+        font-size: 0.9rem; /* Increased slightly for readability */
+        font-weight: 500;
+        position: relative;
+        z-index: 101;
+        line-height: 1.4;
+    }
+
+    .announcement-bar a {
+        color: #ffb902; /* Your Yellow accent */
+        text-decoration: underline;
+        font-weight: 700;
+        white-space: nowrap; /* Ensures "Shop Now" doesn't break apart */
+        margin-left: 3px;
+    }
+
+    /* Mobile Specific Adjustments */
+    @media (max-width: 480px) {
+        .announcement-bar {
+            font-size: 0.8rem; /* Smaller font for small screens */
+            padding: 10px; /* Larger touch area */
+        }
+    }
+    /* Feature Box Styling */
+/* Feature/Benefit Section Styles */
+.feature-wrapper {
+    padding: 20px 0;
+    width: 100%;
+}
+
+.feature-item {
+    background: #fff;
+    border: 1px solid #e9ecef; /* Very light border */
+    border-radius: 12px; /* Soft rounded corners */
+    padding: 30px 20px;
+    height: 100%;
+    transition: all 0.3s ease-in-out;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Hover Effect: Lifts card and adds your Yellow brand color at bottom */
+.feature-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    border-color: transparent;
+    border-bottom: 4px solid #ffb902; /* BetaHealth Yellow */
+}
+
+/* Icon Container */
+.feature-icon-box {
+    width: 65px;
+    height: 65px;
+    background-color: rgba(13, 48, 86, 0.05); /* Very faint Dark Blue */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px auto;
+    color: #0d3056; /* BetaHealth Dark Blue */
+    font-size: 24px;
+    transition: transform 0.3s ease;
+}
+
+.feature-item:hover .feature-icon-box {
+    
+    color: #fff; /* Icon turns white */
+    transform: scale(1.1);
+}
+
+/* Text Styling */
+.feature-heading {
+    color: #333;
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+
+.feature-desc {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 0;
+    line-height: 1.5;
+}
 </style>
 </head>
 <body>
+  <div class="announcement-bar">
+    <span>🌿 Free Shipping on orders over ₹499! </span>
+</div>
 
 <!-- MODIFIED: Wrapped navbar in container for width control -->
 <div class="navbar-container">
@@ -1457,9 +1627,9 @@ code, pre {
       
     <div class="navbar-actions">
   {% if session.get('user_id') %}
-  <span class="username" style="margin-right: 10px;">
+  <!-- <span class="username" style="margin-right: 10px;">
     Hi, <span class="srp">{{ session.get('user_name') }}</span> 👋
-  </span>
+  </span> -->
   <a href="{{ url_for('logout') }}"class="d-inline d-sm-none">Logout</a>
 {% else %}
   <!-- Login visible only on small screens -->
@@ -1527,6 +1697,8 @@ code, pre {
             <li><a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a></li>
         {% elif session.get('user_role') == 'seller' %}
             <li><a href="{{ url_for('seller_dashboard') }}">Seller Dashboard</a></li>
+            {% elif session.get('user_role') == 'doctor' %}
+            <li><a href="{{ url_for('doctor_dashboard') }}">Doctor Dashboard</a></li>
         {% elif session.get('user_role') == 'customer' %}
         <li><a href="{{ url_for('profile') }}">Profile</a></li>
         {% endif %}
@@ -1538,7 +1710,7 @@ code, pre {
     {% endif %}
       
     </ul>
-  </div>99
+  </div>
 </nav>
 </div>
 
@@ -1873,7 +2045,7 @@ code, pre {
 </div>
 
 
-<div style="width: 100%;">
+<!-- <div style="width: 100%;">
     <a href="{{ url_for('contact') }}" title="Contact us" class="d-block">
       <img 
         src="{{ url_for('static', filename='images/Main_Banner_7.png') }}" 
@@ -1892,42 +2064,187 @@ code, pre {
         style="width: 100%; height: auto; display: block; border-top: 2px solid white;"
       >
     </a>
+</div> -->
+<div class="container my-5">
+    <div class="row g-4 text-center">
+        
+        <div class="col-6 col-md-3">
+            <div class="feature-item">
+                <div class="feature-icon-box">
+                    <i class="fas fa-leaf" style="color: #28a745;"></i>
+                </div>
+                <div class="feature-content">
+                    <h6 class="feature-heading">100% Natural</h6>
+                    <p class="feature-desc">No preservatives or additives added.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="feature-item">
+                <div class="feature-icon-box">
+                    <i class="fas fa-user-md" style="color: #0d3056;"></i>
+                </div>
+                <div class="feature-content">
+                    <h6 class="feature-heading">Doctor Consults</h6>
+                    <p class="feature-desc">Free advice from expert doctors.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="feature-item">
+                <div class="feature-icon-box">
+                    <i class="fas fa-shipping-fast"style="color: #ffb902;"></i>
+                </div>
+                <div class="feature-content">
+                    <h6 class="feature-heading">Fast Delivery</h6>
+                    <p class="feature-desc">Shipping across all of India.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="feature-item">
+                <div class="feature-icon-box">
+                    <i class="fas fa-shield-alt" style="color: red"></i>
+                </div>
+                <div class="feature-content">
+                    <h6 class="feature-heading">Secure Payment</h6>
+                    <p class="feature-desc">100% secure checkout process.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
 </div>
 </div>
 {% endblock %}
 {% if not hide_footer %}
-<section class="py-5 footer-info-section">
+
+
+
+<div class="consultation-wrapper py-3 py-md-5" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
     <div class="container">
-        <div class="row g-4">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-8 col-md-10">
+
+                <!-- Heading same as 1 -->
+                <div class="text-center mb-3 mb-md-4">
+                    <h2 style="font-family: 'Ubuntu', sans-serif; color: #333; font-size: clamp(1.3rem, 4vw, 1.8rem); margin-bottom: 0.5rem;">
+                        Talk to our Ayurvedic Consultants
+                    </h2>
+                    <p class="text-muted" style="font-size: 0.9rem;">
+                        Fill out the form below and our doctors will get back to you via email.
+                    </p>
+                </div>
+
+                <!-- Your form kept same backend + fields -->
+                <form action="{{ url_for('submit_consultation') }}" method="POST" class="bg-white p-3 p-md-4 shadow-sm rounded">
+
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="row g-2 g-md-3">
+
+                        <div class="col-12 col-md-6 mb-2 mb-md-3">
+                            <label class="form-label small text-muted" style="font-size: 0.85rem;">Name *</label>
+                            <input type="text" class="form-control form-control-sm" name="name" required
+                                   style="background-color: #f8f9fa; border: 1px solid #e9ecef; font-size: 0.9rem; padding: 0.5rem;">
+                        </div>
+
+                        <div class="col-12 col-md-6 mb-2 mb-md-3">
+                            <label class="form-label small text-muted" style="font-size: 0.85rem;">Email *</label>
+                            <input type="email" class="form-control form-control-sm" name="email" required
+                                   style="background-color: #f8f9fa; border: 1px solid #e9ecef; font-size: 0.9rem; padding: 0.5rem;">
+                        </div>
+                    </div>
+
+                    <div class="mb-2 mb-md-3">
+                        <label class="form-label small text-muted" style="font-size: 0.85rem;">Phone (Optional)</label>
+                        <input type="tel" class="form-control form-control-sm" name="phone"
+                               style="background-color: #f8f9fa; border: 1px solid #e9ecef; font-size: 0.9rem; padding: 0.5rem;">
+                    </div>
+
+                    <div class="mb-3 mb-md-4">
+                        <label class="form-label small text-muted" style="font-size: 0.85rem;">Your Health Concern *</label>
+                        <textarea class="form-control form-control-sm" name="message" rows="3" required
+                                  placeholder="Describe your issue..."
+                                  style="background-color: #f8f9fa; border: 1px solid #e9ecef; font-size: 0.9rem; padding: 0.5rem;"></textarea>
+                    </div>
+
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary px-4 px-md-5 py-1 py-md-2"
+                                style="background-color: #ffb902; border: none; color: #000; font-weight: 600; font-size: 0.9rem;">
+                            Send Request
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Footer -->
+
+<footer>
+  
+ 
+    <div class="newsletter-wrapper">
+        <h2>Subscribe to our emails</h2>
+       
+        
+        <form action="{{ url_for('subscribe') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="newsletter-form-container">
+                <input type="email" name="email" class="newsletter-input" placeholder="Email" required>
+                <button type="submit" class="newsletter-btn" aria-label="Subscribe" style="color: #007bff;">
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </form>
+
+        <div class="newsletter-socials" style="color: #007bff;">
+          <a href="#" target="_blank">
+                <i class="fab fa-facebook-f"></i>
+            </a>
+            <a href="#" target="_blank">
+                <i class="fab fa-instagram"></i>
+            </a>
+            <a href="#" target="_blank">
+                <i class="fab fa-youtube"></i>
+            </a>
+        </div>
+       
+    </div>
+   <section class="py-3 py-md-5 footer-info-section">
+    <div class="container">
+        <div class="row g-3 g-md-4">
             
             <!-- Company Info Column -->
             <div class="col-12 col-md-4">
-                <h5>BetaHealth</h5>
-                <p class="text-muted small">
+                <h5 style="font-size: 1.1rem; margin-bottom: 0.5rem;">BetaHealth</h5>
+                <p class="text-muted small" style="font-size: 0.85rem; line-height: 1.4;">
                     Dedicated to providing the finest natural health mixes and supplements. 
                     We believe in the power of nature to heal and rejuvenate.
                 </p>
-                <div class="mt-3">
-                    <a href="#" class="text-secondary" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" class="text-secondary" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-                    <a href="#" class="text-secondary" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
-                </div>
             </div>
 
             <!-- Contact Info Column -->
             <div class="col-12 col-md-4">
-                <h5>Contact Us</h5>
-                <ul class="list-unstyled text-muted small">
-                    <li>
-                        <i class="fas fa-map-marker-alt" style="color: #ffb902ff;"></i> 
+                <h5 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Contact Us</h5>
+                <ul class="list-unstyled text-muted small" style="font-size: 0.85rem;">
+                    <li class="mb-1">
+                        <i class="fas fa-map-marker-alt me-1" style="color: #ffb902ff; font-size: 0.9rem;"></i> 
                         <span>123 Wellness Avenue, Amalapuram, Andhra Pradesh, India - 533201</span>
                     </li>
-                    <li>
-                        <i class="fas fa-phone-alt" style="color: #ffb902ff;"></i> 
+                    <li class="mb-1">
+                        <i class="fas fa-phone-alt me-1" style="color: #ffb902ff; font-size: 0.9rem;"></i> 
                         <a href="tel:+919876543210" class="text-muted text-decoration-none">+91 98765 43210</a>
                     </li>
                     <li>
-                        <i class="fas fa-envelope" style="color: #ffb902ff;"></i> 
+                        <i class="fas fa-envelope me-1" style="color: #ffb902ff; font-size: 0.9rem;"></i> 
                         <a href="mailto:support@betahealth.com" class="text-muted text-decoration-none">support@betahealth.com</a>
                     </li>
                 </ul>
@@ -1935,11 +2252,11 @@ code, pre {
 
             <!-- Business Hours Column -->
             <div class="col-12 col-md-4">
-                <h5>Business Hours</h5>
-                <p class="text-muted small mb-3">
+                <h5 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Business Hours</h5>
+                <p class="text-muted small mb-2" style="font-size: 0.85rem;">
                     <strong>Monday - Saturday:</strong> 9:00 AM - 7:00 PM
                 </p>
-                <p class="text-muted small mb-0">
+                <p class="text-muted small mb-0" style="font-size: 0.85rem;">
                     <strong>Sunday:</strong> Closed (Orders accepted online 24/7)
                 </p>
             </div>
@@ -1948,33 +2265,22 @@ code, pre {
     </div>
 </section>
 
-{% endif %}
-
-<!-- Footer -->
- {% if not hide_footer %}
-<footer  >
-  
-    <!-- <div class="container2 text-center" >
-        <h2>Subscribe to our channels</h2><hr>
-        <div class="social d-flex justify-content-center gap-3">
-          <a href="https://instagram.com/aarogyanutrimix" style="margin-top:20px"><img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" width="24" alt="Instagram "></a>
-          <a href="https://www.youtube.com/@AarogyaNutriMix" style="margin-top:20px"><img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" width="24" alt="YouTube"></a>
+    <div class="bgc"> <div class="footer__copyright caption" style="padding-top: 10px; padding-bottom: 10px; color: white;">
+            <small class="copyright__content" style="color: white;">© 2025, <a href="/" title="" style="color: #0be4e4;">BetaHealth</a></small>
+            
+            <ul class="policies list-unstyled">
+                <li><small class="copyright__content"><a href="{{url_for('refund')}}" style="color: #0be4e4;">Refund policy</a></small></li>
+                <li><small class="copyright__content"><a href="{{url_for('privacy')}}" style="color: #0be4e4;">Privacy policy</a></small></li>
+                <li><small class="copyright__content"><a href="{{url_for('terms')}}" style="color: #0be4e4;">Terms of service</a></small></li>
+                <li><small class="copyright__content"><a href="{{url_for('shipping')}}" style="color: #0be4e4;">Shipping policy</a></small></li>
+                <li><small class="copyright__content"><a href="{{url_for('contact')}}" style="color: #0be4e4;">Contact information</a></small></li>
+            </ul>
         </div>
-    </div> -->
-    
-    <div class="footer__copyright caption" style="padding-top: 20px; padding-bottom: 10px;">
-        <small class="copyright__content">© 2025, <a href="/" title="">BetaHealth</a></small>
-        <small class="copyright__content"><a target="_blank" rel="nofollow" href="{{url_for('home')}}"> </a></small>
-        <ul class="policies list-unstyled">
-            <li><small class="copyright__content"><a href="{{url_for('refund')}}">Refund policy</a></small></li>
-            <li><small class="copyright__content"><a href="{{url_for('privacy')}}">Privacy policy</a></small></li>
-            <li><small class="copyright__content"><a href="{{url_for('terms')}}">Terms of service</a></small></li>
-            <li><small class="copyright__content"><a href="{{url_for('shipping')}}">Shipping policy</a></small></li>
-            <li><small class="copyright__content"><a href="{{url_for('contact')}}">Contact information</a></small></li>
-        </ul>
     </div>
+
+    
 </footer>
-  {% endif %}
+{% endif %}
 
 {% if session.get('user_role') == 'customer' %}
 <a href="{{ url_for('my_tickets') }}" 
@@ -1994,7 +2300,7 @@ code, pre {
     // Auto-dismiss alerts after 5 seconds
     $(document).ready(function() {
         setTimeout(function() {
-            $('.alert').alert('close');999
+            $('.alert').alert('close');
         }, 5000);
         
         // Prevent form submission on Enter key in dashboards

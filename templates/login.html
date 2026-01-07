@@ -335,6 +335,50 @@ code, pre {
         <div class="auth-links">
             Don't have an account? <a href="{{url_for('register') }}">Sign up</a>
         </div>
+        </form>
+
+<!-- ===== Social Login Divider ===== -->
+<div style="margin: 20px 0; display: flex; align-items: center;">
+    <hr style="flex: 1; border: none; height: 1px; background: #ddd;">
+    <span style="margin: 0 10px; color: #999; font-size: 13px;">OR</span>
+    <hr style="flex: 1; border: none; height: 1px; background: #ddd;">
+</div>
+
+<!-- ===== Google Login ===== -->
+<a href="{{ url_for('login_google') }}" style="text-decoration: none;">
+    <button type="button"
+        style="
+            background:#ffffff;
+            color:#444;
+            border:1px solid #ddd;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            gap:10px;
+            font-weight:500;
+        ">
+        <img src="https://developers.google.com/identity/images/g-logo.png" width="18">
+        Continue with Google
+    </button>
+</a>
+
+<!-- ===== Facebook Login ===== -->
+<a href="{{ url_for('login_facebook') }}" style="text-decoration: none;">
+    <button type="button"
+        style="
+            background:#1877f2;
+            color:white;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            gap:10px;
+            font-weight:500;
+        ">
+        <i class="fab fa-facebook-f"></i>
+        Continue with Facebook
+    </button>
+</a>
+
         <div class="footer">
             <li>
                 <small class="copyright__content"><a href="{{url_for('privacy')}}">Privacy policy</a></small>

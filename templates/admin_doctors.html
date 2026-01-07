@@ -1,0 +1,129 @@
+{% extends "admin_dashboard.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<div id="doctors-section" class="content-section active">
+    <h2><i class="fas fa-user-md me-3"></i>Doctors & Consultations</h2>
+
+    <div class="card dashboard-card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Add New Doctor</h5>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('admin_add_doctor') }}" method="POST" class="row g-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="col-md-4">
+                    <label class="form-label">Doctor Name</label>
+                    <input type="text" name="name" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" name="email" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Mobile Number</label>
+                    <input type="text" name="mobile" class="form-control" required>
+                </div>
+                <div class="col-12 text-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Create Doctor Account
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card dashboard-card mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Registered Doctors</h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Contact</th>
+                            <th>Specialization</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doctor in doctors %}
+                        <tr>
+                            <td>{{ doctor.id }}</td>
+                            <td>{{ doctor.name }}</td>
+                            <td>
+                                <div><i class="fas fa-envelope me-2 text-muted"></i>{{ doctor.email }}</div>
+                                <div><i class="fas fa-phone me-2 text-muted"></i>{{ doctor.mobile }}</div>
+                            </td>
+                            <td>{{ doctor.specialization or 'Not Updated' }}</td>
+                            <td>
+                                {% if doctor.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Setup Pending</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No doctors found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card dashboard-card">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="fas fa-comments me-2"></i>Patient Consultation Queries</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 15%">Date</th>
+                            <th style="width: 20%">Patient</th>
+                            <th style="width: 45%">Message</th>
+                            <th style="width: 10%">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inquiry in consultations %}
+                        <tr>
+                            <td><small>{{ inquiry.created_at.strftime('%Y-%m-%d') }}</small></td>
+                            <td>
+                                <div class="fw-bold">{{ inquiry.name }}</div>
+                                <small class="text-muted d-block">{{ inquiry.email }}</small>
+                                <small class="text-muted d-block">{{ inquiry.phone }}</small>
+                            </td>
+                            <td>
+                                <div class="text-wrap" style="max-height: 100px; overflow-y: auto;">
+                                    {{ inquiry.message }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if inquiry.status == 'Pending' %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {% elif inquiry.status == 'Contacted' %}
+                                    <span class="badge bg-info">Contacted</span>
+                                {% else %}
+                                    <span class="badge bg-success">Resolved</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">No consultation queries yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

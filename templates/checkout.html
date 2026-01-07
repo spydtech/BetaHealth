@@ -84,19 +84,36 @@
                 </div>
                 <div class="card-body">
                     <table class="table">
-                        <tbody>
-                            {% for item in cart_items %}
-                            <tr>
-                                <td>{{ item.title }} (x{{ item.quantity }})</td>
-                                <td class="text-end">₹{{ "%.2f"|format(item.price * item.quantity) }}</td>
-                            </tr>
-                            {% endfor %}
-                            <tr class="table-active">
-                                <th>Total</th>
-                                <th class="text-end">₹{{ "%.2f"|format(total_price) }}</th>
-                            </tr>
-                        </tbody>
-                    </table>
+    <tbody>
+        {% for item in cart_items %}
+        <tr>
+            <td>{{ item.title }} (x{{ item.quantity }})</td>
+            <td class="text-end">₹{{ "%.2f"|format(item.price * item.quantity) }}</td>
+        </tr>
+        {% endfor %}
+        
+        <tr>
+            <td class="fw-bold">Subtotal</td>
+            <td class="text-end fw-bold">₹{{ "%.2f"|format(subtotal) }}</td>
+        </tr>
+
+        <tr>
+            <td>Shipping Fee</td>
+            <td class="text-end">
+                {% if shipping_fee > 0 %}
+                    ₹{{ "%.2f"|format(shipping_fee) }}
+                {% else %}
+                    <span class="text-success">Free</span>
+                {% endif %}
+            </td>
+        </tr>
+
+        <tr class="table-active">
+            <th>Total</th>
+            <th class="text-end">₹{{ "%.2f"|format(total_price) }}</th>
+        </tr>
+    </tbody>
+</table>
                     <button type="submit" form="checkoutForm" class="btn btn-primary w-100">
                         Proceed to Payment
                     </button>

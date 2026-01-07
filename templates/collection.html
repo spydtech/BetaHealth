@@ -218,6 +218,11 @@
         padding: 15px;
     }
 }
+.pagination-container.hidden {
+    display: none !important;
+    margin: 0;
+}
+
 </style>
 
 
@@ -257,26 +262,31 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
     function setupPagination() {
-        const totalPages = Math.ceil(products.length / itemsPerPage);
-        if (totalPages <= 1) {
-            if(paginationContainer) paginationContainer.innerHTML = '';
-            return;
-        }
+    const totalPages = Math.ceil(products.length / itemsPerPage);
 
-        let paginationHTML = '';
-        for (let i = 1; i <= totalPages; i++) {
-            paginationHTML += `<button class="page-link" data-page="${i}">${i}</button>`;
-        }
-        paginationContainer.innerHTML = paginationHTML;
-
-        paginationContainer.addEventListener('click', function(e) {
-            if (e.target.matches('.page-link')) {
-                const page = parseInt(e.target.dataset.page, 10);
-                showPage(page);
-                productGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        });
+    if (totalPages <= 1) {
+        paginationContainer.innerHTML = '';
+        paginationContainer.classList.add('hidden'); // hide container
+        return;
     }
+
+    paginationContainer.classList.remove('hidden'); // show when pages > 1
+
+    let paginationHTML = '';
+    for (let i = 1; i <= totalPages; i++) {
+        paginationHTML += `<button class="page-link" data-page="${i}">${i}</button>`;
+    }
+    paginationContainer.innerHTML = paginationHTML;
+
+    paginationContainer.addEventListener('click', function(e) {
+        if (e.target.matches('.page-link')) {
+            const page = parseInt(e.target.dataset.page, 10);
+            showPage(page);
+            productGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+}
+
     function sortProducts() {
         const sortBy = sortSelect.value;
         switch (sortBy) {

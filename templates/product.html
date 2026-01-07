@@ -15,253 +15,217 @@
     </nav>
     <div class="row">
         <div class="col-md-6 product-image-section">
-  <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
-    <div id="productCarousel{{ product.id }}" class="carousel slide" data-bs-ride="carousel">
-      <div class="carousel-inner bg-white">
-        <!-- First Image -->
-        <div class="carousel-item active">
-          <img src="{{ url_for('static', filename='images/' ~ product.image) }}"
-               class="d-block w-100 img-fluid main-img"
-               alt="{{ product.title }}"
-               data-bs-toggle="modal"
-               data-bs-target="#lightboxModal{{ product.id }}">
-        </div>
+            <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+                <div id="productCarousel{{ product.id }}" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-inner bg-white">
+                        <div class="carousel-item active">
+                            <img src="{{ url_for('static', filename='images/' ~ product.image) }}"
+                                class="d-block w-100 img-fluid main-img"
+                                alt="{{ product.title }}"
+                                data-bs-toggle="modal"
+                                data-bs-target="#lightboxModal{{ product.id }}">
+                        </div>
 
-        <!-- Second Image -->
-        {% if product.image2 %}
-        <div class="carousel-item">
-          <img src="{{ url_for('static', filename='images/' ~ product.image2) }}"
-               class="d-block w-100 img-fluid main-img"
-               alt="{{ product.title }} - 2"
-               data-bs-toggle="modal"
-               data-bs-target="#lightboxModal{{ product.id }}">
-        </div>
-        {% endif %}
-      </div>
+                        {% if product.image2 %}
+                        <div class="carousel-item">
+                            <img src="{{ url_for('static', filename='images/' ~ product.image2) }}"
+                                class="d-block w-100 img-fluid main-img"
+                                alt="{{ product.title }} - 2"
+                                data-bs-toggle="modal"
+                                data-bs-target="#lightboxModal{{ product.id }}">
+                        </div>
+                        {% endif %}
+                    </div>
 
-      <!-- Controls -->
-      {% if product.image2 %}
-      <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel{{ product.id }}" data-bs-slide="prev">
-        <span class="carousel-control-prev-icon bg-dark rounded-circle p-2 shadow"></span>
-      </button>
-      <button class="carousel-control-next" type="button" data-bs-target="#productCarousel{{ product.id }}" data-bs-slide="next">
-        <span class="carousel-control-next-icon bg-dark rounded-circle p-2 shadow"></span>
-      </button>
-      {% endif %}
-    </div>
+                    {% if product.image2 %}
+                    <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel{{ product.id }}" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon bg-dark rounded-circle p-2 shadow"></span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#productCarousel{{ product.id }}" data-bs-slide="next">
+                        <span class="carousel-control-next-icon bg-dark rounded-circle p-2 shadow"></span>
+                    </button>
+                    {% endif %}
+                </div>
 
-    <!-- Thumbnails -->
-    <div class="d-flex justify-content-center gap-3 p-3 bg-light border-top">
-      <img src="{{ url_for('static', filename='images/' ~ product.image) }}"
-           width="70" class="img-thumbnail border-2 thumb active-thumb"
-           data-bs-target="#productCarousel{{ product.id }}" data-bs-slide-to="0"
-           style="cursor:pointer;">
-      {% if product.image2 %}
-      <img src="{{ url_for('static', filename='images/' ~ product.image2) }}"
-           width="70" class="img-thumbnail border-2 thumb"
-           data-bs-target="#productCarousel{{ product.id }}" data-bs-slide-to="1"
-           style="cursor:pointer;">
-      {% endif %}
-    </div>
-  </div>
-</div>
-
-<!-- Lightbox Modal -->
-<div class="modal fade" id="lightboxModal{{ product.id }}" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-xl">
-    <div class="modal-content bg-dark">
-      <div class="modal-body p-0">
-        <div id="lightboxCarousel{{ product.id }}" class="carousel slide" data-bs-ride="carousel">
-          <div class="carousel-inner text-center">
-            <div class="carousel-item active">
-              <img src="{{ url_for('static', filename='images/' ~ product.image) }}" alt="{{ product.title }}">
+                <div class="d-flex justify-content-center gap-3 p-3 bg-light border-top">
+                    <img src="{{ url_for('static', filename='images/' ~ product.image) }}"
+                        width="70" class="img-thumbnail border-2 thumb active-thumb"
+                        data-bs-target="#productCarousel{{ product.id }}" data-bs-slide-to="0"
+                        style="cursor:pointer;">
+                    {% if product.image2 %}
+                    <img src="{{ url_for('static', filename='images/' ~ product.image2) }}"
+                        width="70" class="img-thumbnail border-2 thumb"
+                        data-bs-target="#productCarousel{{ product.id }}" data-bs-slide-to="1"
+                        style="cursor:pointer;">
+                    {% endif %}
+                </div>
             </div>
-            {% if product.image2 %}
-            <div class="carousel-item">
-              <img src="{{ url_for('static', filename='images/' ~ product.image2) }}" alt="{{ product.title }} - 2">
-            </div>
-            {% endif %}
-          </div>
-          {% if product.image2 %}
-          <button class="carousel-control-prev" type="button" data-bs-target="#lightboxCarousel{{ product.id }}" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon"></span>
-          </button>
-          <button class="carousel-control-next" type="button" data-bs-target="#lightboxCarousel{{ product.id }}" data-bs-slide="next">
-            <span class="carousel-control-next-icon"></span>
-          </button>
-          {% endif %}
         </div>
-      </div>
-      <div class="modal-footer bg-dark border-0">
-        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
 
-
-
-
+        <div class="modal fade" id="lightboxModal{{ product.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered modal-xl">
+                <div class="modal-content bg-dark">
+                    <div class="modal-body p-0">
+                        <div id="lightboxCarousel{{ product.id }}" class="carousel slide" data-bs-ride="carousel">
+                            <div class="carousel-inner text-center">
+                                <div class="carousel-item active">
+                                    <img src="{{ url_for('static', filename='images/' ~ product.image) }}" alt="{{ product.title }}">
+                                </div>
+                                {% if product.image2 %}
+                                <div class="carousel-item">
+                                    <img src="{{ url_for('static', filename='images/' ~ product.image2) }}" alt="{{ product.title }} - 2">
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% if product.image2 %}
+                            <button class="carousel-control-prev" type="button" data-bs-target="#lightboxCarousel{{ product.id }}" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon"></span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#lightboxCarousel{{ product.id }}" data-bs-slide="next">
+                                <span class="carousel-control-next-icon"></span>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-dark border-0">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
 
         <div class="col-md-6 product-info-section">
             <div class="d-flex align-items-center justify-content-between">
-    <h1 class="product-page-title mb-0">{{ product.title }}</h1>
+                <h1 class="product-page-title mb-0">{{ product.title }}</h1>
 
-    <!-- Buttons side by side -->
-    <div class="d-flex align-items-center ms-3">
-        {% if session.user_role == 'customer' %}
-            <button id="wishlistBtn" 
-                    class="wishlist-btn" 
-                    data-product-id="{{ product.id }}">
-                {% if in_wishlist %}
-                ❤️
-                {% else %}
-                🤍
-                {% endif %}
-            </button>
-        {% endif %}
+                <div class="d-flex align-items-center ms-3">
+                    {% if session.user_role == 'customer' %}
+                    <button id="wishlistBtn" 
+                            class="wishlist-btn" 
+                            data-product-id="{{ product.id }}">
+                        {% if in_wishlist %}
+                        ❤️
+                        {% else %}
+                        🤍
+                        {% endif %}
+                    </button>
+                    {% endif %}
 
-        <button id="shareBtn" class="share-btn ms-2" title="Share this product">
-            <i class="bi bi-share-fill"></i>
-        </button>
-    </div>
-</div>
-
-
-
-<!-- Share Modal -->
-<div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title" id="shareModalLabel">Share this product</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body pt-2">
-                <div class="share-options">
-                    <!-- WhatsApp -->
-                    <a href="#" class="share-option" id="shareWhatsApp">
-                        <div class="share-icon whatsapp">
-                            <i class="bi bi-whatsapp"></i>
-                        </div>
-                        <span>WhatsApp</span>
-                    </a>
-                    
-                    <!-- Facebook -->
-                    <a href="#" class="share-option" id="shareFacebook">
-                        <div class="share-icon facebook">
-                            <i class="bi bi-facebook"></i>
-                        </div>
-                        <span>Facebook</span>
-                    </a>
-                    
-                    <!-- Twitter -->
-                    <a href="#" class="share-option" id="shareTwitter">
-                        <div class="share-icon twitter">
-                            <i class="bi bi-twitter"></i>
-                        </div>
-                        <span>Twitter</span>
-                    </a>
-                    
-                    <!-- Telegram -->
-                    <a href="#" class="share-option" id="shareTelegram">
-                        <div class="share-icon telegram">
-                            <i class="bi bi-telegram"></i>
-                        </div>
-                        <span>Telegram</span>
-                    </a>
-                    
-                    <!-- Copy Link -->
-                    <a href="#" class="share-option" id="copyLink">
-                        <div class="share-icon copy">
-                            <i class="bi bi-link-45deg"></i>
-                        </div>
-                        <span>Copy Link</span>
-                    </a>
+                    <button id="shareBtn" class="share-btn ms-2" title="Share this product">
+                        <i class="bi bi-share-fill"></i>
+                    </button>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
 
-<!-- Toast notification for copy link -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-   <div id="copyToast" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
-    <div class="d-flex">
-        <div class="toast-body">
-            <i class="bi bi-check-circle-fill me-2"></i>Link copied to clipboard!
-        </div>
-        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-    </div>
-</div>
 
-</div>
+            <div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header border-0 pb-0">
+                            <h5 class="modal-title" id="shareModalLabel">Share this product</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body pt-2">
+                            <div class="share-options">
+                                <a href="#" class="share-option" id="shareWhatsApp">
+                                    <div class="share-icon whatsapp">
+                                        <i class="bi bi-whatsapp"></i>
+                                    </div>
+                                    <span>WhatsApp</span>
+                                </a>
 
-            <!-- <div class="product-price-section mb-3">
-                <span class="current-price-lg">₹{{ "%.2f"|format(product.price) }}</span>
-                {% if product.compare_price and product.compare_price > product.price %}
-                <span class="compare-price-lg text-decoration-line-through ms-3">₹{{ "%.2f"|format(product.compare_price) }}</span>
-                <span class="discount">{{ "%.0f"|format(((product.compare_price - product.price) / product.compare_price) * 100) }}% off</span>
-                {% endif %}
-            </div>
-            <div class="availability mb-3">
-                {% if product.stock_quantity > 0 %}
-                    <i class="bi bi-check-circle-fill text-success"></i> Available ({{ product.stock_quantity }} in stock)
-                {% else %}
-                    <i class="bi bi-x-circle-fill text-danger"></i> Currently unavailable
-                {% endif %}
-            </div> -->
-            <!-- Price Section -->
-                <div class="price-section mb-3">
-                    <div class="current-price">₹{{ "%.0f"|format(product.price) }}</div>
-                    {% if product.compare_price and product.compare_price > product.price %}
-                    <div class="price-details">
-                        <span class="original-price">₹{{ "%.0f"|format(product.compare_price) }}</span>
-                        <span class="discount">{{ "%.0f"|format(((product.compare_price - product.price) / product.compare_price) * 100) }}% off</span>
+                                <a href="#" class="share-option" id="shareFacebook">
+                                    <div class="share-icon facebook">
+                                        <i class="bi bi-facebook"></i>
+                                    </div>
+                                    <span>Facebook</span>
+                                </a>
+
+                                <a href="#" class="share-option" id="shareTwitter">
+                                    <div class="share-icon twitter">
+                                        <i class="bi bi-twitter"></i>
+                                    </div>
+                                    <span>Twitter</span>
+                                </a>
+
+                                <a href="#" class="share-option" id="shareTelegram">
+                                    <div class="share-icon telegram">
+                                        <i class="bi bi-telegram"></i>
+                                    </div>
+                                    <span>Telegram</span>
+                                </a>
+
+                                <a href="#" class="share-option" id="copyLink">
+                                    <div class="share-icon copy">
+                                        <i class="bi bi-link-45deg"></i>
+                                    </div>
+                                    <span>Copy Link</span>
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                    {% endif %}
+                </div>
+            </div>
+
+            <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                <div id="copyToast" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi bi-check-circle-fill me-2"></i>Link copied to clipboard!
+                        </div>
+                        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
                 </div>
 
-                <!-- Availability Section -->
-                <div class="availability-section mb-4">
-                    {% if product.stock_quantity > 0 %}
-                        <span class="availability-badge in-stock">
-                            <i class="bi bi-check-circle-fill"></i>
-                            In Stock ({{ product.stock_quantity }} available)
-                        </span>
-                    {% else %}
-                        <span class="availability-badge out-of-stock">
-                            <i class="bi bi-x-circle-fill"></i>
-                            Currently Unavailable
-                        </span>
-                    {% endif %}
-                </div>
+            </div>
 
-
-            <!-- Product Description -->
-                <div class="product-description-section mb-4">
-                    <h5 class="section-heading">Product Description:</h5>
-                    <p class="product-description">{{ product.description }}</p>
-                </div>
-
-                <!-- Key Benefits -->
-                {% if product.benefits %}
-                <div class="product-benefits mb-4">
-                    <h5 class="section-heading">Key Benefits:</h5>
-                    <ul class="list-unstyled">
-                        {% for benefit in product.benefits %}
-                        <li><i class="bi bi-check-circle-fill me-2 text-success"></i>{{ benefit }}</li>
-                        {% endfor %}
-                    </ul>
+            <div class="price-section mb-3">
+                <div class="current-price">₹{{ "%.0f"|format(product.price) }}</div>
+                {% if product.compare_price and product.compare_price > product.price %}
+                <div class="price-details">
+                    <span class="original-price">₹{{ "%.0f"|format(product.compare_price) }}</span>
+                    <span class="discount">{{ "%.0f"|format(((product.compare_price - product.price) / product.compare_price) * 100) }}% off</span>
                 </div>
                 {% endif %}
+            </div>
+
+            <div class="availability-section mb-4">
+                {% if product.stock_quantity > 0 %}
+                <span class="availability-badge in-stock">
+                    <i class="bi bi-check-circle-fill"></i>
+                    In Stock ({{ product.stock_quantity }} available)
+                </span>
+                {% else %}
+                <span class="availability-badge out-of-stock">
+                    <i class="bi bi-x-circle-fill"></i>
+                    Currently Unavailable
+                </span>
+                {% endif %}
+            </div>
+
+
+            <div class="product-description-section mb-4">
+                <h5 class="section-heading">Product Description:</h5>
+                <p class="product-description">{{ product.description }}</p>
+            </div>
+
+            {% if product.benefits %}
+            <div class="product-benefits mb-4">
+                <h5 class="section-heading">Key Benefits:</h5>
+                <ul class="list-unstyled">
+                    {% for benefit in product.benefits %}
+                    <li><i class="bi bi-check-circle-fill me-2 text-success"></i>{{ benefit }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
 
 
             <div class="product-actions d-grid gap-2 mb-4">
-                
+
                 <form method="POST" action="{{ url_for('add_to_cart') }}">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                     <input type="hidden" name="product_id" value="{{ product.id }}">
                     <input type="hidden" name="title" value="{{ product.title }}">
@@ -278,46 +242,45 @@
 
             </div>
             {% if seller_info %}
-<div class="mt-3">
-  <span class="text-muted">Sold by:</span>
-  <a href="#" data-bs-toggle="modal" data-bs-target="#sellerModal"
-     class="text-decoration-none fw-semibold text-primary">
-     {{ seller_info.company_name or seller_info.seller_name }}
-  </a>
-</div>
+            <div class="mt-3">
+                <span class="text-muted">Sold by:</span>
+                <a href="#" data-bs-toggle="modal" data-bs-target="#sellerModal"
+                    class="text-decoration-none fw-semibold text-primary">
+                    {{ seller_info.company_name or seller_info.seller_name }}
+                </a>
+            </div>
 
-<!-- Seller Info Modal -->
-<div class="modal fade" id="sellerModal" tabindex="-1" aria-labelledby="sellerModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow-lg rounded-3">
-      <div class="modal-header bg-success text-white">
-        <h5 class="modal-title" id="sellerModalLabel">
-          {{ seller_info.company_name or seller_info.seller_name }}
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-  {% if seller_info.address %}
-    <p><strong>Address:</strong><br>{{ seller_info.address }}</p>
-  {% endif %}
-  {% if seller_info.gst_number %}
-    <p><strong>GSTIN:</strong> {{ seller_info.gst_number }}</p>
-  {% endif %}
-  <hr>
-  <span class="badge bg-success">Verified Seller</span>
-</div>
-<div class="modal-footer d-flex justify-content-between">
-  <a href="{{ url_for('seller_products', seller_id=seller_info.seller_id) }}"
-     class="btn btn-primary">
-     View All Products from this Seller
-  </a>
-  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-</div>
+            <div class="modal fade" id="sellerModal" tabindex="-1" aria-labelledby="sellerModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg rounded-3">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title" id="sellerModalLabel">
+                                {{ seller_info.company_name or seller_info.seller_name }}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            {% if seller_info.address %}
+                            <p><strong>Address:</strong><br>{{ seller_info.address }}</p>
+                            {% endif %}
+                            {% if seller_info.gst_number %}
+                            <p><strong>GSTIN:</strong> {{ seller_info.gst_number }}</p>
+                            {% endif %}
+                            <hr>
+                            <span class="badge bg-success">Verified Seller</span>
+                        </div>
+                        <div class="modal-footer d-flex justify-content-between">
+                            <a href="{{ url_for('seller_products', seller_id=seller_info.seller_id) }}"
+                                class="btn btn-primary">
+                                View All Products from this Seller
+                            </a>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
 
-    </div>
-  </div>
-</div>
-{% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
 
             {% if product.tags %}
@@ -331,11 +294,7 @@
 
             <div class="mt-5 product-extra-info">
                 <h5 class="section-heading">Additional Information</h5>
-                <!-- Bootstrap 5 CSS -->
-
-
-<!-- Nav Tabs -->
-                    <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab">Details</button>
                     </li>
@@ -345,10 +304,9 @@
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviews" type="button" role="tab">Reviews</button>
                     </li>
-                    </ul>
+                </ul>
 
-                    <!-- Tab Content -->
-                    <div class="tab-content pt-3" id="myTabContent">
+                <div class="tab-content pt-3" id="myTabContent">
                     <div class="tab-pane fade show active" id="details" role="tabpanel" aria-labelledby="details-tab">
                         <p>{{ product.details or 'No details available.' }}</p>
                     </div>
@@ -357,119 +315,154 @@
                     </div>
                     <div class="tab-pane fade" id="reviews" role="tabpanel" aria-labelledby="reviews-tab">
                         {% if session.user_id %}
-                            {% if user_has_purchased %}
-                                <form method="POST" action="{{ url_for('submit_review', product_id=product.id) }}">
-                                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        {% if user_has_purchased %}
+                        <form method="POST" action="{{ url_for('submit_review', product_id=product.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                                    <div class="mb-3">
-                                        <label for="rating" class="form-label">Rating:</label>
-                                        <select name="rating" id="rating" class="form-select" required>
-                                            <option value="">Select</option>
-                                            {% for i in range(1, 6) %}
-                                            <option value="{{ i }}">{{ i }} Star{{ 's' if i > 1 }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="review" class="form-label">Review:</label>
-                                        <textarea name="review" id="review" class="form-control" rows="3" required></textarea>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">Submit Review</button>
-                                </form>
-                            {% else %}
-                                <p class="text-muted">You must purchase this product to leave a review.</p>
-                            {% endif %}
+                            <div class="mb-3">
+                                <label for="rating" class="form-label">Rating:</label>
+                                <select name="rating" id="rating" class="form-select" required>
+                                    <option value="">Select</option>
+                                    {% for i in range(1, 6) %}
+                                    <option value="{{ i }}">{{ i }} Star{{ 's' if i > 1 }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="review" class="form-label">Review:</label>
+                                <textarea name="review" id="review" class="form-control" rows="3" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Submit Review</button>
+                        </form>
                         {% else %}
-                            <p><a href="{{ url_for('login') }}">Login</a> to leave a review.</p>
+                        <p class="text-muted">You must purchase this product to leave a review.</p>
                         {% endif %}
-                    <hr>
-                    {% if reviews %}
+                        {% else %}
+                        <p><a href="{{ url_for('login') }}">Login</a> to leave a review.</p>
+                        {% endif %}
+                        <hr>
+                        {% if reviews %}
                         <h6>Customer Reviews:</h6>
                         {% for r in reviews %}
-                            <div class="border rounded p-3 mb-2">
-                                <strong>{{ r.user_name }}</strong> – <span>{{ r.rating }}★</span><br>
-                                <small class="text-muted">{{ r.created_at.strftime('%b %d, %Y') }}</small>
-                                <p class="mb-0">{{ r.review }}</p>
-                            </div>
+                        <div class="border rounded p-3 mb-2">
+                            <strong>{{ r.user_name }}</strong> – <span>{{ r.rating }}★</span><br>
+                            <small class="text-muted">{{ r.created_at.strftime('%b %d, %Y') }}</small>
+                            <p class="mb-0">{{ r.review }}</p>
+                        </div>
                         {% endfor %}
-                    {% else %}
+                        {% else %}
                         <p>No reviews yet. Be the first to review this product!</p>
-                    {% endif %}
+                        {% endif %}
 
 
                     </div>
-
-                    </div>
-
-<!-- Bootstrap 5 JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
                 </div>
-            </div>
 
+                <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+            </div>
         </div>
+
     </div>
-    {% if recently_viewed %}
-<div class="mt-5">
-    
-    <div class="recently-viewed-wrapper position-relative">
-        
-        <button class="scroll-btn left-btn btn btn-light shadow" onclick="scrollRecentlyViewed(-1)">
-            &#8249;
-        </button>
-        <h3 class="mb-3">Recently Viewed</h3>
-        <div id="recentlyViewedContainer" class="recently-viewed-container d-flex overflow-auto pb-2">
-            
-            {% for product in recently_viewed %}
-            <div class="card me-3 flex-shrink-0" style="width: 180px;">
-                <a href="{{ url_for('product', product_id=product.id) }}">
-                    <img src="{{ url_for('static', filename='images/' + product.image) }}"
-                         class="card-img-top p-2" alt="{{ product.title }}"
-                         style="height: 150px; object-fit: contain;">
-                </a>
-                <div class="card-body text-center p-2">
-                    <h6 class="card-title text-truncate" title="{{ product.title }}">{{ product.title }}</h6>
-                    <p class="text-success fw-bold mb-1">₹{{ "%.2f"|format(product.price) }}</p>
+</div>
 
-                    {% if product.in_stock %}
-                        <span class="badge bg-success mb-2">In Stock</span>
-                    {% else %}
-                        <span class="badge bg-danger mb-2">Out of Stock</span>
-                    {% endif %}
-
-                    <a href="{{ url_for('product', product_id=product.id) }}" 
-                       class="btn btn-sm btn-outline-primary">View</a>
-                </div>
+{% if recently_viewed %}
+<div class="container mt-5 mb-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="fw-bold text-dark m-0">Recently Viewed</h4>
             </div>
-            {% endfor %}
-        </div>
 
-        <button class="scroll-btn right-btn btn btn-light shadow" onclick="scrollRecentlyViewed(1)">
-            &#8250;
-        </button>
+            <div class="recent-carousel-wrapper position-relative">
+                <button class="recent-nav-btn prev-btn shadow-sm" onclick="scrollRecentlyViewed(-1)">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+
+                <div id="recentlyViewedContainer" class="recent-scroll-container">
+                    {% for product in recently_viewed %}
+                    <a href="{{ url_for('product', product_id=product.id) }}" class="recent-card text-decoration-none text-dark">
+                        <div class="recent-card-img-wrapper">
+                            <img src="{{ url_for('static', filename='images/' + product.image) }}"
+                                alt="{{ product.title }}" loading="lazy">
+
+                           
+                        </div>
+
+                        <div class="recent-card-body">
+                            <h6 class="recent-title text-truncate" title="{{ product.title }}">{{ product.title }}</h6>
+                            <div class="d-flex align-items-center justify-content-between mt-2">
+                                <span class="recent-price">₹{{ "%.0f"|format(product.price) }}</span>
+                                {% if product.in_stock %}
+
+                        <span class="badge bg-success mb-2">In Stock</span>
+
+                    {% else %}
+
+                        <span class="badge bg-danger mb-2">Out of Stock</span>
+
+                    {% endif %}
+                                <span class="recent-arrow"><i class="bi bi-arrow-right-short"></i></span>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+
+                <button class="recent-nav-btn next-btn shadow-sm" onclick="scrollRecentlyViewed(1)">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 {% endif %}
+<div class="all-products container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="fw-semibold mb-0">All Products</h3>
+    </div>
+
+    <div class="products-grid">
+        {% for link in category_links %}
+        <a href="{{ link.url }}" class="product-card">
+            <div class="product-img-wrapper">
+                <img src="{{ url_for('static', filename=link.image_path.replace('\\','/')) }}"
+                    alt="{{ link.alt_text }}"
+                    loading="lazy">
+            </div>
+
+            <div class="product-card-body">
+                <p class="product-title" title="{{ link.title }}">{{ link.title }}</p>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
 </div>
+
 
 <style>
     .wishlist-btn {
-    background: none;
-    border: none;
-    font-size: 2rem;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-}
-.wishlist-btn:hover {
-    transform: scale(1.2);
-}
+        background: none;
+        border: none;
+        font-size: 2rem;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+
+    .wishlist-btn:hover {
+        transform: scale(1.2);
+    }
+
     /* Product Page Specific Styles (product.html) */
     .product-detail-container {
-        max-width: 1200px; /* Wider container for product page */
+        max-width: 1200px;
+        /* Wider container for product page */
     }
 
     .main-product-image {
-        max-height: 450px; /* Larger image on product page */
+        max-height: 450px;
+        /* Larger image on product page */
         object-fit: contain;
         border: 1px solid #eee;
         border-radius: 8px;
@@ -515,22 +508,26 @@
     }
 
     .product-benefits ul {
-        padding-left: 0; /* Remove default padding from ul */
+        padding-left: 0;
+        /* Remove default padding from ul */
     }
 
     .product-benefits li {
         font-size: 1rem;
         color: #555;
         margin-bottom: 8px;
-        list-style-type: none; /* Remove bullet points */
+        list-style-type: none;
+        /* Remove bullet points */
     }
 
     .product-benefits li i {
-        color: #28a745; /* Green checkmark icon */
+        color: #28a745;
+        /* Green checkmark icon */
         font-size: 1.1em;
     }
 
-    .add-to-cart-btn-lg, .buy-now-btn {
+    .add-to-cart-btn-lg,
+    .buy-now-btn {
         padding: 12px 30px;
         font-size: 1.2rem;
         border-radius: 8px;
@@ -541,6 +538,7 @@
         background-color: #ffc107;
         border-color: #ffc107;
     }
+
     .add-to-cart-btn-lg:hover {
         background-color: #ffc107;
         border-color: #ffc107;
@@ -551,6 +549,7 @@
         border-color: #6c757d;
         color: #6c757d;
     }
+
     .buy-now-btn:hover {
         background-color: #6c757d;
         color: #fff;
@@ -560,8 +559,10 @@
         font-size: 0.9em;
         padding: 6px 10px;
         border-radius: 5px;
-        background-color: #e9ecef !important; /* Light grey tag background */
-        color: #495057 !important; /* Darker tag text */
+        background-color: #e9ecef !important;
+        /* Light grey tag background */
+        color: #495057 !important;
+        /* Darker tag text */
         font-weight: normal;
     }
 
@@ -573,14 +574,18 @@
         border-bottom: 3px solid transparent;
         transition: border-color 0.2s ease;
     }
+
     .nav-tabs .nav-link.active {
         color: #007bff;
         border-bottom-color: #007bff;
         background-color: transparent;
     }
+
     .nav-tabs .nav-link:hover {
-        border-color: #e9ecef #e9ecef #007bff; /* Light hover border */
+        border-color: #e9ecef #e9ecef #007bff;
+        /* Light hover border */
     }
+
     .tab-content {
         border: 1px solid #dee2e6;
         border-top: none;
@@ -589,580 +594,695 @@
         border-bottom-right-radius: 8px;
         background-color: #fff;
     }
+
     .btn {
         width: 100%;
-    } 
+    }
+
     .thumb {
-    opacity: 0.7;
-    transition: all 0.3s ease-in-out;
-    border-radius: 0.5rem;
-  }
-  .thumb:hover {
-    opacity: 1;
-    transform: scale(1.05);
-  }
-  .active-thumb {
-    border: 2px solid #0d6efd !important; /* Bootstrap primary color */
-    opacity: 1;
-  }
-  .modal-body img {
-  max-width: 100%;
-  max-height: 80vh;  /* fit screen height */
-  object-fit: contain;
-  margin: 0 auto;
-  display: block;
-}
-/* Breadcrumb */
-.breadcrumb-nav {
-    margin-bottom: 16px;
-}
-
-.breadcrumb-list {
-    display: flex;
-    align-items: center;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    font-size: 14px;
-}
-
-.breadcrumb-list li {
-    display: flex;
-    align-items: center;
-}
-
-.breadcrumb-list a {
-    color: #007185;
-    text-decoration: none;
-}
-
-.breadcrumb-list a:hover {
-    color: #c7511f;
-    text-decoration: underline;
-}
-
-.separator {
-    margin: 0 8px;
-    color: #565959;
-}
-
-.current {
-    color: #565959;
-}
-/* Price Section */
-.price-section {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.current-price {
-    font-size: 28px;
-    font-weight: 500;
-    color: #212121;
-}
-
-.price-details {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.original-price {
-    font-size: 16px;
-    color: #878787;
-    text-decoration: line-through;
-}
-
-.discount {
-    color: #388e3c;
-    font-weight: 600;
-    font-size: 14px;
-}
-
-/* Availability Section */
-.availability-badge {
-    font-size: 14px;
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-.availability-badge.in-stock {
-    color: #388e3c;
-}
-.availability-badge.out-of-stock {
-    color: #ff6161;
-}
-
-.section-heading {
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: #444;
-    margin-bottom: 15px;
-}
-
-.product-description {
-    font-size: 1.1rem;
-    color: #555;
-    line-height: 1.6;
-    margin-bottom: 20px;
-}
-i{
-    color: white;
-}
-
-.share-btn {
-    background: none;
-    border: none;      /* ⬅ remove circle border */
-    width: auto;       /* let size adapt to icon */
-    height: auto;
-    font-size: 1.6rem; /* match wishlist size */
-    color: #333;       /* same as text/icons */
-    cursor: pointer;
-    transition: transform 0.2s ease;
-}
-
-.share-btn:hover {
-    transform: scale(1.2);
-    color: #000;       /* darker on hover */
-}
-.share-btn i {
-    color: rgb(62, 204, 166);
-}
-
-
-/* Share Modal */
-.share-options {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    padding: 8px 0;
-}
-
-.share-option {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-decoration: none;
-    color: #212121;
-    transition: transform 0.2s ease;
-    padding: 8px;
-    border-radius: 8px;
-}
-
-.share-option:hover {
-    transform: translateY(-4px);
-    background-color: #f8f9fa;
-}
-
-.share-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 8px;
-    font-size: 24px;
-    color: white;
-}
-
-.share-icon.whatsapp {
-    background: linear-gradient(135deg, #25D366, #128C7E);
-}
-
-.share-icon.facebook {
-    background: linear-gradient(135deg, #1877F2, #0C63D4);
-}
-
-.share-icon.twitter {
-    background: linear-gradient(135deg, #1DA1F2, #0D8BD9);
-}
-
-.share-icon.telegram {
-    background: linear-gradient(135deg, #0088cc, #006699);
-}
-
-.share-icon.copy {
-    background: linear-gradient(135deg, #6c757d, #495057);
-}
-
-.share-option span {
-    font-size: 12px;
-    font-weight: 500;
-    text-align: center;
-}
-
-/* Mobile Responsive */
-@media (max-width: 576px) {
-    .share-btn {
-        width: 40px;
-        height: 40px;
-        font-size: 1rem;
+        opacity: 0.7;
+        transition: all 0.3s ease-in-out;
+        border-radius: 0.5rem;
     }
-    
-    .share-options {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
-    }
-    
-    .share-icon {
-        width: 48px;
-        height: 48px;
-        font-size: 20px;
-    }
-}
 
-/* Toast Animation */
-.toast {
-    animation: slideIn 0.3s ease-out;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
+    .thumb:hover {
+        opacity: 1;
+        transform: scale(1.05);
     }
-    to {
-        transform: translateX(0);
+
+    .active-thumb {
+        border: 2px solid #0d6efd !important;
+        /* Bootstrap primary color */
         opacity: 1;
     }
-}
-#copyToast {
-    background-color: #c5f0b8 !important; /* match navbar */
-    color: #000 !important;              /* dark text for contrast */
-}
-/* Recently Viewed Section Styles */
-.recently-viewed-container {
-    scroll-behavior: smooth;
-    scrollbar-width: thin;
-    scrollbar-color: #bbb transparent;
-    display: flex;
-    overflow-x: auto;
-    padding-bottom: 8px;
-}
 
-.recently-viewed-container::-webkit-scrollbar {
-    height: 8px;
-}
+    .modal-body img {
+        max-width: 100%;
+        max-height: 80vh;
+        /* fit screen height */
+        object-fit: contain;
+        margin: 0 auto;
+        display: block;
+    }
 
-.recently-viewed-container::-webkit-scrollbar-thumb {
-    background: #bbb;
-    border-radius: 4px;
-}
+    /* Breadcrumb */
+    .breadcrumb-nav {
+        margin-bottom: 16px;
+    }
 
-.scroll-btn {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 10;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex; /* Always visible when needed */
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    cursor: pointer;
-    background: white;
-    border: 1px solid #dee2e6;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-}
+    .breadcrumb-list {
+        display: flex;
+        align-items: center;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-size: 14px;
+    }
 
-/* FIXED: moved inside edges instead of outside */
-.left-btn { 
-    left: 10px; 
-}
+    .breadcrumb-list li {
+        display: flex;
+        align-items: center;
+    }
 
-.right-btn { 
-    right: 10px; 
-}
+    .breadcrumb-list a {
+        color: #007185;
+        text-decoration: none;
+    }
 
-.scroll-btn:hover {
-    background: #f8f9fa;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
+    .breadcrumb-list a:hover {
+        color: #c7511f;
+        text-decoration: underline;
+    }
 
-/* Keep hidden only if not scrollable */
-.recently-viewed-container[data-scrollable="false"] ~ .scroll-btn {
-    display: none !important;
-}
+    .separator {
+        margin: 0 8px;
+        color: #565959;
+    }
+
+    .current {
+        color: #565959;
+    }
+
+    /* Price Section */
+    .price-section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .current-price {
+        font-size: 28px;
+        font-weight: 500;
+        color: #212121;
+    }
+
+    .price-details {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .original-price {
+        font-size: 16px;
+        color: #878787;
+        text-decoration: line-through;
+    }
+
+    .discount {
+        color: #388e3c;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    /* Availability Section */
+    .availability-badge {
+        font-size: 14px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .availability-badge.in-stock {
+        color: #388e3c;
+    }
+
+    .availability-badge.out-of-stock {
+        color: #ff6161;
+    }
+
+    .section-heading {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #444;
+        margin-bottom: 15px;
+    }
+
+    .product-description {
+        font-size: 1.1rem;
+        color: #555;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+
+    /* Only target specific icons if needed, or remove completely if not used */
+    .share-icon i {
+        color: white;
+    }
+
+    .share-btn {
+        background: none;
+        border: none;
+        /* ⬅ remove circle border */
+        width: auto;
+        /* let size adapt to icon */
+        height: auto;
+        font-size: 1.6rem;
+        /* match wishlist size */
+        color: #333;
+        /* same as text/icons */
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+
+    .share-btn:hover {
+        transform: scale(1.2);
+        color: #000;
+        /* darker on hover */
+    }
+
+    .share-btn i {
+        color: rgb(62, 204, 166);
+    }
 
 
-/* Card styles for recently viewed items */
-.recently-viewed-container .card {
-    width: 180px;
-    flex-shrink: 0;
-    margin-right: 16px;
-    transition: transform 0.2s ease;
-    border: 1px solid #e0e0e0;
-}
+    /* Share Modal */
+    .share-options {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        padding: 8px 0;
+    }
 
-.recently-viewed-container .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
+    .share-option {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-decoration: none;
+        color: #212121;
+        transition: transform 0.2s ease;
+        padding: 8px;
+        border-radius: 8px;
+    }
 
-.recently-viewed-container .card-img-top {
-    height: 150px;
-    object-fit: contain;
-    padding: 8px;
-}
+    .share-option:hover {
+        transform: translateY(-4px);
+        background-color: #f8f9fa;
+    }
 
-.recently-viewed-container .card-body {
-    padding: 12px;
-    text-align: center;
-}
+    .share-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 8px;
+        font-size: 24px;
+        color: white;
+    }
 
-.recently-viewed-container .card-title {
-    font-size: 0.9rem;
-    margin-bottom: 8px;
-    display: -webkit-box;
-   
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    height: 2.4em;
-    line-height: 1.2em;
-}
+    .share-icon.whatsapp {
+        background: linear-gradient(135deg, #25D366, #128C7E);
+    }
 
-/* Position relative for the container */
-.recently-viewed-wrapper {
-    position: relative;
-}
+    .share-icon.facebook {
+        background: linear-gradient(135deg, #1877F2, #0C63D4);
+    }
 
-/* Hide scrollbar when no overflow */
-.recently-viewed-container[data-scrollable="false"] {
-    justify-content: center;
-}
-h3{
+    .share-icon.twitter {
+        background: linear-gradient(135deg, #1DA1F2, #0D8BD9);
+    }
+
+    .share-icon.telegram {
+        background: linear-gradient(135deg, #0088cc, #006699);
+    }
+
+    .share-icon.copy {
+        background: linear-gradient(135deg, #6c757d, #495057);
+    }
+
+    .share-option span {
+        font-size: 12px;
+        font-weight: 500;
+        text-align: center;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 576px) {
+        .share-btn {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
+        }
+
+        .share-options {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .share-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 20px;
+        }
+    }
+
+    /* Toast Animation */
+    .toast {
+        animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    #copyToast {
+        background-color: #c5f0b8 !important;
+        /* match navbar */
+        color: #000 !important;
+        /* dark text for contrast */
+    }
+
+    /* --- Modern Recently Viewed Carousel --- */
+    .recent-carousel-wrapper {
+        position: relative;
+        /* Create a hover zone for arrows */
+        padding: 0 10px;
+    }
+
+    .recent-scroll-container {
+        display: flex;
+        overflow-x: auto;
+        scroll-behavior: smooth;
+        gap: 20px;
+        padding: 10px 5px 20px 5px;
+        /* Bottom padding accounts for shadow */
+
+        /* Hide Scrollbar (Chrome/Safari/Opera) */
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .recent-scroll-container::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Hide Scrollbar (IE/Edge/Firefox) */
+    .recent-scroll-container {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    /* Card Design */
+    .recent-card {
+        flex: 0 0 200px;
+        /* Fixed card width */
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .recent-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        border-color: transparent;
+    }
+
+    /* Image Area */
+    .recent-card-img-wrapper {
+        height: 160px;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 15px;
+        position: relative;
+    }
+
+    .recent-card-img-wrapper img {
+        max-height: 100%;
+        max-width: 100%;
+        object-fit: contain;
+        transition: transform 0.3s ease;
+    }
+
+    .recent-card:hover .recent-card-img-wrapper img {
+        transform: scale(1.05);
+    }
+
+    /* Card Body */
+    .recent-card-body {
+        padding: 12px 15px;
+        background: white;
+    }
+
+    .recent-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 0;
+        color: #333;
+    }
+
+    .recent-price {
+        font-weight: 700;
+        color: #212529;
+        font-size: 1rem;
+    }
+
+    .recent-arrow {
+        color: #0d6efd;
+        opacity: 0;
+        transform: translateX(-10px);
+        transition: all 0.3s ease;
+    }
+
+    .recent-card:hover .recent-arrow {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    /* Navigation Buttons */
+    .recent-nav-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 40px;
+        height: 40px;
+        background: white;
+        border: 1px solid #eee;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 10;
+        font-size: 1.2rem;
+        color: #333;
+        transition: all 0.2s ease;
+    }
+
+    .recent-nav-btn:hover {
+        background: #0d6efd;
+        color: white;
+        border-color: #0d6efd;
+    }
+
+    .prev-btn {
+        left: -20px;
+    }
+
+    .next-btn {
+        right: -20px;
+    }
+
+    /* Hide arrows if on mobile (touch is better) or disabled via JS */
+    .recent-nav-btn.hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    @media (max-width: 768px) {
+        .recent-nav-btn {
+            display: none;
+        }
+
+        /* Hide arrows on mobile */
+        .recent-card {
+            flex: 0 0 160px;
+        }
+
+        /* Smaller cards on mobile */
+        .recent-card-img-wrapper {
+            height: 130px;
+        }
+    }
+
+
+    h3 {
         color: black;
     }
 
-#sellerModal .modal-content {
-  border-radius: 12px;
-}
-#sellerModal .modal-header {
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
-}
-/* Center Recently Viewed on large screens */
-@media (min-width: 992px) {
-  .recently-viewed-container {
-    justify-content: center;
-  }
-  
-}
-@media (min-width: 992px) {
-  .recently-viewed-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
+    #sellerModal .modal-content {
+        border-radius: 12px;
+    }
 
-  .recently-viewed-wrapper h3 {
-    align-self: flex-start;
-    margin-left: 10%; /* aligns roughly with first card */
-  }
+    #sellerModal .modal-header {
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+    }
 
-  .recently-viewed-container {
-    justify-content: center;
-  }
-}
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 18px;
+    }
 
+    .product-card {
+        background: #ffffff;
+        border-radius: 14px;
+        text-decoration: none;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+        transition: all .25s ease;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
 
+    .product-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+    }
 
+    .product-img-wrapper {
+        background: #f9fafb;
+        height: 170px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+    }
+
+    .product-img-wrapper img {
+        max-height: 100%;
+        max-width: 100%;
+        object-fit: contain;
+    }
+
+    .product-card-body {
+        padding: 10px 14px 14px 14px;
+        text-align: center;
+    }
+
+    .product-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 0;
+
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 </style>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-    const wishlistBtn = document.getElementById("wishlistBtn");
-    if (!wishlistBtn) return;
+    document.addEventListener("DOMContentLoaded", () => {
+        const wishlistBtn = document.getElementById("wishlistBtn");
+        if (!wishlistBtn) return;
 
-    wishlistBtn.addEventListener("click", function(e) {
-        e.preventDefault();
+        wishlistBtn.addEventListener("click", function(e) {
+            e.preventDefault();
 
-        const productId = this.dataset.productId;
-        const csrfToken = "{{ csrf_token() }}";
+            const productId = this.dataset.productId;
+            const csrfToken = "{{ csrf_token() }}";
 
-        fetch(`/toggle-wishlist/${productId}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": csrfToken
-            },
-            body: JSON.stringify({})
-        })
-        .then(res => res.json())
-        .then(data => {
-            wishlistBtn.innerHTML = data.in_wishlist ? "❤️" : "🤍";
-        })
-        .catch(err => console.error("Wishlist toggle failed", err));
-    });
-});
-</script>
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-  const carousel = document.querySelector("#productCarousel{{ product.id }}");
-  if (carousel) {
-    carousel.addEventListener("slid.bs.carousel", function (event) {
-      let thumbs = carousel.closest(".card").querySelectorAll(".thumb");
-      thumbs.forEach(t => t.classList.remove("active-thumb"));
-      thumbs[event.to].classList.add("active-thumb");
-    });
-  }
-});
-</script>
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-    const shareBtn = document.getElementById("shareBtn");
-    const shareModal = new bootstrap.Modal(document.getElementById("shareModal"));
-    const copyToast = new bootstrap.Toast(document.getElementById("copyToast"));
-    
-    // Get product details for sharing
-    const productTitle = "{{ product.title }}";
-    const productUrl = window.location.href;
-    const productPrice = "₹{{ '%.0f'|format(product.price) }}";
-    const shareText = `Check out ${productTitle} for ${productPrice} on BetaHealth!`;
-    
-    // Open share modal
-    if (shareBtn) {
-        shareBtn.addEventListener("click", () => {
-            shareModal.show();
+            fetch(`/toggle-wishlist/${productId}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(res => res.json())
+                .then(data => {
+                    wishlistBtn.innerHTML = data.in_wishlist ? "❤️" : "🤍";
+                })
+                .catch(err => console.error("Wishlist toggle failed", err));
         });
-    }
-    
-    // WhatsApp share
-    document.getElementById("shareWhatsApp")?.addEventListener("click", (e) => {
-        e.preventDefault();
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText + " " + productUrl)}`;
-        window.open(whatsappUrl, "_blank");
-        shareModal.hide();
     });
-    
-    // Facebook share
-    document.getElementById("shareFacebook")?.addEventListener("click", (e) => {
-        e.preventDefault();
-        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}`;
-        window.open(facebookUrl, "_blank", "width=600,height=400");
-        shareModal.hide();
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const carousel = document.querySelector("#productCarousel{{ product.id }}");
+        if (carousel) {
+            carousel.addEventListener("slid.bs.carousel", function(event) {
+                let thumbs = carousel.closest(".card").querySelectorAll(".thumb");
+                thumbs.forEach(t => t.classList.remove("active-thumb"));
+                thumbs[event.to].classList.add("active-thumb");
+            });
+        }
     });
-    
-    // Twitter share
-    document.getElementById("shareTwitter")?.addEventListener("click", (e) => {
-        e.preventDefault();
-        const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(productUrl)}`;
-        window.open(twitterUrl, "_blank", "width=600,height=400");
-        shareModal.hide();
-    });
-    
-    // Telegram share
-    document.getElementById("shareTelegram")?.addEventListener("click", (e) => {
-        e.preventDefault();
-        const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(productUrl)}&text=${encodeURIComponent(shareText)}`;
-        window.open(telegramUrl, "_blank");
-        shareModal.hide();
-    });
-    
-   // Copy link
-document.getElementById("copyLink")?.addEventListener("click", (e) => {
-    e.preventDefault();
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const shareBtn = document.getElementById("shareBtn");
+        const shareModal = new bootstrap.Modal(document.getElementById("shareModal"));
+        const copyToast = new bootstrap.Toast(document.getElementById("copyToast"));
 
-    const productUrl = window.location.href;
+        // Get product details for sharing
+        const productTitle = "{{ product.title }}";
+        const productUrl = window.location.href;
+        const productPrice = "₹{{ '%.0f'|format(product.price) }}";
+        const shareText = `Check out ${productTitle} for ${productPrice} on BetaHealth!`;
 
-    // Modern API first (works only on https or localhost)
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(productUrl).then(() => {
-            copyToast.show();
+        // Open share modal
+        if (shareBtn) {
+            shareBtn.addEventListener("click", () => {
+                shareModal.show();
+            });
+        }
+
+        // WhatsApp share
+        document.getElementById("shareWhatsApp")?.addEventListener("click", (e) => {
+            e.preventDefault();
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText + " " + productUrl)}`;
+            window.open(whatsappUrl, "_blank");
             shareModal.hide();
-        }).catch(err => {
-            console.error("Clipboard API failed:", err);
-            fallbackCopy(productUrl);
         });
-    } else {
-        // Fallback for http or older browsers
-        fallbackCopy(productUrl);
-    }
-});
 
-// Fallback function
-function fallbackCopy(text) {
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-    textArea.style.position = "fixed"; // prevent scrolling
-    textArea.style.opacity = "0";
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
+        // Facebook share
+        document.getElementById("shareFacebook")?.addEventListener("click", (e) => {
+            e.preventDefault();
+            const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}`;
+            window.open(facebookUrl, "_blank", "width=600,height=400");
+            shareModal.hide();
+        });
 
-    try {
-        document.execCommand("copy");
-        copyToast.show();
-        shareModal.hide();
-    } catch (err) {
-        console.error("Fallback copy failed", err);
-        alert("Please copy the link manually: " + text);
-    }
+        // Twitter share
+        document.getElementById("shareTwitter")?.addEventListener("click", (e) => {
+            e.preventDefault();
+            const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(productUrl)}`;
+            window.open(twitterUrl, "_blank", "width=600,height=400");
+            shareModal.hide();
+        });
 
-    document.body.removeChild(textArea);
-}
+        // Telegram share
+        document.getElementById("shareTelegram")?.addEventListener("click", (e) => {
+            e.preventDefault();
+            const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(productUrl)}&text=${encodeURIComponent(shareText)}`;
+            window.open(telegramUrl, "_blank");
+            shareModal.hide();
+        });
+
+        // Copy link
+        document.getElementById("copyLink")?.addEventListener("click", (e) => {
+            e.preventDefault();
+
+            const productUrl = window.location.href;
+
+            // Modern API first (works only on https or localhost)
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(productUrl).then(() => {
+                    copyToast.show();
+                    shareModal.hide();
+                }).catch(err => {
+                    console.error("Clipboard API failed:", err);
+                    fallbackCopy(productUrl);
+                });
+            } else {
+                // Fallback for http or older browsers
+                fallbackCopy(productUrl);
+            }
+        });
+
+        // Fallback function
+        function fallbackCopy(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed"; // prevent scrolling
+            textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand("copy");
+                copyToast.show();
+                shareModal.hide();
+            } catch (err) {
+                console.error("Fallback copy failed", err);
+                alert("Please copy the link manually: " + text);
+            }
+
+            document.body.removeChild(textArea);
+        }
 
 
-});
+    });
 </script>
-<script>const shareBtn = document.getElementById("shareBtn");
+<script>
+    const shareBtn = document.getElementById("shareBtn");
     const shareModal = new bootstrap.Modal(document.getElementById("shareModal"));
     const copyToast = new bootstrap.Toast(document.getElementById("copyToast"), {
         autohide: true,
         delay: 2000
-    });</script>
-<script>
-    // Recently Viewed Scroll Functionality
-function updateArrowVisibility() {
-    const container = document.getElementById("recentlyViewedContainer");
-    if (!container) return;
-
-    const leftBtn = document.querySelector(".left-btn");
-    const rightBtn = document.querySelector(".right-btn");
-
-    // Show/hide left button
-    if (container.scrollLeft <= 0) {
-        leftBtn.style.display = "none";
-    } else {
-        leftBtn.style.display = "flex";
-    }
-
-    // Show/hide right button
-    if (container.scrollLeft + container.clientWidth >= container.scrollWidth - 5) {
-        rightBtn.style.display = "none";
-    } else {
-        rightBtn.style.display = "flex";
-    }
-}
-
-function scrollRecentlyViewed(direction) {
-    const container = document.getElementById("recentlyViewedContainer");
-    if (!container) return;
-
-    const scrollAmount = 200;
-    container.scrollBy({ 
-        left: direction * scrollAmount, 
-        behavior: 'smooth' 
     });
+</script>
+<script>
+    // Modern Recently Viewed Scroll Functionality
+    function updateArrowVisibility() {
+        const container = document.getElementById("recentlyViewedContainer");
+        if (!container) return;
 
-    setTimeout(updateArrowVisibility, 300);
-}
+        // Use querySelector to find buttons within the wrapper to be safe
+        const leftBtn = container.parentElement.querySelector(".prev-btn");
+        const rightBtn = container.parentElement.querySelector(".next-btn");
 
-document.addEventListener("DOMContentLoaded", () => {
-    const container = document.getElementById("recentlyViewedContainer");
-    if (container) {
-        updateArrowVisibility();
-        container.addEventListener("scroll", updateArrowVisibility);
-        
-        // Update on window resize
-        window.addEventListener('resize', updateArrowVisibility);
+        if (!leftBtn || !rightBtn) return;
+
+        // Logic for Left Button
+        if (container.scrollLeft <= 10) { // Tolerance of 10px
+            leftBtn.classList.add("hidden");
+        } else {
+            leftBtn.classList.remove("hidden");
+        }
+
+        // Logic for Right Button
+        // Rounding is needed for zoom levels/high DPI screens
+        if (Math.ceil(container.scrollLeft + container.clientWidth) >= container.scrollWidth - 10) {
+            rightBtn.classList.add("hidden");
+        } else {
+            rightBtn.classList.remove("hidden");
+        }
     }
-});
+
+    function scrollRecentlyViewed(direction) {
+        const container = document.getElementById("recentlyViewedContainer");
+        if (!container) return;
+
+        const scrollAmount = 300; // Adjusted for new card width
+        container.scrollBy({
+            left: direction * scrollAmount,
+            behavior: 'smooth'
+        });
+
+        // Small delay to allow scroll to start before checking arrows
+        setTimeout(updateArrowVisibility, 300);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const container = document.getElementById("recentlyViewedContainer");
+        if (container) {
+            updateArrowVisibility();
+            container.addEventListener("scroll", updateArrowVisibility);
+
+            // Update on window resize
+            window.addEventListener('resize', updateArrowVisibility);
+        }
+    });
 </script>
 
 {% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Doctor Setup{% endblock %}
+{% block content %}
+<div class="container py-5" style="margin-top: 80px;">
+    <div class="card mx-auto shadow" style="max-width: 450px;">
+        <div class="card-header bg-primary text-white text-center"><h4 class="mb-0">Activate Doctor Account</h4></div>
+        <div class="card-body p-4">
+            <p class="text-muted text-center mb-4">Enter your registered email to set your password.</p>
+            <form action="{{ url_for('doctor_setup') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="mb-3"><label class="form-label">Email</label><input type="email" name="email" class="form-control" required></div>
+                <div class="mb-4"><label class="form-label">New Password</label><input type="password" name="password" class="form-control" required></div>
+                <button type="submit" class="btn btn-primary w-100">Set Password & Login</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

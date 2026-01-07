@@ -1,0 +1,45 @@
+{% extends "admin_dashboard.html" %}
+{% block title %}Email Subscribers{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-users me-2"></i>Email Subscribers</h2>
+        <div>
+            <a href="{{ url_for('export_subscribers') }}" class="btn btn-success btn-sm me-2">
+                <i class="fas fa-file-csv me-1"></i> Export CSV
+            </a>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Email Address</th>
+                            <th>Subscribed Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sub in subscribers %}
+                        <tr>
+                            <td>{{ sub.id }}</td>
+                            <td>{{ sub.email }}</td>
+                            <td>{{ sub.subscribed_at.strftime('%Y-%m-%d %H:%M') if sub.subscribed_at else 'N/A' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">No subscribers found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

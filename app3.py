@@ -1,5 +1,5 @@
-from flask import Flask, render_template, redirect, url_for, request, session, abort, flash,jsonify,json,get_flashed_messages
-import difflib
+from flask import Flask, render_template, redirect, url_for, request, session, abort, flash,jsonify,json,get_flashed_messages,Response
+import difflib,csv,io
 import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
 import random
@@ -16,6 +16,7 @@ import string
 import time
 from flask_caching import Cache
 from math import ceil
+from social_auth import init_social_auth, register_social_routes
 
 RAZORPAY_KEY_ID = "rzp_live_RWWvXeMcmTohhi"
 RAZORPAY_KEY_SECRET = "iT1TKCVOdkVqmW2fOrbI6Fr2"
@@ -67,7 +68,8 @@ def get_db_connection():
         # You might want to render an error page or flash a message here in a real app
         abort(500, "Database connection failed.")
 
-
+init_social_auth(app)
+register_social_routes(app, get_db_connection)
 # --- Database Initialization ---
 def init_db():
     """Initializes the database by creating necessary tables if they don't exist."""
@@ -159,7 +161,36 @@ def init_db():
             FOREIGN KEY (return_request_id) REFERENCES return_requests(id) ON DELETE CASCADE
         )
     """)
-
+    # --- Subscribers Table ---
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS subscribers (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            email VARCHAR(255) NOT NULL UNIQUE,
+            subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS consultations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            email VARCHAR(255) NOT NULL,
+            phone VARCHAR(20),
+            message TEXT NOT NULL,
+            status ENUM('Pending', 'Contacted', 'Resolved') DEFAULT 'Pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    
+    # 2. Doctor Profiles Table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS doctor_profiles (
+            user_id INT PRIMARY KEY,
+            specialization VARCHAR(255),
+            bio TEXT,
+            clinic_address TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
     # --- orders ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS orders (
@@ -703,6 +734,45 @@ def update_db_schema():
                     ALTER TABLE orders 
                     ADD COLUMN delivered_at DATETIME 
                 """)
+        # auth_provider column
+        cursor.execute("""
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'users'
+            AND COLUMN_NAME = 'auth_provider'
+        """)
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("""
+                ALTER TABLE users
+                ADD COLUMN auth_provider ENUM('local','google','facebook') DEFAULT 'local'
+            """)
+
+        # oauth_id column
+        cursor.execute("""
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'users'
+            AND COLUMN_NAME = 'oauth_id'
+        """)
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("""
+                ALTER TABLE users
+                ADD COLUMN oauth_id VARCHAR(255)
+            """)
+
+        # make password_hash nullable
+        cursor.execute("""
+            SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'users'
+            AND COLUMN_NAME = 'password_hash'
+        """)
+        row = cursor.fetchone()
+        if row and row[0] == 'NO':
+            cursor.execute("""
+                ALTER TABLE users
+                MODIFY password_hash VARCHAR(255) NULL
+            """)
 
         conn.commit()
         print("✅ Database schema updated successfully")
@@ -1198,24 +1268,48 @@ def get_products_by_category_from_db(category_name):
 
 
 # --- Helper Functions for Database Operations (Users) ---
-def get_user_by_id(user_id):
-    """Fetches a user by ID."""
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
-    user = cursor.fetchone()
-    conn.close()
-    return user
+# def get_user_by_id(user_id):
+#     """Fetches a user by ID."""
+#     conn = get_db_connection()
+#     cursor = conn.cursor(dictionary=True)
+#     cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+#     user = cursor.fetchone()
+#     conn.close()
+#     return user
 
+# def get_user_by_email(email):
+#     """Fetches a user by email."""
+#     conn = get_db_connection()
+#     cursor = conn.cursor(dictionary=True)
+#     cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+#     user = cursor.fetchone()
+#     conn.close()
+#     return user
 def get_user_by_email(email):
-    """Fetches a user by email."""
+    """Fetches a user by email including mobile."""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+    cursor.execute("""
+        SELECT id, name, email, mobile, password_hash, role, is_active 
+        FROM users 
+        WHERE email = %s
+    """, (email,))
     user = cursor.fetchone()
     conn.close()
     return user
 
+def get_user_by_id(user_id):
+    """Fetches a user by ID including mobile."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT id, name, email, mobile, role, is_active 
+        FROM users 
+        WHERE id = %s
+    """, (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+    return user
 def get_all_users_from_db():
     """Fetches all users from the database."""
     conn = get_db_connection()
@@ -1676,6 +1770,8 @@ def product(product_id):
     # Get reviews for the product
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM category_links WHERE is_active = TRUE ORDER BY sort_order ASC")
+    category_links = cursor.fetchall()
     cursor.execute("""
         SELECT r.*, u.name as user_name FROM product_reviews r
         JOIN users u ON r.user_id = u.id
@@ -1718,7 +1814,7 @@ def product(product_id):
                            collection_title=collection_title,
                            reviews=reviews,
                            seller_info=seller_info,
-                           user_has_purchased=user_has_purchased,in_wishlist=in_wishlist,recently_viewed=recently_viewed)
+                           user_has_purchased=user_has_purchased,in_wishlist=in_wishlist,recently_viewed=recently_viewed,category_links=category_links)
 
 @app.route('/seller/<int:seller_id>')
 def seller_products(seller_id):
@@ -1949,11 +2045,21 @@ def cart():
             product = get_product_by_id_from_db(item['id'])
             item['in_stock'] = product['stock_quantity'] > 0 if product else False
 
-    total_price = sum(item['price'] * item['quantity'] for item in cart_items)
+    subtotal = sum(item['price'] * item['quantity'] for item in cart_items)
+    
+    SHIPPING_FEE = 50
+    FREE_SHIPPING_THRESHOLD = 499
+    
+    if subtotal > 0 and subtotal < FREE_SHIPPING_THRESHOLD:
+        shipping_fee = SHIPPING_FEE
+    else:
+        shipping_fee = 0
+        
+    total_price = subtotal + shipping_fee
     recently_viewed = session.get('recently_viewed', [])
     wishlist_length = get_wishlist_length()
 
-    return render_template('cart.html', cart_items=cart_items, total_price=total_price,recently_viewed=recently_viewed,wishlist_length=wishlist_length)
+    return render_template('cart.html', cart_items=cart_items, total_price=total_price,recently_viewed=recently_viewed,wishlist_length=wishlist_length,shipping_fee=shipping_fee,subtotal=subtotal)
 
 @app.route('/remove-from-cart/<product_id>', methods=['POST'])
 def remove_from_cart(product_id):
@@ -2096,6 +2202,95 @@ def profile():
 
     return render_template("profile.html", user=user, addresses=addresses, orders=orders, wishlist=wishlist)
 
+@app.route('/subscribe', methods=['POST'])
+def subscribe():
+    email = request.form.get('email')
+    
+    # Simple validation
+    if not email or '@' not in email:
+        flash("Please provide a valid email address.", "warning")
+        return redirect(request.referrer or url_for('home'))
+        
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Check if already subscribed to avoid error
+        cursor.execute("SELECT id FROM subscribers WHERE email = %s", (email,))
+        if cursor.fetchone():
+            flash("You are already subscribed!", "info")
+        else:
+            cursor.execute("INSERT INTO subscribers (email) VALUES (%s)", (email,))
+            conn.commit()
+            try:
+                msg = Message("Welcome to BetaHealth! ", recipients=[email])
+                msg.body = "Thanks for subscribing! Keep shoping 😊."
+                # You can also use an HTML template here like you do for orders
+                mail.send(msg) 
+            except Exception as e:
+                print(f"Error sending welcome email: {e}")
+            flash("Successfully subscribed to our emails!", "success")
+    except Exception as e:
+        conn.rollback()
+        print(f"Subscription error: {e}")
+        flash("An error occurred. Please try again.", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+        
+    return redirect(request.referrer or url_for('home'))
+
+@app.route('/admin/subscribers/export')
+@role_required('admin')
+def export_subscribers():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT id, email, subscribed_at FROM subscribers ORDER BY subscribed_at DESC")
+        subscribers = cursor.fetchall()
+        
+        # Create an in-memory string buffer
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write the header row
+        writer.writerow(['ID', 'Email Address', 'Date Subscribed'])
+        
+        # Write data rows
+        for sub in subscribers:
+            # Format the date if it exists, otherwise leave blank
+            date_str = sub[2].strftime('%Y-%m-%d %H:%M:%S') if sub[2] else ''
+            writer.writerow([sub[0], sub[1], date_str])
+            
+        # Prepare the response
+        output.seek(0)
+        return Response(
+            output.getvalue(),
+            mimetype="text/csv",
+            headers={"Content-Disposition": "attachment;filename=subscribers_list.csv"}
+        )
+    except Exception as e:
+        flash(f"Error exporting subscribers: {str(e)}", "danger")
+        return redirect(url_for('admin_subscribers'))
+    finally:
+        cursor.close()
+        conn.close()
+@app.route('/admin/subscribers')
+@role_required('admin') # Uses your existing role decorator
+def admin_subscribers():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # Fetch subscribers from the 'subscribers' table
+        cursor.execute("SELECT * FROM subscribers ORDER BY subscribed_at DESC")
+        subscribers = cursor.fetchall()
+        return render_template('admin_subscribers.html', subscribers=subscribers, active_section='subscribers')
+    except Exception as e:
+        flash(f"Error fetching subscribers: {str(e)}", "danger")
+        return redirect(url_for('admin_dashboard'))
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/profile/address/add', methods=['POST'])
 def add_address():
@@ -3778,6 +3973,22 @@ def admin_dashboard():
     
     cursor.execute("SELECT COUNT(*) as count FROM orders")
     orders = cursor.fetchone()['count']
+    cursor.execute("""
+        SELECT 
+            DATE_FORMAT(order_date, '%b') as month_name, 
+            SUM(total_amount) as total_sales
+        FROM orders 
+        WHERE status IN ('paid', 'confirmed', 'shipped', 'delivered')
+        AND order_date >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+        GROUP BY DATE_FORMAT(order_date, '%Y-%m'), month_name
+        ORDER BY DATE_FORMAT(order_date, '%Y-%m') ASC
+    """)
+    sales_data = cursor.fetchall()
+    
+    # Process data for Chart.js (separate labels and values into lists)
+    # If no sales exist, these lists will be empty []
+    sales_labels = [row['month_name'] for row in sales_data]
+    sales_values = [float(row['total_sales']) for row in sales_data]
     
     conn.close()
     
@@ -3786,6 +3997,8 @@ def admin_dashboard():
                          sellers=sellers,
                          customers=customers,
                          orders=orders,
+                         sales_labels=sales_labels,
+                         sales_values=sales_values,
                          active_section='dashboard')
 
 @app.route('/admin/products')
@@ -4175,31 +4388,7 @@ Support Team
     conn.close()
 
 
-def get_user_by_email(email):
-    """Fetches a user by email including mobile."""
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT id, name, email, mobile, password_hash, role, is_active 
-        FROM users 
-        WHERE email = %s
-    """, (email,))
-    user = cursor.fetchone()
-    conn.close()
-    return user
 
-def get_user_by_id(user_id):
-    """Fetches a user by ID including mobile."""
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT id, name, email, mobile, role, is_active 
-        FROM users 
-        WHERE id = %s
-    """, (user_id,))
-    user = cursor.fetchone()
-    conn.close()
-    return user
 
 
 def get_navbar_links():
@@ -4962,37 +5151,32 @@ def buy_now():
 
 
 
-
-
-
 # Route to render checkout page and create Razorpay order
 @app.route('/checkout', methods=['GET', 'POST'])
-
 @role_required('customer')
 def checkout():
     user_id = session['user_id']
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    # ✅ Fetch user email for prefill
+    # Fetch user email for prefill
     cursor.execute("SELECT email FROM users WHERE id = %s", (user_id,))
     user = cursor.fetchone()
     user_email = user['email'] if user else ''
 
-    # ✅ Fetch saved addresses
+    # Fetch saved addresses
     cursor.execute("SELECT * FROM user_addresses WHERE user_id = %s", (user_id,))
     addresses = cursor.fetchall()
 
-    # ✅ Check if "buy now"
-    buy_now_product = session.get('buy_now_product') # Use .get() to avoid popping it on GET request
+    # --- 1. Fetch Items & Calculate Subtotal ---
+    buy_now_product = session.get('buy_now_product') 
 
     if buy_now_product:
         cart_items = [buy_now_product]
-        # Fetch stock quantity for buy now item
         cursor.execute("SELECT COALESCE(stock_quantity, 0) as stock_quantity FROM inventory WHERE product_id = %s", (buy_now_product['id'],))
         stock = cursor.fetchone()
         cart_items[0]['stock_quantity'] = stock['stock_quantity'] if stock else 0
-        total_price = buy_now_product['price']
+        subtotal = buy_now_product['price'] 
     else:
         cursor.execute("""
             SELECT ci.*, COALESCE(i.stock_quantity, 0) as stock_quantity
@@ -5001,9 +5185,9 @@ def checkout():
             WHERE ci.user_id = %s
         """, (user_id,))
         cart_items = cursor.fetchall()
-        total_price = sum(item['price'] * item['quantity'] for item in cart_items)
+        subtotal = sum(item['price'] * item['quantity'] for item in cart_items)
 
-    # ✅ Stock check
+    # --- 2. Stock Validation ---
     if not cart_items:
         flash("Your cart is empty.", "warning")
         return redirect(url_for('cart'))
@@ -5013,11 +5197,21 @@ def checkout():
         flash(f"Item '{out_of_stock[0]['title']}' is out of stock or has insufficient quantity.", "danger")
         return redirect(url_for('cart'))
 
+    # --- 3. SHIPPING FEE LOGIC ---
+    SHIPPING_FEE = 50
+    FREE_SHIPPING_THRESHOLD = 499
+    
+    if subtotal < FREE_SHIPPING_THRESHOLD:
+        shipping_fee = SHIPPING_FEE
+    else:
+        shipping_fee = 0
+    
+    total_price = subtotal + shipping_fee
+
     if request.method == 'POST':
-        # This is now submitted from a single form
         address_id = request.form.get('address_id')
 
-        # ✅ Case 1: Saved Address
+        # Case 1: Saved Address
         if address_id:
             cursor.execute("SELECT * FROM user_addresses WHERE id=%s AND user_id=%s", (address_id, user_id))
             selected_address = cursor.fetchone()
@@ -5036,7 +5230,7 @@ def checkout():
                 'phone': selected_address['mobile']
             }
 
-        # ✅ Case 2: New Address (with validation)
+        # Case 2: New Address
         else:
             full_name = request.form.get('full_name')
             shipping_address = request.form.get('shipping_address')
@@ -5045,13 +5239,13 @@ def checkout():
             pincode = request.form.get('pincode')
             phone = request.form.get('phone')
 
-            # ✅ Server-side validation
             if not all([full_name, shipping_address, city, state, pincode, phone]):
                 flash("Please fill out all new address fields or select a saved address.", "danger")
                 conn.close()
-                # Re-render the GET page, passing all original context
                 return render_template("checkout.html",
                                        cart_items=cart_items,
+                                       subtotal=subtotal,
+                                       shipping_fee=shipping_fee,
                                        total_price=total_price,
                                        addresses=addresses,
                                        user_email=user_email)
@@ -5065,29 +5259,19 @@ def checkout():
                 'phone': phone
             }
 
-            # Save new address
             is_default = 1 if request.form.get('is_default') else 0
             if is_default:
                 cursor.execute("UPDATE user_addresses SET is_default=0 WHERE user_id=%s", (user_id,))
             cursor.execute("""
                 INSERT INTO user_addresses (user_id, name, mobile, address_line1, city, state, pincode, country, is_default)
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """, (
-                user_id,
-                shipping_info['full_name'],
-                shipping_info['phone'],
-                shipping_info['address'],
-                shipping_info['city'],
-                shipping_info['state'],
-                shipping_info['pincode'],
-                "India",
-                is_default
-            ))
+            """, (user_id, shipping_info['full_name'], shipping_info['phone'], shipping_info['address'], 
+                  shipping_info['city'], shipping_info['state'], shipping_info['pincode'], "India", is_default))
             conn.commit()
 
-        # ✅ Create Razorpay Order
+        # Create Razorpay Order
         order_data = {
-            "amount": int(total_price * 100),
+            "amount": int(total_price * 100), 
             "currency": "INR",
             "payment_capture": 1,
             "notes": {
@@ -5099,7 +5283,6 @@ def checkout():
         try:
             razorpay_order = razorpay_client.order.create(data=order_data)
             
-            # ✅ Pop 'buy_now_product' only AFTER successful POST
             if buy_now_product:
                 session.pop('buy_now_product', None)
                 
@@ -5107,29 +5290,33 @@ def checkout():
                 'shipping_info': shipping_info,
                 'razorpay_order_id': razorpay_order['id'],
                 'total_amount': total_price,
+                'subtotal': subtotal,
+                'shipping_fee': shipping_fee,
                 'cart_items': [{'id': item['id'], 'quantity': item['quantity']} for item in cart_items],
                 'is_buy_now': bool(buy_now_product)
             }
             
             conn.close()
 
-            # ✅ Pass all required keys to the template
             return render_template("checkout.html",
                                    razorpay_order_id=razorpay_order['id'],
+                                   subtotal=subtotal,
+                                   shipping_fee=shipping_fee,
                                    total_price=total_price,
-                                   razorpay_key=RAZORPAY_KEY_ID, # <-- FIX
+                                   razorpay_key=RAZORPAY_KEY_ID,
                                    cart_items=cart_items,
                                    addresses=addresses,
-                                   user_email=user_email) # <-- FIX
+                                   user_email=user_email)
         except Exception as e:
             flash(f"Error creating payment order: {str(e)}", "danger")
             conn.close()
             return redirect(url_for('cart'))
 
-    # ✅ GET Request
     conn.close()
     return render_template("checkout.html",
                            cart_items=cart_items,
+                           subtotal=subtotal,
+                           shipping_fee=shipping_fee,
                            total_price=total_price,
                            addresses=addresses,
                            user_email=user_email)
@@ -6411,6 +6598,208 @@ def admin_refund_ticket(ticket_id):
         conn.close()
         
     return redirect(url_for('admin_ticket_view', ticket_id=ticket_id))
+
+@app.route('/admin/doctors')
+@role_required('admin')
+def admin_doctors():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Fetch Doctors
+    cursor.execute("""
+        SELECT u.id, u.name, u.email, u.mobile, u.is_active, dp.specialization 
+        FROM users u
+        LEFT JOIN doctor_profiles dp ON u.id = dp.user_id
+        WHERE u.role = 'doctor'
+        ORDER BY u.created_at DESC
+    """)
+    doctors = cursor.fetchall()
+
+    # Fetch Patient Consultations
+    cursor.execute("SELECT * FROM consultations ORDER BY created_at DESC")
+    consultations = cursor.fetchall()
+    
+    conn.close()
+    return render_template('admin_doctors.html', 
+                           doctors=doctors, 
+                           consultations=consultations, 
+                           active_section='doctors')
+
+# 2. Admin: Add Doctor
+@app.route('/admin/add_doctor', methods=['POST'])
+@role_required('admin')
+def admin_add_doctor():
+    name = request.form.get('name')
+    email = request.form.get('email')
+    mobile = request.form.get('mobile')
+    
+    # Temporary password hash to force setup
+    temp_hash = generate_password_hash("SETUP_REQUIRED_" + str(random.random()))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Check if email exists
+        cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
+        if cursor.fetchone():
+            flash("Email already registered.", "danger")
+            return redirect(url_for('admin_doctors'))
+
+        cursor.execute(
+            "INSERT INTO users (name, email, mobile, password_hash, role) VALUES (%s, %s, %s, %s, 'doctor')",
+            (name, email, mobile, temp_hash)
+        )
+        user_id = cursor.lastrowid
+        cursor.execute("INSERT INTO doctor_profiles (user_id) VALUES (%s)", (user_id,))
+        
+        conn.commit()
+        flash(f"Doctor {name} added. Ask them to setup password using {email}.", "success")
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error adding doctor: {str(e)}", "danger")
+    finally:
+        conn.close()
+    return redirect(url_for('admin_doctors'))
+
+# 3. Doctor: Account Setup
+@app.route('/doctor/setup', methods=['GET', 'POST'])
+def doctor_setup():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        hashed_pw = generate_password_hash(password)
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT id FROM users WHERE email = %s AND role = 'doctor'", (email,))
+        user = cursor.fetchone()
+        
+        if user:
+            cursor.execute("UPDATE users SET password_hash = %s, is_active = 1 WHERE email = %s", (hashed_pw, email))
+            conn.commit()
+            flash("Account activated! You can now login.", "success")
+            return redirect(url_for('doctor_login'))
+        else:
+            flash("Email not found in doctor records.", "danger")
+        conn.close()
+            
+    return render_template('doctor_setup.html')
+
+# 4. Doctor: Login
+@app.route('/doctor/login', methods=['GET', 'POST'])
+def doctor_login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        
+        user = get_user_by_email(email)
+        
+        if user and check_password_hash(user['password_hash'], password):
+            if user['role'] != 'doctor':
+                flash("This account is not authorized as a doctor.", "danger")
+                return redirect(url_for('doctor_login'))
+                
+            session['user_id'] = user['id']
+            session['user_name'] = user['name']
+            session['user_role'] = 'doctor'
+            
+            flash("Login successful", "success")
+            return redirect(url_for('doctor_dashboard'))
+        else:
+            flash("Invalid email or password", "danger")
+            
+    return render_template('doctor_login.html')
+
+# 5. Doctor: Dashboard
+@app.route('/doctor/dashboard')
+@role_required('doctor')
+def doctor_dashboard():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("SELECT * FROM doctor_profiles WHERE user_id = %s", (session['user_id'],))
+    profile = cursor.fetchone()
+    
+    cursor.execute("SELECT * FROM consultations ORDER BY created_at DESC")
+    enquiries = cursor.fetchall()
+    
+    conn.close()
+    return render_template('doctor_dashboard.html', profile=profile, enquiries=enquiries)
+
+# 6. Doctor: Update Profile
+@app.route('/doctor/update_profile', methods=['POST'])
+@role_required('doctor')
+def doctor_update_profile():
+    spec = request.form.get('specialization')
+    bio = request.form.get('bio')
+    addr = request.form.get('clinic_address')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO doctor_profiles (user_id, specialization, bio, clinic_address) 
+            VALUES (%s, %s, %s, %s) 
+            ON DUPLICATE KEY UPDATE specialization=%s, bio=%s, clinic_address=%s
+        """, (session['user_id'], spec, bio, addr, spec, bio, addr))
+        conn.commit()
+        flash("Profile updated successfully!", "success")
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error updating profile: {str(e)}", "danger")
+    finally:
+        conn.close()
+    return redirect(url_for('doctor_dashboard'))
+
+# 7. Doctor: Update Consultation Status (NEW)
+@app.route('/doctor/update_consultation_status/<int:consultation_id>', methods=['POST'])
+@role_required('doctor')
+def update_consultation_status(consultation_id):
+    new_status = request.form.get('status')
+    
+    if new_status not in ['Pending', 'Contacted', 'Resolved']:
+        flash("Invalid status.", "danger")
+        return redirect(url_for('doctor_dashboard'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE consultations SET status = %s WHERE id = %s", (new_status, consultation_id))
+        conn.commit()
+        flash(f"Consultation marked as {new_status}.", "success")
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error updating status: {str(e)}", "danger")
+    finally:
+        conn.close()
+    return redirect(url_for('doctor_dashboard'))
+
+# 8. Public: Submit Consultation
+@app.route('/submit_consultation', methods=['POST'])
+def submit_consultation():
+    name = request.form.get('name')
+    email = request.form.get('email')
+    phone = request.form.get('phone')
+    msg = request.form.get('message')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO consultations (name, email, phone, message) VALUES (%s, %s, %s, %s)", 
+            (name, email, phone, msg)
+        )
+        conn.commit()
+        flash("Enquiry sent successfully! Our doctors will contact you soon.", "success")
+    except Exception as e:
+        conn.rollback()
+        flash("Error sending enquiry. Please try again.", "danger")
+    finally:
+        conn.close()
+    return redirect(request.referrer or url_for('home'))
+
+
 
 @app.context_processor
 def inject_navbar():

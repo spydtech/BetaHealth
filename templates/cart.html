@@ -583,9 +583,46 @@ code, pre {
         </tbody>
     </table>
 
-    <div class="text-end mt-3">
+    <!-- <div class="text-end mt-3">
         <h4>Total Amount: ₹{{ "%.2f"|format(total_price) }}</h4>
+    </div> -->
+    <div class="row justify-content-end mt-4">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body bg-light rounded">
+                <h5 class="card-title mb-4 fw-bold border-bottom pb-2">Order Summary</h5>
+                
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Subtotal</span>
+                    <span class="fw-bold">₹{{ "%.2f"|format(subtotal) }}</span>
+                </div>
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Shipping Fee</span>
+                    {% if shipping_fee > 0 %}
+                        <span class="text-danger">+ ₹{{ "%.2f"|format(shipping_fee) }}</span>
+                    {% else %}
+                        <span class="text-success fw-bold">Free</span>
+                    {% endif %}
+                </div>
+
+                {% if shipping_fee > 0 %}
+                <div class="alert alert-warning py-2 my-2 text-center" style="font-size: 0.9rem;">
+                    Add <strong>₹{{ "%.2f"|format(499 - subtotal) }}</strong> more for <br>
+                    <span class="fw-bold text-success"><i class="fas fa-truck"></i> Free Shipping!</span>
+                </div>
+                {% endif %}
+
+                <hr>
+
+                <div class="d-flex justify-content-between align-items-center mb-0">
+                    <span class="h5 mb-0">Total</span>
+                    <span class="h4 mb-0 text-primary fw-bold">₹{{ "%.2f"|format(total_price) }}</span>
+                </div>
+            </div>
+        </div>
     </div>
+</div>
 
     <div class="d-flex flex-row justify-content-between align-items-center gap-2 mt-4 mb-3">
     <div class="d-flex flex-row gap-2">
